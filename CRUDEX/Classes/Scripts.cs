@@ -238,6 +238,13 @@ namespace crudex.Classes
 
         static bool IsInWordsColumn(DataRow column) => Settings.ToBoolean(column["IsInWords"]);
 
+        static bool IsVirtualColumn(DataRow column) =>
+            column.Table.Columns.Contains("IsVirtual") && Settings.ToBoolean(column["IsVirtual"]);
+
+        static List<DataRow> GetTableColumnRows(TDataRows columns, DataRow table, bool physicalOnly = false) =>
+            columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"])
+                && (!physicalOnly || !IsVirtualColumn(row)));
+
         static string InWordsColumnName(object columnName) => $"{columnName}InWords";
 
         static void AppendReadInWordsColumnFromJson(StringBuilder result, DataRow column)
@@ -602,7 +609,8 @@ namespace crudex.Classes
         private static StringBuilder GetScriptCreateTable(DataRow table, TDataRows columns, TDataRows indexes, TDataRows indexkeys, TDataRows domains, TDataRows types)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(column => Settings.ToLong(column["TableId"]) == Settings.ToLong(table["Id"]));
+            var columnRows = GetTableColumnRows(columns, table);
+            var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
 
             if (columnRows.Count > 0)
             {
@@ -615,7 +623,7 @@ namespace crudex.Classes
                 result.Append($"IF (SELECT object_id('[dbo].[{table["Name"]}]', 'U')) IS NOT NULL\r\n");
                 result.Append($"    DROP TABLE [dbo].[{table["Name"]}]\r\n");
 
-                foreach (DataRow column in columnRows)
+                foreach (DataRow column in physicalColumnRows)
                 {
                     var constraints = GetConstraints(column, domains, types);
                     var required = $"{(constraints.TryGetValue("Required", out dynamic? value) ? value : "")}";
@@ -691,6 +699,8 @@ namespace crudex.Classes
                             foreach (var indexkey in indexkeyRows)
                             {
                                 var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
+                                if (IsVirtualColumn(column))
+                                    continue;
                                 var definition = $"[{column["Name"]}] {(Settings.ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
 
                                 if (firstTime)
@@ -717,7 +727,7 @@ namespace crudex.Classes
         {
             var result = new StringBuilder();
             var lastTableName = string.Empty;
-            var foreignColumns = columns.FindAll(column => Settings.ToString(column["ReferenceTableId"]) != string.Empty);
+            var foreignColumns = columns.FindAll(column => Settings.ToString(column["ReferenceTableId"]) != string.Empty && !IsVirtualColumn(column));
 
             if (foreignColumns.Count > 0)
             {
@@ -756,7 +766,7 @@ namespace crudex.Classes
 
             if (dataRows.Count > 0)
             {
-                var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
+                var columnRows = GetTableColumnRows(columns, table, physicalOnly: true);
 
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Inserir dados na tabela [dbo].[{table["Name"]}]\r\n");
@@ -834,9 +844,10 @@ namespace crudex.Classes
         private static StringBuilder GetScriptPersistTable(DataRow table, TDataRows columns, string systemName, string databaseName)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
+            var columnRows = GetTableColumnRows(columns, table);
+            var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
 
-            if (columnRows.Count > 0)
+            if (physicalColumnRows.Count > 0)
             {
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Criar stored procedure [dbo].[{table["Alias"]}Persist]\r\n");
@@ -861,14 +872,14 @@ namespace crudex.Classes
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                 result.Append($"               ,@ActionAux NVARCHAR(15)\r\n");
                 result.Append($"               ,@IsConfirmed BIT\r\n");
-                result.Append($"           ,@W_Id {columnRows[0]["#DataType"]}\r\n");
+                result.Append($"           ,@W_Id {physicalColumnRows[0]["#DataType"]}\r\n");
                 result.Append($"\r\n");
                 result.Append($"    IF @Action = 'delete'\r\n");
-                result.Append($"        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS {physicalColumnRows[0]["#DataType"]})\r\n");
                 result.Append($"    ELSE\r\n");
-                result.Append($"        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS {physicalColumnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
-                AppendResolveCreateId(result, table, columnRows, systemName, databaseName);
+                AppendResolveCreateId(result, table, physicalColumnRows, systemName, databaseName);
                 result.Append($"    EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        SELECT @OperationId = [Id]\r\n");
                 result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
@@ -878,7 +889,7 @@ namespace crudex.Classes
                 result.Append($"            WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                  AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
-                result.Append($"                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS {columnRows[0]["#DataType"]}) = @W_Id\r\n");
+                result.Append($"                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS {physicalColumnRows[0]["#DataType"]}) = @W_Id\r\n");
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 AppendNewOperationIdCall(result, systemName, databaseName, "@OperationId");
                 result.Append($"            INSERT INTO [dbo].[Operations] ([Id]\r\n");
@@ -950,6 +961,8 @@ namespace crudex.Classes
 
             foreach (var column in columnRows)
             {
+                if (IsVirtualColumn(column))
+                    continue;
                 if (skipPrimaryKey && Settings.ToBoolean(column["IsPrimarykey"]))
                     continue;
 
@@ -1038,15 +1051,15 @@ namespace crudex.Classes
         private static StringBuilder GetScriptOperationCreate(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
+            var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
 
-            if (columnRows.Count > 0)
+            if (physicalColumnRows.Count > 0)
             {
-                AppendOperationSubProcedureHeader(result, table, columnRows, "Create", "create");
-                AppendWorkColumnVariables(result, columnRows);
+                AppendOperationSubProcedureHeader(result, table, physicalColumnRows, "Create", "create");
+                AppendWorkColumnVariables(result, physicalColumnRows);
 
                 var firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in physicalColumnRows)
                 {
                     if (firstTime)
                     {
@@ -1059,7 +1072,7 @@ namespace crudex.Classes
                 result.Append($"                                            ,[CreatedAt]\r\n");
                 result.Append($"                                            ,[CreatedBy])\r\n");
                 firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in physicalColumnRows)
                 {
                     if (firstTime)
                     {
@@ -1079,15 +1092,15 @@ namespace crudex.Classes
         private static StringBuilder GetScriptOperationUpdate(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
+            var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
 
-            if (columnRows.Count > 0)
+            if (physicalColumnRows.Count > 0)
             {
-                AppendOperationSubProcedureHeader(result, table, columnRows, "Update", "update");
-                AppendWorkColumnVariables(result, columnRows);
+                AppendOperationSubProcedureHeader(result, table, physicalColumnRows, "Update", "update");
+                AppendWorkColumnVariables(result, physicalColumnRows);
 
                 var firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in physicalColumnRows)
                 {
                     if (firstTime)
                     {
@@ -1108,11 +1121,11 @@ namespace crudex.Classes
         private static StringBuilder GetScriptOperationDelete(DataRow table, TDataRows columns)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
+            var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
 
-            if (columnRows.Count > 0)
+            if (physicalColumnRows.Count > 0)
             {
-                AppendOperationSubProcedureHeader(result, table, columnRows, "Delete", "delete");
+                AppendOperationSubProcedureHeader(result, table, physicalColumnRows, "Delete", "delete");
                 result.Append($"        DELETE FROM [dbo].[{table["Name"]}] WHERE [Id] = @W_Id\r\n");
                 result.Append($"\r\n");
                 AppendOperationSubProcedureFooter(result);
@@ -1123,7 +1136,8 @@ namespace crudex.Classes
         private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys, TDataRows unicities)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
+            var columnRows = GetTableColumnRows(columns, table);
+            var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
 
             if (columnRows.Count > 0)
             {
@@ -1167,12 +1181,12 @@ namespace crudex.Classes
                 result.Append($"        DECLARE @IsConfirmed BIT\r\n");
                 result.Append($"               ,@CreatedBy NVARCHAR(25)\r\n");
                 result.Append($"               ,@IsPendingCreate BIT = 0\r\n");
-                result.Append($"               ,@W_Id AS {columnRows[0]["#DataType"]}\r\n");
+                result.Append($"               ,@W_Id AS {physicalColumnRows[0]["#DataType"]}\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF @Action = 'delete'\r\n");
-                result.Append($"            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS {physicalColumnRows[0]["#DataType"]})\r\n");
                 result.Append($"        ELSE\r\n");
-                result.Append($"            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS {columnRows[0]["#DataType"]})\r\n");
+                result.Append($"            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS {physicalColumnRows[0]["#DataType"]})\r\n");
                 result.Append($"\r\n");
                 result.Append($"        SELECT @IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
@@ -1188,7 +1202,7 @@ namespace crudex.Classes
                 result.Append($"        IF @UserName <> @CreatedBy\r\n");
                 result.Append($"            THROW 51000, 'Erro grave de segurança', 1\r\n");
 
-                var constraints = GetConstraints(columnRows[0], domains, types);
+                var constraints = GetConstraints(physicalColumnRows[0], domains, types);
 
                 result.Append($"        IF @W_Id IS NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';\r\n");
@@ -1196,12 +1210,12 @@ namespace crudex.Classes
                 result.Append($"        END\r\n");
                 if (constraints.TryGetValue("Minimum", out dynamic? value))
                 {
-                    result.Append($"        IF @W_Id < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
+                    result.Append($"        IF @W_Id < CAST('{value}' AS {physicalColumnRows[0]["#DataType"]})\r\n");
                     result.Append($"            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a {value}', 1\r\n");
                 }
                 if (constraints.TryGetValue("Maximum", out value))
                 {
-                    result.Append($"        IF @W_Id < CAST('{value}' AS {columnRows[0]["#DataType"]})\r\n");
+                    result.Append($"        IF @W_Id < CAST('{value}' AS {physicalColumnRows[0]["#DataType"]})\r\n");
                     result.Append($"            THROW 51000, 'Valor de Id em @ActualRecord deve ser menor que ou igual a {value}', 1\r\n");
                 }
                 result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [Id] = @W_Id");
@@ -1214,7 +1228,7 @@ namespace crudex.Classes
                 result.Append($"                                          AND [TableName] = '{table["Name"]}'\r\n");
                 result.Append($"                                          AND [IsConfirmed] IS NULL\r\n");
                 result.Append($"                                          AND [Action] = 'create'\r\n");
-                result.Append($"                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS {columnRows[0]["#DataType"]}) = @W_Id)\r\n");
+                result.Append($"                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS {physicalColumnRows[0]["#DataType"]}) = @W_Id)\r\n");
                 result.Append($"            SET @IsPendingCreate = 1\r\n");
                 result.Append($"        ELSE IF @Action <> 'create'\r\n");
                 result.Append($"            THROW 51000, 'Chave-primária não existe em {table["Name"]}', 1\r\n");
@@ -1225,7 +1239,7 @@ namespace crudex.Classes
                 result.Append($"                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1\r\n");
 
                 var firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in physicalColumnRows)
                 {
                     if (firstTime)
                     {
@@ -1246,7 +1260,7 @@ namespace crudex.Classes
                 }
                 result.Append($")\r\n");
                 firstTime = true;
-                foreach (var column in columnRows)
+                foreach (var column in physicalColumnRows)
                 {
                     if (firstTime)
                     {
@@ -1288,7 +1302,7 @@ namespace crudex.Classes
                 result.Append($"        IF @Action IN ('create', 'update') BEGIN\r\n");
                 result.Append($"\r\n");
 
-                var nopkColumnRows = columnRows.FindAll(column => !Settings.ToBoolean(column["IsPrimarykey"]));
+                var nopkColumnRows = physicalColumnRows.FindAll(column => !Settings.ToBoolean(column["IsPrimarykey"]));
 
                 firstTime = true;
                 foreach (var column in nopkColumnRows)
@@ -1348,6 +1362,8 @@ namespace crudex.Classes
                         foreach (var indexkey in indexkeyRows)
                         {
                             var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
+                            if (IsVirtualColumn(column))
+                                continue;
 
                             if (firstTime)
                             {
@@ -1378,6 +1394,8 @@ namespace crudex.Classes
                         foreach (var indexkey in indexkeyRows)
                         {
                             var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
+                            if (IsVirtualColumn(column))
+                                continue;
 
                             if (firstTime)
                             {
@@ -1417,7 +1435,7 @@ namespace crudex.Classes
         private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns, TDictionary tmpNames, string tableName = "#result")
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]) && !IsVirtualColumn(row));
             var firstTime = true;
             var referenceTableName = Settings.ToString(reference["#ReferenceTableName"]);
             var spaces = "";
@@ -1471,8 +1489,9 @@ namespace crudex.Classes
         private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types)
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(table["Id"]));
-            var listableColumns = columnRows.FindAll(row => Settings.ToBoolean(row["IsListable"]));
+            var columnRows = GetTableColumnRows(columns, table);
+            var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
+            var listableColumns = columnRows.FindAll(row => Settings.ToBoolean(row["IsListable"]) && !IsVirtualColumn(row));
             DataRow? listableColumn = listableColumns.Count > 0 ? listableColumns[0] : null;
 
             if (columnRows.Count > 0)
@@ -1571,8 +1590,8 @@ namespace crudex.Classes
                 result.Append($"        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])\r\n");
                 result.Append($"\r\n");
 
-                var filterableColumns = columnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
-                var idDataType = columnRows[0]["#DataType"];
+                var filterableColumns = physicalColumnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
+                var idDataType = physicalColumnRows[0]["#DataType"];
 
                 result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))\r\n");
                 result.Append($"               ,@Where NVARCHAR(MAX) = ''\r\n");
@@ -1774,7 +1793,8 @@ namespace crudex.Classes
                         firstTime = false;
                     }
                     result.Append($"                    ,CAST(NULL AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
-                    AppendReadInWordsResultSchema(result, column);
+                    if (!IsVirtualColumn(column))
+                        AppendReadInWordsResultSchema(result, column);
                 }
                 result.Append($"            INTO [#result]\r\n");
 
@@ -1783,8 +1803,13 @@ namespace crudex.Classes
                 result.Append($"                              ,[#].[Recno]\r\n");
                 foreach (var column in columnRows)
                 {
-                    result.Append($"                              ,[T].[{column["Name"]}]\r\n");
-                    AppendReadInWordsColumnFromAlias(result, column, "T");
+                    if (IsVirtualColumn(column))
+                        result.Append($"                              ,CAST(NULL AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
+                    else
+                    {
+                        result.Append($"                              ,[T].[{column["Name"]}]\r\n");
+                        AppendReadInWordsColumnFromAlias(result, column, "T");
+                    }
                 }
                 result.Append($"                            FROM [#tmpTable] [#]\r\n");
                 result.Append($"                                INNER JOIN [dbo].[{table["Name"]}] [T] ON [T].[Id] = [#].[Id]\r\n");
@@ -1795,7 +1820,8 @@ namespace crudex.Classes
                 foreach (var column in columnRows)
                 {
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
-                    AppendReadInWordsColumnFromAlias(result, column, "O", "                                  ");
+                    if (!IsVirtualColumn(column))
+                        AppendReadInWordsColumnFromAlias(result, column, "O", "                                  ");
                 }
                 result.Append($"                                FROM [#tmpTable] [#]\r\n");
                 result.Append($"                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]\r\n");
@@ -1805,7 +1831,7 @@ namespace crudex.Classes
                 result.Append($"                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
                 result.Append($"        EXEC sp_executesql @sql\r\n");
 
-                var references = columnRows.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]));
+                var references = physicalColumnRows.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]));
                 var tmpTemps = new TDictionary();
 
                 foreach (var reference in references)
@@ -1818,7 +1844,8 @@ namespace crudex.Classes
                 foreach (var column in columnRows)
                 {
                     result.Append($"                      ,[{column["Name"]}]\r\n");
-                    AppendReadInWordsJsonOutput(result, column);
+                    if (!IsVirtualColumn(column))
+                        AppendReadInWordsJsonOutput(result, column);
                     if (Settings.ToBoolean(column["IsListable"]))
                         result.Append($"                      ,[{column["Name"]}] AS [ListItemValue]\r\n");
                 }

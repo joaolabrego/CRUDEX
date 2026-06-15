@@ -21,6 +21,8 @@ namespace CRUDEX.Classes
         public Styles? Styles;
         public Images? Images;
 
+        static DataTable ConfigTable(DataSet dataSet, int index) => dataSet.Tables[index];
+
         public static async Task<Config> Create(string systemName, string? databaseName = null, string? tableName = null)
         {
             var config = new Config();
@@ -31,33 +33,37 @@ namespace CRUDEX.Classes
                 config.Data = new { };
             else if (databaseName == "all")
             {
+                var dataSet = result.DataSet;
                 config.Data = new
                 {
-                    System = result.DataSet.Tables[0].Rows[0].Table,
-                    Databases = result.DataSet.Tables[1].Rows[0].Table,
-                    Tables = result.DataSet.Tables[2].Rows[0].Table,
-                    Columns = result.DataSet.Tables[3].Rows[0].Table,
-                    Domains = result.DataSet.Tables[4].Rows[0].Table,
-                    Types = result.DataSet.Tables[5].Rows[0].Table,
-                    Categories = result.DataSet.Tables[6].Rows[0].Table,
-                    Menus = result.DataSet.Tables[7].Rows[0].Table,
-                    Indexes = result.DataSet.Tables[8].Rows[0].Table,
-                    Indexkeys = result.DataSet.Tables[9].Rows[0].Table,
-                    Masks = result.DataSet.Tables[10].Rows[0].Table,
-                    Unicities = result.DataSet.Tables[11].Rows[0].Table,
+                    System = ConfigTable(dataSet, 0),
+                    Databases = ConfigTable(dataSet, 1),
+                    Tables = ConfigTable(dataSet, 2),
+                    Columns = ConfigTable(dataSet, 3),
+                    Domains = ConfigTable(dataSet, 4),
+                    Types = ConfigTable(dataSet, 5),
+                    Categories = ConfigTable(dataSet, 6),
+                    Menus = ConfigTable(dataSet, 7),
+                    Indexes = ConfigTable(dataSet, 8),
+                    Indexkeys = ConfigTable(dataSet, 9),
+                    Masks = ConfigTable(dataSet, 10),
+                    Unicities = ConfigTable(dataSet, 11),
                     Actions = Actions.GetObject(),
                 };
                 config.Styles = new Styles();
                 config.Images = new Images(config.Data.System.Rows[0]["ClientName"]);
             }
             else
+            {
+                var dataSet = result.DataSet;
                 config.Data = new
                 {
-                    System = result.DataSet.Tables[0].Rows[0].Table,
-                    Connections = result.DataSet.Tables[1].Rows[0].Table,
-                    Databases = result.DataSet.Tables[2].Rows[0].Table,
-                    Tables = result.DataSet.Tables[3].Rows[0].Table,
+                    System = ConfigTable(dataSet, 0),
+                    Connections = ConfigTable(dataSet, 1),
+                    Databases = ConfigTable(dataSet, 2),
+                    Tables = ConfigTable(dataSet, 3),
                 };
+            }
 
             config.RsaPublicKey = TransportCrypto.ServerPublicKeySpki;
 

@@ -117,6 +117,7 @@ BEGIN
 					,[C].[IsGridable]			
 					,[C].[IsEncrypted]
 					,[C].[IsInWords]
+					,[C].[IsVirtual]
 				INTO [#Columns]
 				FROM [dbo].[Columns] [C]
 					INNER JOIN [#Tables] [T] ON [T].[Id]= [C].[TableId] 

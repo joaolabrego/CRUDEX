@@ -24,19 +24,64 @@ export default class TTable {
         if (!column instanceof TColumn)
             throw new Error("Argumento column não é do tipo TColumn.");
         this.#Columns.push(column);
+        if (column.IsInWords && !column.IsVirtual)
+            this.#addInWordsColumn(column);
+    }
+
+    #addInWordsColumn(sourceColumn) {
+        const inWordsName = `${sourceColumn.Name}InWords`;
+        if (this.#Columns.some(column => column.Name === inWordsName))
+            return;
+
+        const inWordsColumn = new TColumn(this, TTable.#buildInWordsColumnRow(sourceColumn));
+        this.#Columns.push(inWordsColumn);
+        return inWordsColumn;
+    }
+
+    static #buildInWordsColumnRow(sourceColumn) {
+        const textDomain = TSystem.GetTextDomain();
+        const sourceTitle = sourceColumn.Title ?? sourceColumn.Caption ?? sourceColumn.Name;
+        const sourceCaption = sourceColumn.Caption ?? sourceColumn.Title ?? sourceColumn.Name;
+
+        return {
+            Kind: "Column",
+            Id: null,
+            TableId: sourceColumn.TableId,
+            Sequence: sourceColumn.Sequence,
+            DomainId: textDomain?.Id ?? sourceColumn.DomainId,
+            ReferenceTableId: null,
+            Name: `${sourceColumn.Name}InWords`,
+            Alias: sourceColumn.Alias ? `${sourceColumn.Alias}InWords` : null,
+            Description: null,
+            Title: `${sourceTitle} por extenso`,
+            Caption: `${sourceCaption} extenso`,
+            Default: null,
+            Minimum: null,
+            Maximum: null,
+            IsPrimarykey: false,
+            IsAutoIncrement: false,
+            IsRequired: false,
+            IsListable: false,
+            IsFilterable: false,
+            IsEditable: false,
+            IsGridable: false,
+            IsEncrypted: false,
+            IsInWords: false,
+            IsVirtual: true,
+        };
     }
     GetColumn(columnNameOrAliasOrId) {
-        if (typeof columnName === "string")
-            return this.#Columns.find(column => column.Name === columnNameOrId || column.Alias === columnNameOrAliasOrId);
+        if (typeof columnNameOrAliasOrId === "string")
+            return this.#Columns.find(column => column.Name === columnNameOrAliasOrId || column.Alias === columnNameOrAliasOrId);
 
-        return this.#Columns.find(column => column.Id === columnNameOrId);
+        return this.#Columns.find(column => column.Id === columnNameOrAliasOrId);
     }
     AddIndex(index) {
         if (!index  instanceof TIndex)
             throw new Error("Argumento index não é do tipo TIndex.");
         this.#Indexes.push(index);
     }
-    GetColumn(indexNameOrId) {
+    GetIndex(indexNameOrId) {
         if (typeof indexNameOrId === "string")
             return this.#Indexes.find(index => index.Name === indexNameOrId);
 

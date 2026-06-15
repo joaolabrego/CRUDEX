@@ -110,9 +110,6 @@ CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Categories] ADD CONSTRAINT PK_Categories PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Categories_Name] ON [dbo].[Categories]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Categories_UniqueIdentifier] ON [dbo].[Categories]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Types]
@@ -141,9 +138,6 @@ CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tiny
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Types] ADD CONSTRAINT PK_Types PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Types_Name] ON [dbo].[Types]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Types_UniqueIdentifier] ON [dbo].[Types]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Masks]
@@ -160,9 +154,6 @@ CREATE TABLE [dbo].[Masks]([Id] bigint NOT NULL
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Masks] ADD CONSTRAINT PK_Masks PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Masks_Name] ON [dbo].[Masks]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Masks_UniqueIdentifier] ON [dbo].[Masks]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Domains]
@@ -187,9 +178,6 @@ CREATE TABLE [dbo].[Domains]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Domains] ADD CONSTRAINT PK_Domains PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Domains_Name] ON [dbo].[Domains]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Domains_UniqueIdentifier] ON [dbo].[Domains]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Systems]
@@ -209,9 +197,6 @@ CREATE TABLE [dbo].[Systems]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Systems] ADD CONSTRAINT PK_Systems PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Systems_Name] ON [dbo].[Systems]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Systems_UniqueIdentifier] ON [dbo].[Systems]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Menus]
@@ -232,10 +217,6 @@ CREATE TABLE [dbo].[Menus]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigin
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Menus] ADD CONSTRAINT PK_Menus PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Sequence] ON [dbo].[Menus]([ClientId] ASC, [SystemId] ASC, [Sequence] ASC)
-CREATE UNIQUE INDEX [UNQ_Menus_SystemId_Caption] ON [dbo].[Menus]([ClientId] ASC, [SystemId] ASC, [Caption] ASC)
-CREATE UNIQUE INDEX [UNQ_Menus_UniqueIdentifier] ON [dbo].[Menus]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Users]
@@ -255,9 +236,6 @@ CREATE TABLE [dbo].[Users]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigin
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Users_Name] ON [dbo].[Users]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Users_UniqueIdentifier] ON [dbo].[Users]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[SystemsUsers]
@@ -275,10 +253,6 @@ CREATE TABLE [dbo].[SystemsUsers]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_SystemsUsers_SystemId_UserId] ON [dbo].[SystemsUsers]([ClientId] ASC, [SystemId] ASC, [UserId] ASC)
-CREATE UNIQUE INDEX [UNQ_SystemsUsers_Name] ON [dbo].[SystemsUsers]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_SystemsUsers_UniqueIdentifier] ON [dbo].[SystemsUsers]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Connections]
@@ -316,10 +290,6 @@ CREATE TABLE [dbo].[Databases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Databases] ADD CONSTRAINT PK_Databases PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Databases_Name] ON [dbo].[Databases]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Databases_Alias] ON [dbo].[Databases]([ClientId] ASC, [Alias] ASC)
-CREATE UNIQUE INDEX [UNQ_Databases_UniqueIdentifier] ON [dbo].[Databases]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[SystemsDatabases]
@@ -337,10 +307,6 @@ CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[SystemsDatabases] ADD CONSTRAINT PK_SystemsDatabases PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_SystemsDatabases_SystemId_DatabaseId] ON [dbo].[SystemsDatabases]([ClientId] ASC, [SystemId] ASC, [DatabaseId] ASC)
-CREATE UNIQUE INDEX [UNQ_SystemsDatabases_Name] ON [dbo].[SystemsDatabases]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_SystemsDatabases_UniqueIdentifier] ON [dbo].[SystemsDatabases]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Tables]
@@ -361,10 +327,6 @@ CREATE TABLE [dbo].[Tables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigi
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Tables] ADD CONSTRAINT PK_Tables PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Tables_Name] ON [dbo].[Tables]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Tables_Alias] ON [dbo].[Tables]([ClientId] ASC, [Alias] ASC)
-CREATE UNIQUE INDEX [UNQ_Tables_UniqueIdentifier] ON [dbo].[Tables]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[DatabasesTables]
@@ -382,10 +344,6 @@ CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[DatabasesTables] ADD CONSTRAINT PK_DatabasesTables PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_DatabasesTables_DatabaseId_TableId] ON [dbo].[DatabasesTables]([ClientId] ASC, [DatabaseId] ASC, [TableId] ASC)
-CREATE UNIQUE INDEX [UNQ_DatabasesTables_Name] ON [dbo].[DatabasesTables]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_DatabasesTables_UniqueIdentifier] ON [dbo].[DatabasesTables]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Columns]
@@ -414,6 +372,7 @@ CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[IsGridable] bit NULL
                                     ,[IsEncrypted] bit NULL
                                     ,[IsInWords] bit NULL
+                                    ,[IsVirtual] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -421,10 +380,6 @@ CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Columns] ADD CONSTRAINT PK_Columns PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Columns_TableId_Name] ON [dbo].[Columns]([ClientId] ASC, [TableId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Columns_TableId_Sequence] ON [dbo].[Columns]([ClientId] ASC, [TableId] ASC, [Sequence] ASC)
-CREATE UNIQUE INDEX [UNQ_Columns_UniqueIdentifier] ON [dbo].[Columns]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Indexes]
@@ -442,9 +397,6 @@ CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS big
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Indexes] ADD CONSTRAINT PK_Indexes PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Indexes_Name] ON [dbo].[Indexes]([ClientId] ASC, [Name] ASC)
-CREATE UNIQUE INDEX [UNQ_Indexes_UniqueIdentifier] ON [dbo].[Indexes]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Indexkeys]
@@ -463,10 +415,6 @@ CREATE TABLE [dbo].[Indexkeys]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Indexkeys] ADD CONSTRAINT PK_Indexkeys PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_Sequence] ON [dbo].[Indexkeys]([ClientId] ASC, [IndexId] ASC, [Sequence] ASC)
-CREATE UNIQUE INDEX [UNQ_Indexkeys_IndexId_ColumnId] ON [dbo].[Indexkeys]([ClientId] ASC, [IndexId] ASC, [ColumnId] ASC)
-CREATE UNIQUE INDEX [UNQ_Indexkeys_UniqueIdentifier] ON [dbo].[Indexkeys]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Sessions]
@@ -486,9 +434,6 @@ CREATE TABLE [dbo].[Sessions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bi
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Sessions] ADD CONSTRAINT PK_Sessions PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Sessions_SystemId_UserId_IsLogged] ON [dbo].[Sessions]([ClientId] ASC, [SystemId] ASC, [UserId] ASC, [PublicKey] ASC)
-CREATE UNIQUE INDEX [UNQ_Sessions_UniqueIdentifier] ON [dbo].[Sessions]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Transactions]
@@ -505,9 +450,6 @@ CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' A
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Transactions] ADD CONSTRAINT PK_Transactions PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Transactions_SessionId_IsConfirmed] ON [dbo].[Transactions]([ClientId] ASC, [Id] ASC, [SessionId] ASC)
-CREATE UNIQUE INDEX [UNQ_Transactions_UniqueIdentifier] ON [dbo].[Transactions]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Operations]
@@ -528,9 +470,6 @@ CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS 
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Operations] ADD CONSTRAINT PK_Operations PRIMARY KEY CLUSTERED ([Id])
-CREATE  INDEX [IDX_Operations_TransactionId_TableName_IsConfirmed] ON [dbo].[Operations]([ClientId] ASC, [Id] ASC, [TransactionId] ASC, [TableName] ASC)
-CREATE UNIQUE INDEX [UNQ_Operations_UniqueIdentifier] ON [dbo].[Operations]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Unicities]
@@ -548,10 +487,6 @@ CREATE TABLE [dbo].[Unicities]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS b
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Unicities] ADD CONSTRAINT PK_Unicities PRIMARY KEY CLUSTERED ([Id])
-CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId1_ColumnId2] ON [dbo].[Unicities]([ClientId] ASC, [Id] ASC, [ColumnId1] ASC)
-CREATE UNIQUE INDEX [UNQ_Unicities_ColumnId2_ColumnId1] ON [dbo].[Unicities]([ClientId] ASC, [ColumnId1] ASC, [Id] ASC)
-CREATE UNIQUE INDEX [UNQ_Unicities_UniqueIdentifier] ON [dbo].[Unicities]([UniqueIdentifier] ASC)
-GO
 
 /**********************************************************************************
 Criar tabela [dbo].[Operators]
@@ -692,6 +627,7 @@ BEGIN
 					,[C].[IsGridable]			
 					,[C].[IsEncrypted]
 					,[C].[IsInWords]
+					,[C].[IsVirtual]
 				INTO [#Columns]
 				FROM [dbo].[Columns] [C]
 					INNER JOIN [#Tables] [T] ON [T].[Id]= [C].[TableId] 
@@ -6509,6 +6445,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6534,7 +6471,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
-                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6562,6 +6500,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6588,6 +6527,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6615,6 +6555,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6641,6 +6582,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6668,6 +6610,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6694,6 +6637,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6721,6 +6665,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6747,6 +6692,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6774,6 +6720,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6800,6 +6747,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6827,6 +6775,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6853,6 +6802,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6880,6 +6830,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6906,6 +6857,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6933,6 +6885,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -6959,6 +6912,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6986,6 +6940,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7012,6 +6967,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7039,6 +6995,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7065,6 +7022,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7092,6 +7050,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7118,6 +7077,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7145,6 +7105,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7171,6 +7132,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7198,6 +7160,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7224,6 +7187,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7251,6 +7215,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7277,6 +7242,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7304,6 +7270,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7330,6 +7297,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7357,6 +7325,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7383,6 +7352,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7410,6 +7380,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7436,6 +7407,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7463,6 +7435,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7489,6 +7462,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7516,6 +7490,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7542,6 +7517,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7569,6 +7545,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7595,6 +7572,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7622,6 +7600,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7648,6 +7627,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7675,6 +7655,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7701,6 +7682,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7728,6 +7710,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7754,6 +7737,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7781,6 +7765,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7807,6 +7792,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7834,6 +7820,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7860,6 +7847,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7887,6 +7875,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7913,6 +7902,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7940,6 +7930,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -7966,6 +7957,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -7993,6 +7985,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8019,6 +8012,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8046,6 +8040,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8072,6 +8067,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8099,6 +8095,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8125,6 +8122,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8152,6 +8150,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8178,6 +8177,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8205,6 +8205,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8231,6 +8232,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8258,6 +8260,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8284,6 +8287,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8311,6 +8315,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8337,6 +8342,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8364,6 +8370,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8390,6 +8397,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8417,6 +8425,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8443,6 +8452,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8470,6 +8480,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8496,6 +8507,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8523,6 +8535,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8549,6 +8562,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8576,6 +8590,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8602,6 +8617,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8629,6 +8645,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8655,6 +8672,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8682,6 +8700,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8708,6 +8727,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8735,6 +8755,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8761,6 +8782,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8788,6 +8810,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8814,6 +8837,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8841,6 +8865,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8867,6 +8892,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8894,6 +8920,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8920,6 +8947,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -8947,6 +8975,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -8973,6 +9002,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9000,6 +9030,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9026,6 +9057,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9053,6 +9085,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9079,6 +9112,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9106,6 +9140,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9132,6 +9167,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9159,6 +9195,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9185,6 +9222,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9212,6 +9250,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9238,6 +9277,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9265,6 +9305,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9291,6 +9332,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9318,6 +9360,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9344,6 +9387,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9371,6 +9415,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9397,6 +9442,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9424,6 +9470,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9450,6 +9497,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9477,6 +9525,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9503,6 +9552,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9530,6 +9580,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9556,6 +9607,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9583,6 +9635,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9609,6 +9662,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9636,6 +9690,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9662,6 +9717,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9689,6 +9745,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9715,6 +9772,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9742,6 +9800,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9768,6 +9827,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9795,6 +9855,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9821,6 +9882,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9848,6 +9910,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9874,6 +9937,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9901,6 +9965,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9927,6 +9992,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -9954,6 +10020,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -9980,6 +10047,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10007,6 +10075,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10033,6 +10102,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10060,6 +10130,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10086,6 +10157,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10113,6 +10185,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10139,6 +10212,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10166,6 +10240,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10192,6 +10267,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10219,6 +10295,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10245,6 +10322,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10272,6 +10350,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10298,6 +10377,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10325,6 +10405,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10351,6 +10432,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10378,6 +10460,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10404,6 +10487,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10431,6 +10515,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10457,6 +10542,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10484,6 +10570,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10510,6 +10597,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10537,6 +10625,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10563,6 +10652,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10590,6 +10680,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10616,6 +10707,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10643,6 +10735,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10669,6 +10762,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10696,6 +10790,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10722,6 +10817,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10749,6 +10845,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10775,6 +10872,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10802,6 +10900,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10828,6 +10927,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10855,6 +10955,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10881,6 +10982,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10908,6 +11010,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10934,6 +11037,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -10961,6 +11065,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -10987,6 +11092,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11014,6 +11120,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11040,6 +11147,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11067,6 +11175,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11093,6 +11202,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11120,6 +11230,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11146,6 +11257,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11173,6 +11285,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11199,6 +11312,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11226,6 +11340,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11252,6 +11367,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11279,6 +11395,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11305,6 +11422,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11332,6 +11450,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11358,6 +11477,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11385,6 +11505,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11411,6 +11532,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11438,6 +11560,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11464,6 +11587,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11491,6 +11615,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11517,6 +11642,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11544,6 +11670,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11570,6 +11697,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11597,6 +11725,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11623,6 +11752,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11650,6 +11780,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11676,6 +11807,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11703,6 +11835,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11729,6 +11862,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11756,6 +11890,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11782,6 +11917,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11809,6 +11945,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11835,6 +11972,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11862,6 +12000,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11888,6 +12027,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11915,6 +12055,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11941,6 +12082,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -11968,6 +12110,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -11994,6 +12137,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12021,6 +12165,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -12047,6 +12192,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12074,6 +12220,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -12100,6 +12247,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12127,6 +12275,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -12153,6 +12302,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12180,6 +12330,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -12206,6 +12357,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12233,6 +12385,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -12259,6 +12412,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12286,6 +12440,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -12312,6 +12467,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12339,6 +12495,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -12365,6 +12522,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12392,11 +12550,67 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('112' AS bigint)
+                                ,CAST('14' AS bigint)
+                                ,CAST('115' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST('IsVirtual' AS nvarchar(25))
+                                ,NULL
+                                ,CAST('Coluna é virtual?' AS nvarchar(50))
+                                ,CAST('Virtual?' AS nvarchar(25))
+                                ,CAST('Virtual?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('113' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12418,6 +12632,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12445,11 +12660,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('113' AS bigint)
+                         VALUES (CAST('114' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12471,6 +12687,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12498,11 +12715,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('114' AS bigint)
+                         VALUES (CAST('115' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -12524,6 +12742,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12551,11 +12770,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('115' AS bigint)
+                         VALUES (CAST('116' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12577,6 +12797,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12604,11 +12825,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('116' AS bigint)
+                         VALUES (CAST('117' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12630,6 +12852,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12657,11 +12880,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('117' AS bigint)
+                         VALUES (CAST('118' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12683,6 +12907,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12710,11 +12935,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('118' AS bigint)
+                         VALUES (CAST('119' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -12736,6 +12962,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12763,11 +12990,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('119' AS bigint)
+                         VALUES (CAST('120' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12789,6 +13017,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12816,11 +13045,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('120' AS bigint)
+                         VALUES (CAST('121' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -12842,6 +13072,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12869,11 +13100,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('121' AS bigint)
+                         VALUES (CAST('122' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12895,6 +13127,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12922,11 +13155,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS bigint)
+                         VALUES (CAST('123' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -12948,6 +13182,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -12975,11 +13210,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS bigint)
+                         VALUES (CAST('124' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13001,6 +13237,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13028,11 +13265,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('124' AS bigint)
+                         VALUES (CAST('125' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('23' AS bigint)
@@ -13054,6 +13292,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13081,11 +13320,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('125' AS bigint)
+                         VALUES (CAST('126' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('11' AS bigint)
@@ -13107,6 +13347,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13134,11 +13375,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('126' AS bigint)
+                         VALUES (CAST('127' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13160,6 +13402,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13187,11 +13430,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('127' AS bigint)
+                         VALUES (CAST('128' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13213,6 +13457,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13240,11 +13485,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('128' AS bigint)
+                         VALUES (CAST('129' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13266,6 +13512,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13293,11 +13540,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('129' AS bigint)
+                         VALUES (CAST('130' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13319,6 +13567,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13346,11 +13595,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('130' AS bigint)
+                         VALUES (CAST('131' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13372,6 +13622,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13399,11 +13650,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('131' AS bigint)
+                         VALUES (CAST('132' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13425,6 +13677,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13452,11 +13705,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('132' AS bigint)
+                         VALUES (CAST('133' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -13478,6 +13732,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13505,11 +13760,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('133' AS bigint)
+                         VALUES (CAST('134' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('21' AS bigint)
@@ -13531,6 +13787,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13558,11 +13815,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('134' AS bigint)
+                         VALUES (CAST('135' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13584,6 +13842,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13611,11 +13870,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('135' AS bigint)
+                         VALUES (CAST('136' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -13637,6 +13897,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13664,11 +13925,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('136' AS bigint)
+                         VALUES (CAST('137' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13690,6 +13952,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13717,11 +13980,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('137' AS bigint)
+                         VALUES (CAST('138' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13743,6 +14007,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13770,11 +14035,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('138' AS bigint)
+                         VALUES (CAST('139' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13796,6 +14062,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13823,11 +14090,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('139' AS bigint)
+                         VALUES (CAST('140' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -13849,6 +14117,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13876,11 +14145,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('140' AS bigint)
+                         VALUES (CAST('141' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -13902,6 +14172,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,NULL
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13929,11 +14200,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('141' AS bigint)
+                         VALUES (CAST('142' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -13955,6 +14227,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -13982,11 +14255,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('142' AS bigint)
+                         VALUES (CAST('143' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('7' AS bigint)
@@ -14008,6 +14282,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -14035,11 +14310,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('143' AS bigint)
+                         VALUES (CAST('144' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('7' AS bigint)
@@ -14061,6 +14337,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -14088,11 +14365,12 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[IsGridable]
                                 ,[IsEncrypted]
                                 ,[IsInWords]
+                                ,[IsVirtual]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('144' AS bigint)
+                         VALUES (CAST('145' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS bigint)
@@ -14114,1331 +14392,14 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
 
-/**********************************************************************************
-Inserir dados na tabela [dbo].[Indexes]
-**********************************************************************************/
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('UNQ_Categories_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('2' AS bigint)
-                                ,CAST('2' AS bigint)
-                                ,CAST('UNQ_Types_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('3' AS bigint)
-                                ,CAST('3' AS bigint)
-                                ,CAST('UNQ_Masks_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('4' AS bigint)
-                                ,CAST('4' AS bigint)
-                                ,CAST('UNQ_Domains_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('5' AS bigint)
-                                ,CAST('5' AS bigint)
-                                ,CAST('UNQ_Systems_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('6' AS bigint)
-                                ,CAST('6' AS bigint)
-                                ,CAST('UNQ_Menus_SystemId_Sequence' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('7' AS bigint)
-                                ,CAST('6' AS bigint)
-                                ,CAST('UNQ_Menus_SystemId_Caption' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('8' AS bigint)
-                                ,CAST('7' AS bigint)
-                                ,CAST('UNQ_Users_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('9' AS bigint)
-                                ,CAST('8' AS bigint)
-                                ,CAST('UNQ_SystemsUsers_SystemId_UserId' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('10' AS bigint)
-                                ,CAST('8' AS bigint)
-                                ,CAST('UNQ_SystemsUsers_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('11' AS bigint)
-                                ,CAST('10' AS bigint)
-                                ,CAST('UNQ_Databases_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('12' AS bigint)
-                                ,CAST('10' AS bigint)
-                                ,CAST('UNQ_Databases_Alias' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('13' AS bigint)
-                                ,CAST('11' AS bigint)
-                                ,CAST('UNQ_SystemsDatabases_SystemId_DatabaseId' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('14' AS bigint)
-                                ,CAST('11' AS bigint)
-                                ,CAST('UNQ_SystemsDatabases_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('15' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST('UNQ_Tables_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('16' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST('UNQ_Tables_Alias' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('17' AS bigint)
-                                ,CAST('13' AS bigint)
-                                ,CAST('UNQ_DatabasesTables_DatabaseId_TableId' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('18' AS bigint)
-                                ,CAST('13' AS bigint)
-                                ,CAST('UNQ_DatabasesTables_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('19' AS bigint)
-                                ,CAST('14' AS bigint)
-                                ,CAST('UNQ_Columns_TableId_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('20' AS bigint)
-                                ,CAST('14' AS bigint)
-                                ,CAST('UNQ_Columns_TableId_Sequence' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('21' AS bigint)
-                                ,CAST('15' AS bigint)
-                                ,CAST('UNQ_Indexes_Name' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('22' AS bigint)
-                                ,CAST('16' AS bigint)
-                                ,CAST('UNQ_Indexkeys_IndexId_Sequence' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('23' AS bigint)
-                                ,CAST('16' AS bigint)
-                                ,CAST('UNQ_Indexkeys_IndexId_ColumnId' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('24' AS bigint)
-                                ,CAST('17' AS bigint)
-                                ,CAST('IDX_Sessions_SystemId_UserId_IsLogged' AS nvarchar(50))
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('25' AS bigint)
-                                ,CAST('18' AS bigint)
-                                ,CAST('IDX_Transactions_SessionId_IsConfirmed' AS nvarchar(50))
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('26' AS bigint)
-                                ,CAST('19' AS bigint)
-                                ,CAST('IDX_Operations_TransactionId_TableName_IsConfirmed' AS nvarchar(50))
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('27' AS bigint)
-                                ,CAST('20' AS bigint)
-                                ,CAST('UNQ_Unicities_ColumnId1_ColumnId2' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexes] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[IsUnique]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('28' AS bigint)
-                                ,CAST('20' AS bigint)
-                                ,CAST('UNQ_Unicities_ColumnId2_ColumnId1' AS nvarchar(50))
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
 
-/**********************************************************************************
-Inserir dados na tabela [dbo].[Indexkeys]
-**********************************************************************************/
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('2' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('2' AS bigint)
-                                ,CAST('2' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('14' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('3' AS bigint)
-                                ,CAST('3' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('28' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('4' AS bigint)
-                                ,CAST('4' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('33' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('5' AS bigint)
-                                ,CAST('5' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('42' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('6' AS bigint)
-                                ,CAST('6' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('48' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('7' AS bigint)
-                                ,CAST('6' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('49' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('8' AS bigint)
-                                ,CAST('7' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('48' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('9' AS bigint)
-                                ,CAST('7' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('50' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('10' AS bigint)
-                                ,CAST('8' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('55' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('11' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('61' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('12' AS bigint)
-                                ,CAST('9' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('62' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('13' AS bigint)
-                                ,CAST('10' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('63' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('14' AS bigint)
-                                ,CAST('11' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('69' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('15' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('70' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('16' AS bigint)
-                                ,CAST('13' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('76' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('17' AS bigint)
-                                ,CAST('13' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('77' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('18' AS bigint)
-                                ,CAST('14' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('78' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('19' AS bigint)
-                                ,CAST('15' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('80' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('20' AS bigint)
-                                ,CAST('16' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('81' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('21' AS bigint)
-                                ,CAST('17' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('87' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('22' AS bigint)
-                                ,CAST('17' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('88' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('23' AS bigint)
-                                ,CAST('18' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('89' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('24' AS bigint)
-                                ,CAST('19' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('91' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('25' AS bigint)
-                                ,CAST('19' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('95' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('26' AS bigint)
-                                ,CAST('20' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('91' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('27' AS bigint)
-                                ,CAST('20' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('92' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('28' AS bigint)
-                                ,CAST('21' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('114' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('29' AS bigint)
-                                ,CAST('22' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('117' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('30' AS bigint)
-                                ,CAST('22' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('118' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('31' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('117' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('32' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('119' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('33' AS bigint)
-                                ,CAST('24' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('122' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('34' AS bigint)
-                                ,CAST('24' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('123' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('35' AS bigint)
-                                ,CAST('24' AS bigint)
-                                ,CAST('15' AS smallint)
-                                ,CAST('125' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('36' AS bigint)
-                                ,CAST('25' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('127' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('37' AS bigint)
-                                ,CAST('25' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('128' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('38' AS bigint)
-                                ,CAST('26' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('130' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('39' AS bigint)
-                                ,CAST('26' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('131' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('40' AS bigint)
-                                ,CAST('26' AS bigint)
-                                ,CAST('15' AS smallint)
-                                ,CAST('132' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('41' AS bigint)
-                                ,CAST('27' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('137' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('42' AS bigint)
-                                ,CAST('27' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('138' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('43' AS bigint)
-                                ,CAST('28' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,CAST('138' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Indexkeys] ([Id]
-                                ,[IndexId]
-                                ,[Sequence]
-                                ,[ColumnId]
-                                ,[IsDescending]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('44' AS bigint)
-                                ,CAST('28' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('137' AS bigint)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
 
 
 
@@ -15770,12 +14731,6 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de AskMaximum em @ActualRecord é requerido.', 1
             IF @W_AskInWords IS NULL
                 THROW 51000, 'Valor de AskInWords em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Categories_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Categories_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -16254,7 +15209,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             SET @TransactionId = NULL
         SELECT [Action] AS [_]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) AS [Id]
-              ,CAST([dbo].[NUMBER_IN_WORDS](CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
@@ -16585,7 +15539,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
                     ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS tinyint) AS [Id]
-                    ,CAST(NULL AS NVARCHAR(MAX)) AS [IdInWords]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(10)) AS [HtmlInputType]
                     ,CAST(NULL AS nvarchar(6)) AS [HtmlInputAlign]
@@ -16601,7 +15554,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                         SELECT ''Category'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
-                              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([T].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
                               ,[T].[Name]
                               ,[T].[HtmlInputType]
                               ,[T].[HtmlInputAlign]
@@ -16619,7 +15571,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                             SELECT ''Category'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
-                                  ,CAST([dbo].[NUMBER_IN_WORDS](CAST([O].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
                                   ,[O].[Name]
                                   ,[O].[HtmlInputType]
                                   ,[O].[HtmlInputAlign]
@@ -16639,7 +15590,6 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
                       ,[Id]
-                      ,[IdInWords]
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                       ,[HtmlInputType]
@@ -16829,12 +15779,6 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de IsLikeable em @ActualRecord é requerido.', 1
             IF @W_IsActive IS NULL
                 THROW 51000, 'Valor de IsActive em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Types_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Types_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -17780,7 +16724,6 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
-              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([R].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,[R].[Name]
               ,[R].[HtmlInputType]
               ,[R].[HtmlInputAlign]
@@ -17932,12 +16875,6 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_Mask IS NULL
                 THROW 51000, 'Valor de Mask em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Masks_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Masks_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -18688,12 +17625,6 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Length em @ActualRecord deve ser maior que ou igual a 0', 1
             IF @W_Decimals IS NOT NULL AND @W_Decimals < CAST('0' AS tinyint)
                 THROW 51000, 'Valor de Decimals em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Domains_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Domains_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -19503,7 +18434,6 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
         CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
-              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([R].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,[R].[Name]
               ,[R].[HtmlInputType]
               ,[R].[HtmlInputAlign]
@@ -19687,12 +18617,6 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de MaxRetryLogins em @ActualRecord deve ser maior que ou igual a 1', 1
             IF @W_IsOffAir IS NULL
                 THROW 51000, 'Valor de IsOffAir em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Systems_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Systems_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -20509,16 +19433,6 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord deve ser maior que ou igual a 1', 1
             IF @W_ParentMenuId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord inexiste em Menus', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence)
-                    THROW 51000, 'Chave única de UNQ_Menus_SystemId_Sequence já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Caption] = @W_Caption)
-                    THROW 51000, 'Chave única de UNQ_Menus_SystemId_Caption já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Menus_SystemId_Sequence já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_SystemId AND [Caption] = @W_Caption AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Menus_SystemId_Caption já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -21353,12 +20267,6 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de RetryLogins em @ActualRecord deve ser maior que ou igual a 0', 1
             IF @W_IsActive IS NULL
                 THROW 51000, 'Valor de IsActive em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Users_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Users_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -22183,16 +21091,6 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId)
-                    THROW 51000, 'Chave única de UNQ_SystemsUsers_SystemId_UserId já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_SystemsUsers_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_SystemId AND [UserId] = @W_UserId AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_SystemsUsers_SystemId_UserId já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_SystemsUsers_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -23791,16 +22689,6 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de CurrentOperationId em @ActualRecord é requerido.', 1
             IF @W_CurrentOperationId < CAST('0' AS bigint)
                 THROW 51000, 'Valor de CurrentOperationId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Databases_Name já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias)
-                    THROW 51000, 'Chave única de UNQ_Databases_Alias já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Databases_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Databases_Alias já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -24659,16 +23547,6 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId)
-                    THROW 51000, 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_SystemsDatabases_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_SystemId AND [DatabaseId] = @W_DatabaseId AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_SystemsDatabases_SystemId_DatabaseId já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_SystemsDatabases_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -25542,16 +24420,6 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de CurrentId em @ActualRecord é requerido.', 1
             IF @W_CurrentId < CAST('0' AS bigint)
                 THROW 51000, 'Valor de CurrentId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias)
-                    THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Tables_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Alias] = @W_Alias AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Tables_Alias já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -26401,18 +25269,10 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId)
-                    THROW 51000, 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_DatabasesTables_Name já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_TableId)
                     THROW 51000, 'Unicidade cruzada de [DatabaseTable].[DatabaseId] => [DatabaseTable].[TableId] já existe', 1
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_DatabaseId)
                     THROW 51000, 'Unicidade cruzada de [DatabaseTable].[TableId] => [DatabaseTable].[DatabaseId] já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_DatabaseId AND [TableId] = @W_TableId AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_DatabasesTables_DatabaseId_TableId já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_DatabasesTables_Name já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [DatabaseId] = @W_TableId AND [Id] <> @W_Id)
                 THROW 51000, 'Unicidade cruzada de [DatabaseTable].[DatabaseId] => [DatabaseTable].[TableId] já existe', 1
             ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_DatabaseId AND [Id] <> @W_Id)
@@ -27267,7 +26127,8 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                                   AND [dbo].[IS_EQUAL]([IsEditable], JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
                                   AND [dbo].[IS_EQUAL]([IsGridable], JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
                                   AND [dbo].[IS_EQUAL]([IsEncrypted], JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                                  AND [dbo].[IS_EQUAL]([IsInWords], JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1)
+                                  AND [dbo].[IS_EQUAL]([IsInWords], JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL]([IsVirtual], JSON_VALUE(@LastRecord, '$.IsVirtual'), 'bit') = 1)
             AND NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
                             WHERE [TransactionId] = @TransactionId
@@ -27294,7 +26155,8 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                                   AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsEditable'), JSON_VALUE(@LastRecord, '$.IsEditable'), 'bit') = 1
                                   AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsGridable'), JSON_VALUE(@LastRecord, '$.IsGridable'), 'bit') = 1
                                   AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsEncrypted'), JSON_VALUE(@LastRecord, '$.IsEncrypted'), 'bit') = 1
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsInWords'), JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1)
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsInWords'), JSON_VALUE(@LastRecord, '$.IsInWords'), 'bit') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsVirtual'), JSON_VALUE(@LastRecord, '$.IsVirtual'), 'bit') = 1)
                 THROW 51000, 'Registro de Columns alterado por outro usuário', 1
         END
 
@@ -27329,6 +26191,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                    ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
                    ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
                    ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
+                   ,@W_IsVirtual bit = CAST(JSON_VALUE(@ActualRecord, '$.IsVirtual') AS bit)
 
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
@@ -27360,16 +26223,6 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Caption em @ActualRecord é requerido.', 1
             IF @W_IsRequired IS NULL
                 THROW 51000, 'Valor de IsRequired em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Columns_TableId_Name já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence)
-                    THROW 51000, 'Chave única de UNQ_Columns_TableId_Sequence já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Columns_TableId_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_TableId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Columns_TableId_Sequence já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -27579,6 +26432,7 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
                ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
                ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
+               ,@W_IsVirtual bit = CAST(JSON_VALUE(@ActualRecord, '$.IsVirtual') AS bit)
 
         INSERT INTO [dbo].[Columns] ([Id]
                                             ,[TableId]
@@ -27602,6 +26456,7 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                                             ,[IsGridable]
                                             ,[IsEncrypted]
                                             ,[IsInWords]
+                                            ,[IsVirtual]
                                             ,[CreatedAt]
                                             ,[CreatedBy])
                                       VALUES (@W_Id
@@ -27626,6 +26481,7 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsGridable
                                              ,@W_IsEncrypted
                                              ,@W_IsInWords
+                                             ,@W_IsVirtual
                                              ,GETDATE()
                                              ,@UserName)
         UPDATE [dbo].[Operations]
@@ -27718,6 +26574,7 @@ ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
                ,@W_IsGridable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsGridable') AS bit)
                ,@W_IsEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.IsEncrypted') AS bit)
                ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
+               ,@W_IsVirtual bit = CAST(JSON_VALUE(@ActualRecord, '$.IsVirtual') AS bit)
 
         UPDATE [dbo].[Columns] SET [Id] = @W_Id
                                           ,[TableId] = @W_TableId
@@ -27741,6 +26598,7 @@ ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
                                           ,[IsGridable] = @W_IsGridable
                                           ,[IsEncrypted] = @W_IsEncrypted
                                           ,[IsInWords] = @W_IsInWords
+                                          ,[IsVirtual] = @W_IsVirtual
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
             WHERE [Id] = @W_Id
@@ -27921,6 +26779,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsGridable') AS bit) AS [IsGridable]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsEncrypted') AS bit) AS [IsEncrypted]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsInWords') AS bit) AS [IsInWords]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsVirtual') AS bit) AS [IsVirtual]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -27946,6 +26805,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                ,@WT_IsGridable bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsGridable') AS bit)
                ,@WT_IsEncrypted bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsEncrypted') AS bit)
                ,@WT_IsInWords bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsInWords') AS bit)
+               ,@WT_IsVirtual bit = CAST(JSON_VALUE(@RecordFilterTable, '$.IsVirtual') AS bit)
 
         IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'Id' AND [type] = 0)
             SET @Where = @Where + ' AND [T].[Id] IS NULL'
@@ -28025,6 +26885,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
         ELSE IF @WT_IsInWords IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[IsInWords] = @T_IsInWords'
         END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsVirtual' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsVirtual] IS NULL'
+        ELSE IF @WT_IsVirtual IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsVirtual] = @T_IsVirtual'
+        END
         IF @_ IS NULL BEGIN
             DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Id') AS bigint))
                    ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilterGrid, '$.TableId') AS bigint))
@@ -28040,6 +26905,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                    ,@W_IsGridable bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsGridable') AS bit))
                    ,@W_IsEncrypted bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsEncrypted') AS bit))
                    ,@W_IsInWords bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsInWords') AS bit))
+                   ,@W_IsVirtual bit = COALESCE(CAST(JSON_VALUE(@RecordFilterGrid, '$.Filter.IsVirtual') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.Fixed.IsVirtual') AS bit), CAST(JSON_VALUE(@RecordFilterGrid, '$.IsVirtual') AS bit))
 
             IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'Id' AND [type] = 0)
                OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'Id' AND [type] = 0)
@@ -28161,6 +27027,14 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE IF @W_IsInWords IS NOT NULL BEGIN
                 SET @Where = @Where + ' AND [T].[IsInWords] = @IsInWords'
             END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = 'IsVirtual' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = 'IsVirtual' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = 'IsVirtual' AND [type] = 0)
+               OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = 'IsVirtual' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[IsVirtual] IS NULL'
+            ELSE IF @W_IsVirtual IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsVirtual] = @IsVirtual'
+            END
         END ELSE
             SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
         CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
@@ -28183,7 +27057,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit,@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit,@IsVirtual bit'
                                ,@T_Id = @WT_Id
                                ,@T_TableId = @WT_TableId
                                ,@T_DomainId = @WT_DomainId
@@ -28198,6 +27072,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                ,@T_IsGridable = @WT_IsGridable
                                ,@T_IsEncrypted = @WT_IsEncrypted
                                ,@T_IsInWords = @WT_IsInWords
+                               ,@T_IsVirtual = @WT_IsVirtual
                                ,@Id = @W_Id
                                ,@TableId = @W_TableId
                                ,@DomainId = @W_DomainId
@@ -28212,9 +27087,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                ,@IsGridable = @W_IsGridable
                                ,@IsEncrypted = @W_IsEncrypted
                                ,@IsInWords = @W_IsInWords
+                               ,@IsVirtual = @W_IsVirtual
         END ELSE BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit'
                                ,@T_Id = @WT_Id
                                ,@T_TableId = @WT_TableId
                                ,@T_DomainId = @WT_DomainId
@@ -28229,6 +27105,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                ,@T_IsGridable = @WT_IsGridable
                                ,@T_IsEncrypted = @WT_IsEncrypted
                                ,@T_IsInWords = @WT_IsInWords
+                               ,@T_IsVirtual = @WT_IsVirtual
         END
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -28259,6 +27136,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                        ,@S_IsGridable bit = CAST(JSON_VALUE(@RecordSearch, '$.IsGridable') AS bit)
                        ,@S_IsEncrypted bit = CAST(JSON_VALUE(@RecordSearch, '$.IsEncrypted') AS bit)
                        ,@S_IsInWords bit = CAST(JSON_VALUE(@RecordSearch, '$.IsInWords') AS bit)
+                       ,@S_IsVirtual bit = CAST(JSON_VALUE(@RecordSearch, '$.IsVirtual') AS bit)
 
                 SET @Where = ''
                 IF EXISTS(SELECT 1 FROM OPENJSON(@RecordSearch) WHERE [key] = 'Id' AND [type] = 0)
@@ -28317,6 +27195,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsInWords], [O].[IsInWords]) IS NULL'
                 ELSE IF @S_IsInWords IS NOT NULL
                     SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsInWords], [O].[IsInWords]) = @IsInWords'
+                IF EXISTS(SELECT 1 FROM OPENJSON(@RecordSearch) WHERE [key] = 'IsVirtual' AND [type] = 0)
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsVirtual], [O].[IsVirtual]) IS NULL'
+                ELSE IF @S_IsVirtual IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsVirtual], [O].[IsVirtual]) = @IsVirtual'
                 IF @Where <> '' BEGIN
                     SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
                                     FROM [#tmpTable] [#]
@@ -28324,7 +27206,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit, @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit,@IsVirtual bit, @r BIGINT OUTPUT'
                                        ,@Id = @S_Id
                                        ,@TableId = @S_TableId
                                        ,@DomainId = @S_DomainId
@@ -28339,6 +27221,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                        ,@IsGridable = @S_IsGridable
                                        ,@IsEncrypted = @S_IsEncrypted
                                        ,@IsInWords = @S_IsInWords
+                                       ,@IsVirtual = @S_IsVirtual
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
                     IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
@@ -28376,6 +27259,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsGridable]
                     ,CAST(NULL AS bit) AS [IsEncrypted]
                     ,CAST(NULL AS bit) AS [IsInWords]
+                    ,CAST(NULL AS bit) AS [IsVirtual]
             INTO [#result]
         SET @sql = 'INSERT [#result]
                         SELECT ''Column'' AS [Kind]
@@ -28402,6 +27286,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                               ,[T].[IsGridable]
                               ,[T].[IsEncrypted]
                               ,[T].[IsInWords]
+                              ,[T].[IsVirtual]
                             FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
@@ -28430,6 +27315,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                   ,[O].[IsGridable]
                                   ,[O].[IsEncrypted]
                                   ,[O].[IsInWords]
+                                  ,[O].[IsVirtual]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
@@ -28503,7 +27389,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
         CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
-              ,CAST([dbo].[NUMBER_IN_WORDS](CAST([R].[Id] AS tinyint)) AS NVARCHAR(MAX)) AS [IdInWords]
               ,[R].[Name]
               ,[R].[HtmlInputType]
               ,[R].[HtmlInputAlign]
@@ -28568,6 +27453,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                       ,[IsGridable]
                       ,[IsEncrypted]
                       ,[IsInWords]
+                      ,[IsVirtual]
                     FROM [#result] FOR JSON PATH) AS [result]
               ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
               ,ISNULL((SELECT [Domains].* FROM [#Domains] AS [Domains] FOR JSON PATH), '[]') AS [Domains]
@@ -28701,12 +27587,6 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_IsUnique IS NULL
                 THROW 51000, 'Valor de IsUnique em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Name] = @W_Name)
-                    THROW 51000, 'Chave única de UNQ_Indexes_Name já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Name] = @W_Name AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Indexes_Name já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -29549,16 +28429,6 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ColumnId em @ActualRecord inexiste em Columns', 1
             IF @W_IsDescending IS NULL
                 THROW 51000, 'Valor de IsDescending em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence)
-                    THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_Sequence já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId)
-                    THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_ColumnId já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [Sequence] = @W_Sequence AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_Sequence já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [IndexId] = @W_IndexId AND [ColumnId] = @W_ColumnId AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Indexkeys_IndexId_ColumnId já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -30288,6 +29158,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
               ,[R].[IsGridable]
               ,[R].[IsEncrypted]
               ,[R].[IsInWords]
+              ,[R].[IsVirtual]
             INTO [#Columns]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId]
@@ -32585,16 +31456,6 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord inexiste em Columns', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [Id] = @W_Id AND [ColumnId1] = @W_ColumnId1)
-                    THROW 51000, 'Chave única de UNQ_Unicities_ColumnId1_ColumnId2 já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [Id] = @W_Id)
-                    THROW 51000, 'Chave única de UNQ_Unicities_ColumnId2_ColumnId1 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [Id] = @W_Id AND [ColumnId1] = @W_ColumnId1 AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Unicities_ColumnId1_ColumnId2 já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId1] = @W_ColumnId1 AND [Id] = @W_Id AND [Id] <> @W_Id)
-                THROW 51000, 'Chave única de UNQ_Unicities_ColumnId2_ColumnId1 já existe', 1
-            END
         END
 
     RETURN @TransactionId
@@ -33271,6 +32132,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
               ,[R].[IsGridable]
               ,[R].[IsEncrypted]
               ,[R].[IsInWords]
+              ,[R].[IsVirtual]
             INTO [#Columns]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId1]
@@ -33326,6 +32188,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                   ,[R].[IsGridable]
                   ,[R].[IsEncrypted]
                   ,[R].[IsInWords]
+                  ,[R].[IsVirtual]
                 FROM [#result] [T]
                     INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId2]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Columns] WHERE [Id] = [R].[Id])

@@ -82,12 +82,15 @@ export default class TSystem {
 
                                     table.AddColumn(column);
                                     this.#Columns.push(column);
+                                    const inWordsColumn = table.GetColumn(`${column.Name}InWords`);
+                                    if (inWordsColumn?.IsVirtual)
+                                        this.#Columns.push(inWordsColumn);
                                 });
                             config.Data.Indexes.filter(indexRow => indexRow.TableId === tableRow.Id)
                                 .forEach(indexRow => {
                                     let index = new TIndex(table, indexRow);
 
-                                    config.Data.Indexkeys.filter(indexkey => indexkey.IndexId = indexRow.Id)
+                                    config.Data.Indexkeys.filter(indexkey => indexkey.IndexId === indexRow.Id)
                                         .forEach(indexkey => index.AddIndexkey(new TIndexkey(index, indexkey)));
                                     table.AddIndex(index);
                                 });
@@ -121,6 +124,12 @@ export default class TSystem {
      */
     static GetDomain(id) {
         return this.#Domains.find(domain => domain.Id === id);
+    }
+    static GetTextDomain() {
+        return this.#Domains.find(domain => {
+            const category = domain.Type?.Category;
+            return category?.HtmlInputType === "text" || category?.Name === "string";
+        });
     }
     /**
      * @param {number} value
