@@ -417,6 +417,9 @@ export default class TForm {
         }
         else if (this.#Action === TSystem.Actions.SEARCH) {
             this.#Grid.SaveSearchs(this.#actualRecord);
+            await this.#returnToCaller();
+            this.#Grid.ClearSearches();
+            return;
         }
         else if (this.#isPersistAction()) {
             if (this.#masterForm) {
@@ -497,6 +500,8 @@ export default class TForm {
                 break;
             case TSystem.Actions.SEARCH:
                 columns = columns.filter(column => column.IsFilterable);
+                for (const column of columns)
+                    this.#actualRecord[column.Name] = this.#Grid.SearchValues[column.Name];
                 break;
             case TSystem.Actions.FILTER:
                 columns = columns.filter(column => column.IsFilterable);

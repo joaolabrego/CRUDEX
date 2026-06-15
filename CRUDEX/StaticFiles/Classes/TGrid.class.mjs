@@ -286,6 +286,7 @@ export default class TGrid {
                 ? value
                 : TConfig.IsEmpty(value) ? null : value;
         }
+        this.#RecordSet.setFilter(this.#FilterValues);
     }
     ClearFilters() {
         for (let key in this.#FilterValues) this.#FilterValues[key] = null;
@@ -310,9 +311,11 @@ export default class TGrid {
                 ? value
                 : TConfig.IsEmpty(value) ? null : value;
         }
+        this.#RecordSet.setSearch(this.#SearchValues);
     }
     ClearSearches() {
         for (let key in this.#SearchValues) this.#SearchValues[key] = null;
+        this.#RecordSet.clearSearch();
     }
     IsSearched() {
         for (let key in this.#SearchValues) {
@@ -322,6 +325,38 @@ export default class TGrid {
         }
 
         return false;
+    }
+    #valueMatchesSearch(column, record, searchValue) {
+        if (TCheckbox.isIgnored(searchValue) && TConfig.IsEmpty(searchValue))
+            return true;
+        if (TCheckbox.hasCondition(searchValue)) {
+            const expected = TCheckbox.toFilterValue(searchValue);
+            const actual = record[column.Name];
+            if (expected === null)
+                return actual == null;
+            return actual === expected;
+        }
+        const actual = record[column.Name];
+        if (actual == null && TConfig.IsEmpty(searchValue))
+            return true;
+        if (actual == null || TConfig.IsEmpty(searchValue))
+            return false;
+        const dataType = (column.Domain?.Type?.Name ?? "").toLowerCase();
+        const isText = dataType.includes("char") || dataType.includes("text");
+        const left = String(actual).toLowerCase();
+        const right = String(searchValue).toLowerCase();
+        return isText ? left.includes(right) : left === right;
+    }
+    #selectSearchedRow() {
+        if (!this.IsSearched() || !this.#Data?.length)
+            return;
+        const columns = this.#Table.Columns.filter(column => column.IsFilterable);
+        for (let index = 0; index < this.#Data.length; index++) {
+            const record = this.#Data[index];
+            if (columns.every(column =>
+                this.#valueMatchesSearch(column, record, this.#SearchValues[column.Name])))
+                this.#RowNumber = index;
+        }
     }
     async #ReadDataPage(pageNumber) {
         this.#RecordSet.setFilter(this.#FilterValues);
@@ -343,7 +378,7 @@ export default class TGrid {
         this.#IsRendering = true;
         try {
             this.#Data = await this.#ReadDataPage(pageNumber);
-            this.#PageNumber = pageNumber;
+            this.#selectSearchedRow();
             if (this.#RowCount > 1)
                 TScreen.LastMessage = TScreen.Message =
                     "Clique na linha que deseja selecionar.";
@@ -361,7 +396,7 @@ export default class TGrid {
             }
             this.#ScrollBar.setVisible(this.#RowCount > this.#rowsPerPage);
             if (!this.#embedded)
-                this.#ScrollBar.setTitle(`Página atual: ${pageNumber}`);
+                this.#ScrollBar.setTitle(`Página atual: ${this.#PageNumber}`);
         } catch (error) {
             TScreen.ShowError(
                 error.message || error.Message,
@@ -718,6 +753,9 @@ export default class TGrid {
     }
     get FilterValues() {
         return this.#FilterValues;
+    }
+    get SearchValues() {
+        return this.#SearchValues;
     }
     get Primarykeys() {
         return { Id: this.#Data[this.#RowNumber]["Id"] };

@@ -171,13 +171,11 @@ namespace crudex.Classes
 
             return result;
         }
-        private static void AppendReadFilterScope(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string scopePrefix, string whereVariable, string indent)
+        private static void AppendReadFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string valueVariable, string parameterName, string indent)
         {
             var name = column["Name"];
             var dataType = column["#DataType"];
             var validations = GetConstraints(column, domains, types);
-            var valueVariable = $"@W_{scopePrefix}_{name}";
-            var parameterName = $"@{scopePrefix}_{name}";
 
             result.Append($"{indent}IF {valueVariable} IS NOT NULL BEGIN\r\n");
             if (validations.TryGetValue("Minimum", out dynamic? value))
@@ -190,8 +188,23 @@ namespace crudex.Classes
                 result.Append($"{indent}    IF {valueVariable} > CAST('{value}' AS {dataType})\r\n");
                 result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser menor que ou igual a ''{value}''', 1\r\n");
             }
-            result.Append($"{indent}    SET {whereVariable} = {whereVariable} + ' AND [T].[{name}] = {parameterName}'\r\n");
+            result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] = {parameterName}'\r\n");
             result.Append($"{indent}END\r\n");
+        }
+        private static void AppendReadSearchCondition(StringBuilder result, DataRow column, string indent)
+        {
+            var name = column["Name"];
+            var dataType = Convert.ToString(column["#DataType"]) ?? string.Empty;
+            var isText = dataType.StartsWith("nvarchar", StringComparison.OrdinalIgnoreCase)
+                || dataType.StartsWith("varchar", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(dataType, "ntext", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(dataType, "text", StringComparison.OrdinalIgnoreCase);
+
+            result.Append($"{indent}IF @S_{name} IS NOT NULL\r\n");
+            if (isText)
+                result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) LIKE ''%'' + @{name} + ''%'''\r\n");
+            else
+                result.Append($"{indent}    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[{name}], [O].[{name}]) = @{name}'\r\n");
         }
         private static StringBuilder GetScriptCreateDatabase(DataRow database, bool isDocker)
         {
@@ -1363,6 +1376,7 @@ namespace crudex.Classes
                 result.Append($"GO\r\n");
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@Login NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@RecordFilter NVARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@RecordSearch NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
                 result.Append($"                                          ,@IsActionList BIT\r\n");
@@ -1380,9 +1394,11 @@ namespace crudex.Classes
                 result.Append("            SET @RecordFilter = '{}'\r\n");
                 result.Append($"        ELSE IF ISJSON(@RecordFilter) = 0\r\n");
                 result.Append($"            THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1\r\n");
+                result.Append($"        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0\r\n");
+                result.Append($"            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1\r\n");
                 result.Append($"        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))\r\n");
                 result.Append($"        IF @OrderBy = ''\r\n");
-                result.Append($"            SET @OrderBy = '[Id]'\r\n");
+                result.Append($"            SET @OrderBy = '[T].[Id] ASC'\r\n");
                 result.Append($"        ELSE BEGIN\r\n");
                 result.Append($"            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')\r\n");
                 result.Append($"            IF EXISTS(SELECT 1 \r\n");
@@ -1397,7 +1413,7 @@ namespace crudex.Classes
                 result.Append($"                                                    WHERE [#2].[name] = '{table["Name"]}') AS [T] ON [T].[ColumnName] = [O].[ColumnName]\r\n");
                 result.Append($"                         WHERE [T].[ColumnName] IS NULL)\r\n");
                 result.Append($"                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1\r\n");
-                result.Append($"            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)\r\n");
+                result.Append($"            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)\r\n");
                 result.Append($"                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)\r\n");
                 result.Append($"                                                         ELSE TRIM([value])\r\n");
                 result.Append($"                                                    END) + '] ' + \r\n");
@@ -1406,11 +1422,13 @@ namespace crudex.Classes
                 result.Append($"                                                         ELSE 'ASC'\r\n");
                 result.Append($"                                                    END, ', ')\r\n");
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
+                result.Append($"            IF CHARINDEX('[T].[Id]', @OrderBy) = 0\r\n");
+                result.Append($"                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'\r\n");
                 result.Append($"        END\r\n");
                 if (listableColumn != null)
                 {
                     result.Append($"        IF @IsActionList = 1\r\n");
-                    result.Append($"            SET @OrderBy = '[{listableColumn["Name"]}]'\r\n");
+                    result.Append($"            SET @OrderBy = '[T].[{listableColumn["Name"]}] ASC, [T].[Id] ASC'\r\n");
                     result.Append($"        DECLARE @PickerValue {listableColumn["#DataType"]} = NULL\r\n");
                 }
                 result.Append($"\r\n");
@@ -1437,116 +1455,105 @@ namespace crudex.Classes
                 result.Append($"                  AND [IsConfirmed] IS NULL\r\n");
                 result.Append($"        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])\r\n");
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))\r\n");
-                result.Append($"               ,@WhereFixed NVARCHAR(MAX) = ''\r\n");
-                result.Append($"               ,@WhereFilter NVARCHAR(MAX) = ''\r\n");
-                result.Append($"               ,@WhereSearch NVARCHAR(MAX) = ''\r\n");
-                result.Append($"               ,@WhereUser NVARCHAR(MAX) = ''\r\n");
+
+                var filterableColumns = columnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
+                var idDataType = columnRows[0]["#DataType"];
+
+                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))\r\n");
                 result.Append($"               ,@Where NVARCHAR(MAX) = ''\r\n");
                 result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
-
-                var filterableColumns = columnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
-
-                firstTime = true;
-                foreach (var column in filterableColumns)
-                {
-                    var columnName = column["Name"];
-                    var dataType = column["#DataType"];
-                    if (firstTime)
-                    {
-                        result.Append($"        DECLARE @W_F_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{columnName}') AS {dataType})\r\n");
-                        firstTime = false;
-                    }
-                    else
-                        result.Append($"               ,@W_F_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{columnName}') AS {dataType})\r\n");
-                    result.Append($"               ,@W_U_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Filter.{columnName}') AS {dataType})\r\n");
-                    result.Append($"               ,@W_S_{columnName} {dataType} = CAST(JSON_VALUE(@RecordFilter, '$.Search.{columnName}') AS {dataType})\r\n");
-                }
-                result.Append($"\r\n");
-                foreach (var column in filterableColumns)
-                    AppendReadFilterScope(result, column, domains, types, "F", "@WhereFixed", "        ");
                 if (listableColumn != null)
                 {
                     result.Append($"        IF @IsActionList = 1 BEGIN\r\n");
                     result.Append($"            SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS {listableColumn["#DataType"]})\r\n");
                     result.Append($"            IF @PickerValue IS NULL\r\n");
                     result.Append($"                SET @PickerValue = ''\r\n");
-                    result.Append($"            SET @WhereUser = '[T].[{listableColumn["Name"]}] LIKE ''%'' + @PickerValue + ''%'''\r\n");
-                    result.Append($"        END ELSE BEGIN\r\n");
+                    result.Append($"            SET @Where = @Where + ' AND [T].[{listableColumn["Name"]}] LIKE ''%'' + @PickerValue + ''%'''\r\n");
+                    result.Append($"        END ELSE IF @_ IS NULL BEGIN\r\n");
                 }
-                result.Append($"        IF @_ IS NULL BEGIN\r\n");
-                foreach (var column in filterableColumns)
-                    AppendReadFilterScope(result, column, domains, types, "U", "@WhereFilter", "            ");
-                foreach (var column in filterableColumns)
-                    AppendReadFilterScope(result, column, domains, types, "S", "@WhereSearch", "            ");
-                result.Append($"            IF @WhereFilter <> '' AND @WhereSearch <> ''\r\n");
-                result.Append($"                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'\r\n");
-                result.Append($"            ELSE IF @WhereFilter <> ''\r\n");
-                result.Append($"                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')\r\n");
-                result.Append($"            ELSE IF @WhereSearch <> ''\r\n");
-                result.Append($"                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')\r\n");
-                result.Append($"        END ELSE\r\n");
-                result.Append($"            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'\r\n");
-                if (listableColumn != null)
-                    result.Append($"        END\r\n");
-                result.Append($"        SET @Where = @WhereFixed\r\n");
-                result.Append($"        IF @WhereUser <> ''\r\n");
-                result.Append($"            SET @Where = @Where + ' AND (' + @WhereUser + ')'\r\n");
-                result.Append($"        SET @sql = 'INSERT [#tmpTable]\r\n");
-                result.Append($"                        SELECT ''T'' AS [_]\r\n");
-                result.Append($"                              ,[T].[Id]\r\n");
-                result.Append($"                            FROM [dbo].[{table["Name"]}] [T]\r\n");
-                result.Append($"                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]");
-                result.Append($"\r\n");
-                result.Append($"                            WHERE [#].[Id] IS NULL'\r\n");
-                result.Append($"        SET @sql = @sql + @Where + '\r\n");
-                result.Append($"                        UNION ALL\r\n");
-                result.Append($"                            SELECT ''O'' AS [_]\r\n");
-                result.Append($"                                  ,[T].[Id]\r\n");
-                result.Append($"                                FROM [#tmpOperations] [T]\r\n");
-                result.Append($"                                WHERE [T].[_] <> ''delete'''\r\n");
-                result.Append($"        SET @sql = @sql + @Where\r\n");
-                result.Append($"        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] {columnRows[0]["#DataType"]})\r\n");
-                result.Append($"        IF @_ IS NULL\r\n");
+                else
+                    result.Append($"        IF @_ IS NULL BEGIN\r\n");
+
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
-                    var columnName = column["Name"];
-                    var dataType = column["#DataType"];
                     if (firstTime)
                     {
-                        result.Append($"            EXEC sp_executesql @sql\r\n");
-                        result.Append($"                               ,N'@F_{columnName} {dataType}");
+                        result.Append($"            DECLARE @W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
                         firstTime = false;
                     }
                     else
-                    {
-                        result.Append($"\r\n");
-                        result.Append($"                               ,@F_{columnName} {dataType}");
-                    }
-                    result.Append($",@U_{columnName} {dataType},@S_{columnName} {dataType}");
+                        result.Append($"                   ,@W_{column["Name"]} {column["#DataType"]} = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.{column["Name"]}') AS {column["#DataType"]}), CAST(JSON_VALUE(@RecordFilter, '$.{column["Name"]}') AS {column["#DataType"]}))\r\n");
                 }
-                if (listableColumn != null)
-                    result.Append($",@PickerValue {listableColumn["#DataType"]}");
-                result.Append($"'\r\n");
+                if (filterableColumns.Count > 0)
+                    result.Append($"\r\n");
                 foreach (var column in filterableColumns)
-                {
-                    var columnName = column["Name"];
-                    result.Append($"                           ,@F_{columnName} = @W_F_{columnName}\r\n");
-                    result.Append($"                           ,@U_{columnName} = @W_U_{columnName}\r\n");
-                    result.Append($"                           ,@S_{columnName} = @W_S_{columnName}\r\n");
-                }
+                    AppendReadFilterColumn(result, column, domains, types, $"@W_{column["Name"]}", $"@{column["Name"]}", "            ");
+                result.Append($"        END ELSE\r\n");
+                result.Append($"            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'\r\n");
+
+                result.Append($"        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] {idDataType})\r\n");
+                result.Append($"        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])\r\n");
+                result.Append($"                        SELECT [_]\r\n");
+                result.Append($"                              ,[Recno]\r\n");
+                result.Append($"                              ,[Id]\r\n");
+                result.Append($"                            FROM (SELECT ''T'' AS [_]\r\n");
+                result.Append($"                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]\r\n");
+                result.Append($"                                        ,[T].[Id]\r\n");
+                result.Append($"                                    FROM [dbo].[{table["Name"]}] [T]\r\n");
+                result.Append($"                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]\r\n");
+                result.Append($"                                    WHERE [#].[Id] IS NULL' + @Where + '\r\n");
+                result.Append($"                                  UNION ALL\r\n");
+                result.Append($"                                  SELECT ''O'' AS [_]\r\n");
+                result.Append($"                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]\r\n");
+                result.Append($"                                        ,[T].[Id]\r\n");
+                result.Append($"                                    FROM [#tmpOperations] [T]\r\n");
+                result.Append($"                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]\r\n");
+                result.Append($"                            ORDER BY [Recno]'\r\n");
+
                 if (listableColumn != null)
-                    result.Append($"                           ,@PickerValue = @PickerValue\r\n");
-                result.Append($"        ELSE\r\n");
+                    result.Append($"        IF @IsActionList = 1 BEGIN\r\n");
+                else
+                    result.Append($"        IF @_ IS NULL BEGIN\r\n");
+
+                if (listableColumn != null)
+                {
+                    result.Append($"            EXEC sp_executesql @sql\r\n");
+                    result.Append($"                               ,N'@PickerValue {listableColumn["#DataType"]}'\r\n");
+                    result.Append($"                               ,@PickerValue = @PickerValue\r\n");
+                    result.Append($"        END ELSE IF @_ IS NULL BEGIN\r\n");
+                }
+
+                if (filterableColumns.Count > 0)
+                {
+                    firstTime = true;
+                    foreach (var column in filterableColumns)
+                    {
+                        if (firstTime)
+                        {
+                            result.Append($"            EXEC sp_executesql @sql\r\n");
+                            result.Append($"                               ,N'@{column["Name"]} {column["#DataType"]}");
+                            firstTime = false;
+                        }
+                        else
+                            result.Append($",@{column["Name"]} {column["#DataType"]}");
+                    }
+                    result.Append($"'\r\n");
+                    foreach (var column in filterableColumns)
+                        result.Append($"                               ,@{column["Name"]} = @W_{column["Name"]}\r\n");
+                }
+                else
+                    result.Append($"            EXEC sp_executesql @sql\r\n");
+
+                result.Append($"        END ELSE\r\n");
                 result.Append($"            EXEC sp_executesql @sql\r\n");
+
                 result.Append($"\r\n");
                 result.Append($"        DECLARE @RowCount INT = @@ROWCOUNT\r\n");
                 result.Append($"               ,@OffSet INT\r\n");
                 result.Append($"\r\n");
-                result.Append($"        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id]");
-                result.Append($")\r\n");
+                result.Append($"        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])\r\n");
                 result.Append($"        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN\r\n");
                 result.Append($"            SET @OffSet = 0\r\n");
                 result.Append($"            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END\r\n");
@@ -1554,28 +1561,84 @@ namespace crudex.Classes
                 result.Append($"            SET @MaxPage = 1\r\n");
                 result.Append($"        END ELSE BEGIN\r\n");
                 result.Append($"            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END\r\n");
+                result.Append($"            DECLARE @SearchRecno BIGINT = NULL\r\n");
+                result.Append($"            IF @RecordSearch IS NOT NULL BEGIN\r\n");
+
+                firstTime = true;
+                foreach (var column in filterableColumns)
+                {
+                    if (firstTime)
+                    {
+                        result.Append($"                DECLARE @Recno BIGINT\r\n");
+                        result.Append($"                       ,@S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordSearch, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                        firstTime = false;
+                    }
+                    else
+                        result.Append($"                       ,@S_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordSearch, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                }
+                if (filterableColumns.Count == 0)
+                    result.Append($"                DECLARE @Recno BIGINT\r\n");
+                if (filterableColumns.Count > 0)
+                    result.Append($"\r\n");
+                result.Append($"                SET @Where = ''\r\n");
+                foreach (var column in filterableColumns)
+                    AppendReadSearchCondition(result, column, "                ");
+                result.Append($"                IF @Where <> '' BEGIN\r\n");
+                result.Append($"                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]\r\n");
+                result.Append($"                                    FROM [#tmpTable] [#]\r\n");
+                result.Append($"                                        LEFT JOIN [dbo].[{table["Name"]}] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''\r\n");
+                result.Append($"                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''\r\n");
+                result.Append($"                                    WHERE ' + @Where\r\n");
+                if (filterableColumns.Count > 0)
+                {
+                    firstTime = true;
+                    foreach (var column in filterableColumns)
+                    {
+                        if (firstTime)
+                        {
+                            result.Append($"                    EXEC sp_executesql @sql\r\n");
+                            result.Append($"                                       ,N'@{column["Name"]} {column["#DataType"]}");
+                            firstTime = false;
+                        }
+                        else
+                            result.Append($",@{column["Name"]} {column["#DataType"]}");
+                    }
+                    result.Append($", @r BIGINT OUTPUT'\r\n");
+                    foreach (var column in filterableColumns)
+                        result.Append($"                                       ,@{column["Name"]} = @S_{column["Name"]}\r\n");
+                    result.Append($"                                       ,@r = @Recno OUTPUT\r\n");
+                }
+                else
+                    result.Append($"                    EXEC sp_executesql @sql, N'@r BIGINT OUTPUT', @r = @Recno OUTPUT\r\n");
+                result.Append($"                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END\r\n");
+                result.Append($"                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno\r\n");
+                result.Append($"                END\r\n");
+                result.Append($"            END\r\n");
                 result.Append($"            IF ABS(@PageNumber) > @MaxPage\r\n");
                 result.Append($"                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END\r\n");
-                result.Append($"            IF @PageNumber < 0\r\n");
+                result.Append($"            ELSE IF @PageNumber < 0\r\n");
                 result.Append($"                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1\r\n");
                 result.Append($"            SET @OffSet = (@PageNumber - 1) * @LimitRows\r\n");
-                result.Append($"            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount\r\n");
+                result.Append($"            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount\r\n");
                 result.Append($"                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END\r\n");
                 result.Append($"        END\r\n");
+
                 firstTime = true;
                 foreach (var column in columnRows)
                 {
                     if (firstTime)
                     {
                         result.Append($"        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]\r\n");
+                        result.Append($"                    ,CAST(NULL AS BIGINT) AS [Recno]\r\n");
                         firstTime = false;
                     }
                     result.Append($"                    ,CAST(NULL AS {column["#DataType"]}) AS [{column["Name"]}]\r\n");
                 }
                 result.Append($"            INTO [#result]\r\n");
 
-                result.Append($"        SET @sql = 'INSERT #result\r\n");
+                result.Append($"        SET @sql = 'INSERT [#result]\r\n");
                 result.Append($"                        SELECT ''{table["Alias"]}'' AS [Kind]\r\n");
+                result.Append($"                              ,[#].[Recno]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                              ,[T].[{column["Name"]}]\r\n");
                 result.Append($"                            FROM [#tmpTable] [#]\r\n");
@@ -1583,13 +1646,14 @@ namespace crudex.Classes
                 result.Append($"                            WHERE [#].[_] = ''T''\r\n");
                 result.Append($"                        UNION ALL\r\n");
                 result.Append($"                            SELECT ''{table["Alias"]}'' AS [Kind]\r\n");
+                result.Append($"                                  ,[#].[Recno]\r\n");
                 foreach (var column in columnRows)
                     result.Append($"                                  ,[O].[{column["Name"]}]\r\n");
                 result.Append($"                                FROM [#tmpTable] [#]\r\n");
                 result.Append($"                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]\r\n");
                 result.Append($"                                WHERE [#].[_] = ''O''\r\n");
-                result.Append($"                        ORDER BY ' + @OrderBy + '\r\n");
-                result.Append($"                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS\r\n");
+                result.Append($"                        ORDER BY [Recno]\r\n");
+                result.Append($"                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS\r\n");
                 result.Append($"                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
                 result.Append($"        EXEC sp_executesql @sql\r\n");
 

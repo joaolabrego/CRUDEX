@@ -44,40 +44,40 @@ export default class TRecordSet {
     }
 
     #buildRecordFilter() {
-        const payload = {};
-        const fixed = {};
+        const filter = {};
 
         for (const [key, value] of Object.entries(this.#FixedFilter))
-            this.#appendFilterValue(fixed, key, value);
-        if (Object.keys(fixed).length)
-            payload.Fixed = fixed;
-
-        const filter = {};
+            this.#appendFilterValue(filter, key, value);
         for (const [key, value] of Object.entries(this.#FilterValues))
             this.#appendFilterValue(filter, key, value);
-        if (Object.keys(filter).length)
-            payload.Filter = filter;
 
+        return filter;
+    }
+
+    #buildRecordSearch() {
         const search = {};
+
         for (const [key, value] of Object.entries(this.#SearchValues))
             this.#appendFilterValue(search, key, value);
-        if (Object.keys(search).length)
-            payload.Search = search;
 
-        return payload;
+        return Object.keys(search).length ? search : null;
     }
 
     async goPage(pageNumber = 1) {
+        const recordSearch = this.#buildRecordSearch();
+        const inParams = {
+            RecordFilter: JSON.stringify(this.#buildRecordFilter()),
+            RecordSearch: recordSearch ? JSON.stringify(recordSearch) : null,
+            OrderBy: this.orderBy,
+            PaddingGridLastPage: TSystem.PaddingGridLastPage,
+            IsActionList: false,
+        };
+
         const parameters = {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
             Action: TSystem.Actions.READ,
-            InParams: {
-                RecordFilter: JSON.stringify(this.#buildRecordFilter()),
-                OrderBy: this.orderBy,
-                PaddingGridLastPage: TSystem.PaddingGridLastPage,
-                IsActionList: false,
-            },
+            InParams: inParams,
             OutParams: {},
             IOParams: {
                 PageNumber: pageNumber,
@@ -126,6 +126,7 @@ export default class TRecordSet {
             Action: TSystem.Actions.READ,
             InParams: {
                 RecordFilter: JSON.stringify({ Picker: { Value: value ?? "" } }),
+                RecordSearch: null,
                 OrderBy: listable ? `[${listable.Name}]` : "",
                 PaddingGridLastPage: false,
                 IsActionList: true,
@@ -171,7 +172,8 @@ export default class TRecordSet {
             TableName: this.#Table.Name,
             Action: TSystem.Actions.READ,
             InParams: {
-                RecordFilter: JSON.stringify({ Filter: recordFilter }),
+                RecordFilter: JSON.stringify(recordFilter ?? {}),
+                RecordSearch: null,
                 OrderBy: null,
                 PaddingGridLastPage: false,
                 IsActionList: false,

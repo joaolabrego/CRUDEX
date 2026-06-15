@@ -16136,6 +16136,7 @@ IF(SELECT object_id('[dbo].[CategoriesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -16159,9 +16160,11 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -16176,7 +16179,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Categories') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -16185,9 +16188,11 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -16213,202 +16218,92 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint)
-               ,@W_U_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint)
-               ,@W_S_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS tinyint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_AskEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskEncrypted') AS bit)
-               ,@W_U_AskEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskEncrypted') AS bit)
-               ,@W_S_AskEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskEncrypted') AS bit)
-               ,@W_F_AskMask bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMask') AS bit)
-               ,@W_U_AskMask bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMask') AS bit)
-               ,@W_S_AskMask bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskMask') AS bit)
-               ,@W_F_AskListable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskListable') AS bit)
-               ,@W_U_AskListable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskListable') AS bit)
-               ,@W_S_AskListable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskListable') AS bit)
-               ,@W_F_AskDefault bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskDefault') AS bit)
-               ,@W_U_AskDefault bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskDefault') AS bit)
-               ,@W_S_AskDefault bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskDefault') AS bit)
-               ,@W_F_AskMinimum bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMinimum') AS bit)
-               ,@W_U_AskMinimum bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMinimum') AS bit)
-               ,@W_S_AskMinimum bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskMinimum') AS bit)
-               ,@W_F_AskMaximum bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMaximum') AS bit)
-               ,@W_U_AskMaximum bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMaximum') AS bit)
-               ,@W_S_AskMaximum bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskMaximum') AS bit)
-               ,@W_F_AskInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskInWords') AS bit)
-               ,@W_U_AskInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskInWords') AS bit)
-               ,@W_S_AskInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskInWords') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS tinyint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_AskEncrypted IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskEncrypted] = @F_AskEncrypted'
-        END
-        IF @W_F_AskMask IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskMask] = @F_AskMask'
-        END
-        IF @W_F_AskListable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskListable] = @F_AskListable'
-        END
-        IF @W_F_AskDefault IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskDefault] = @F_AskDefault'
-        END
-        IF @W_F_AskMinimum IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskMinimum] = @F_AskMinimum'
-        END
-        IF @W_F_AskMaximum IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskMaximum] = @F_AskMaximum'
-        END
-        IF @W_F_AskInWords IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskInWords] = @F_AskInWords'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS tinyint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_AskEncrypted bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskEncrypted') AS bit))
+                   ,@W_AskMask bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMask') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMask') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskMask') AS bit))
+                   ,@W_AskListable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskListable') AS bit))
+                   ,@W_AskDefault bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskDefault') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskDefault') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskDefault') AS bit))
+                   ,@W_AskMinimum bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMinimum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMinimum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskMinimum') AS bit))
+                   ,@W_AskMaximum bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskMaximum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskMaximum') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskMaximum') AS bit))
+                   ,@W_AskInWords bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskInWords') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_AskEncrypted IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskEncrypted] = @U_AskEncrypted'
+            IF @W_AskEncrypted IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskEncrypted] = @AskEncrypted'
             END
-            IF @W_U_AskMask IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskMask] = @U_AskMask'
+            IF @W_AskMask IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskMask] = @AskMask'
             END
-            IF @W_U_AskListable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskListable] = @U_AskListable'
+            IF @W_AskListable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskListable] = @AskListable'
             END
-            IF @W_U_AskDefault IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskDefault] = @U_AskDefault'
+            IF @W_AskDefault IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskDefault] = @AskDefault'
             END
-            IF @W_U_AskMinimum IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskMinimum] = @U_AskMinimum'
+            IF @W_AskMinimum IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskMinimum] = @AskMinimum'
             END
-            IF @W_U_AskMaximum IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskMaximum] = @U_AskMaximum'
+            IF @W_AskMaximum IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskMaximum] = @AskMaximum'
             END
-            IF @W_U_AskInWords IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskInWords] = @U_AskInWords'
+            IF @W_AskInWords IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskInWords] = @AskInWords'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS tinyint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_AskEncrypted IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskEncrypted] = @S_AskEncrypted'
-            END
-            IF @W_S_AskMask IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskMask] = @S_AskMask'
-            END
-            IF @W_S_AskListable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskListable] = @S_AskListable'
-            END
-            IF @W_S_AskDefault IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskDefault] = @S_AskDefault'
-            END
-            IF @W_S_AskMinimum IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskMinimum] = @S_AskMinimum'
-            END
-            IF @W_S_AskMaximum IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskMaximum] = @S_AskMaximum'
-            END
-            IF @W_S_AskInWords IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskInWords] = @S_AskInWords'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Categories] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] tinyint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] tinyint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Categories] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id tinyint,@U_Id tinyint,@S_Id tinyint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_AskEncrypted bit,@U_AskEncrypted bit,@S_AskEncrypted bit
-                               ,@F_AskMask bit,@U_AskMask bit,@S_AskMask bit
-                               ,@F_AskListable bit,@U_AskListable bit,@S_AskListable bit
-                               ,@F_AskDefault bit,@U_AskDefault bit,@S_AskDefault bit
-                               ,@F_AskMinimum bit,@U_AskMinimum bit,@S_AskMinimum bit
-                               ,@F_AskMaximum bit,@U_AskMaximum bit,@S_AskMaximum bit
-                               ,@F_AskInWords bit,@U_AskInWords bit,@S_AskInWords bit,@PickerValue nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_AskEncrypted = @W_F_AskEncrypted
-                           ,@U_AskEncrypted = @W_U_AskEncrypted
-                           ,@S_AskEncrypted = @W_S_AskEncrypted
-                           ,@F_AskMask = @W_F_AskMask
-                           ,@U_AskMask = @W_U_AskMask
-                           ,@S_AskMask = @W_S_AskMask
-                           ,@F_AskListable = @W_F_AskListable
-                           ,@U_AskListable = @W_U_AskListable
-                           ,@S_AskListable = @W_S_AskListable
-                           ,@F_AskDefault = @W_F_AskDefault
-                           ,@U_AskDefault = @W_U_AskDefault
-                           ,@S_AskDefault = @W_S_AskDefault
-                           ,@F_AskMinimum = @W_F_AskMinimum
-                           ,@U_AskMinimum = @W_U_AskMinimum
-                           ,@S_AskMinimum = @W_S_AskMinimum
-                           ,@F_AskMaximum = @W_F_AskMaximum
-                           ,@U_AskMaximum = @W_U_AskMaximum
-                           ,@S_AskMaximum = @W_S_AskMaximum
-                           ,@F_AskInWords = @W_F_AskInWords
-                           ,@U_AskInWords = @W_U_AskInWords
-                           ,@S_AskInWords = @W_S_AskInWords
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(25)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id tinyint,@Name nvarchar(25),@AskEncrypted bit,@AskMask bit,@AskListable bit,@AskDefault bit,@AskMinimum bit,@AskMaximum bit,@AskInWords bit'
+                               ,@Id = @W_Id
+                               ,@Name = @W_Name
+                               ,@AskEncrypted = @W_AskEncrypted
+                               ,@AskMask = @W_AskMask
+                               ,@AskListable = @W_AskListable
+                               ,@AskDefault = @W_AskDefault
+                               ,@AskMinimum = @W_AskMinimum
+                               ,@AskMaximum = @W_AskMaximum
+                               ,@AskInWords = @W_AskInWords
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -16422,15 +16317,70 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id tinyint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS tinyint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_AskEncrypted bit = CAST(JSON_VALUE(@RecordSearch, '$.AskEncrypted') AS bit)
+                       ,@S_AskMask bit = CAST(JSON_VALUE(@RecordSearch, '$.AskMask') AS bit)
+                       ,@S_AskListable bit = CAST(JSON_VALUE(@RecordSearch, '$.AskListable') AS bit)
+                       ,@S_AskDefault bit = CAST(JSON_VALUE(@RecordSearch, '$.AskDefault') AS bit)
+                       ,@S_AskMinimum bit = CAST(JSON_VALUE(@RecordSearch, '$.AskMinimum') AS bit)
+                       ,@S_AskMaximum bit = CAST(JSON_VALUE(@RecordSearch, '$.AskMaximum') AS bit)
+                       ,@S_AskInWords bit = CAST(JSON_VALUE(@RecordSearch, '$.AskInWords') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_AskEncrypted IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskEncrypted], [O].[AskEncrypted]) = @AskEncrypted'
+                IF @S_AskMask IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskMask], [O].[AskMask]) = @AskMask'
+                IF @S_AskListable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskListable], [O].[AskListable]) = @AskListable'
+                IF @S_AskDefault IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskDefault], [O].[AskDefault]) = @AskDefault'
+                IF @S_AskMinimum IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskMinimum], [O].[AskMinimum]) = @AskMinimum'
+                IF @S_AskMaximum IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskMaximum], [O].[AskMaximum]) = @AskMaximum'
+                IF @S_AskInWords IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskInWords], [O].[AskInWords]) = @AskInWords'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Categories] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id tinyint,@Name nvarchar(25),@AskEncrypted bit,@AskMask bit,@AskListable bit,@AskDefault bit,@AskMinimum bit,@AskMaximum bit,@AskInWords bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Name = @S_Name
+                                       ,@AskEncrypted = @S_AskEncrypted
+                                       ,@AskMask = @S_AskMask
+                                       ,@AskListable = @S_AskListable
+                                       ,@AskDefault = @S_AskDefault
+                                       ,@AskMinimum = @S_AskMinimum
+                                       ,@AskMaximum = @S_AskMaximum
+                                       ,@AskInWords = @S_AskInWords
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS tinyint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(10)) AS [HtmlInputType]
@@ -16443,8 +16393,9 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [AskMaximum]
                     ,CAST(NULL AS bit) AS [AskInWords]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Category'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[HtmlInputType]
@@ -16461,6 +16412,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Category'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[HtmlInputType]
@@ -16475,8 +16427,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
@@ -17104,6 +17056,7 @@ IF(SELECT object_id('[dbo].[TypesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -17127,9 +17080,11 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -17144,7 +17099,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Types') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -17153,9 +17108,11 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -17185,234 +17142,102 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint)
-               ,@W_U_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint)
-               ,@W_S_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS tinyint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_AskLength bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskLength') AS bit)
-               ,@W_U_AskLength bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskLength') AS bit)
-               ,@W_S_AskLength bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskLength') AS bit)
-               ,@W_F_AskDecimals bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskDecimals') AS bit)
-               ,@W_U_AskDecimals bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskDecimals') AS bit)
-               ,@W_S_AskDecimals bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskDecimals') AS bit)
-               ,@W_F_AskPrimarykey bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskPrimarykey') AS bit)
-               ,@W_U_AskPrimarykey bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskPrimarykey') AS bit)
-               ,@W_S_AskPrimarykey bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskPrimarykey') AS bit)
-               ,@W_F_AskAutoincrement bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskAutoincrement') AS bit)
-               ,@W_U_AskAutoincrement bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskAutoincrement') AS bit)
-               ,@W_S_AskAutoincrement bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskAutoincrement') AS bit)
-               ,@W_F_AskFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskFilterable') AS bit)
-               ,@W_U_AskFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskFilterable') AS bit)
-               ,@W_S_AskFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskFilterable') AS bit)
-               ,@W_F_AskGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskGridable') AS bit)
-               ,@W_U_AskGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskGridable') AS bit)
-               ,@W_S_AskGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskGridable') AS bit)
-               ,@W_F_AskCodification bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskCodification') AS bit)
-               ,@W_U_AskCodification bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskCodification') AS bit)
-               ,@W_S_AskCodification bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.AskCodification') AS bit)
-               ,@W_F_IsLikeable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLikeable') AS bit)
-               ,@W_U_IsLikeable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLikeable') AS bit)
-               ,@W_S_IsLikeable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsLikeable') AS bit)
-               ,@W_F_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsActive') AS bit)
-               ,@W_U_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsActive') AS bit)
-               ,@W_S_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsActive') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS tinyint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_AskLength IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskLength] = @F_AskLength'
-        END
-        IF @W_F_AskDecimals IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskDecimals] = @F_AskDecimals'
-        END
-        IF @W_F_AskPrimarykey IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskPrimarykey] = @F_AskPrimarykey'
-        END
-        IF @W_F_AskAutoincrement IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskAutoincrement] = @F_AskAutoincrement'
-        END
-        IF @W_F_AskFilterable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskFilterable] = @F_AskFilterable'
-        END
-        IF @W_F_AskGridable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskGridable] = @F_AskGridable'
-        END
-        IF @W_F_AskCodification IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[AskCodification] = @F_AskCodification'
-        END
-        IF @W_F_IsLikeable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsLikeable] = @F_IsLikeable'
-        END
-        IF @W_F_IsActive IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsActive] = @F_IsActive'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS tinyint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_AskLength bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskLength') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskLength') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskLength') AS bit))
+                   ,@W_AskDecimals bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskDecimals') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskDecimals') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskDecimals') AS bit))
+                   ,@W_AskPrimarykey bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskPrimarykey') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskPrimarykey') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskPrimarykey') AS bit))
+                   ,@W_AskAutoincrement bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskAutoincrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskAutoincrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskAutoincrement') AS bit))
+                   ,@W_AskFilterable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskFilterable') AS bit))
+                   ,@W_AskGridable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskGridable') AS bit))
+                   ,@W_AskCodification bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.AskCodification') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.AskCodification') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.AskCodification') AS bit))
+                   ,@W_IsLikeable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLikeable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLikeable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsLikeable') AS bit))
+                   ,@W_IsActive bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsActive') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_AskLength IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskLength] = @U_AskLength'
+            IF @W_AskLength IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskLength] = @AskLength'
             END
-            IF @W_U_AskDecimals IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskDecimals] = @U_AskDecimals'
+            IF @W_AskDecimals IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskDecimals] = @AskDecimals'
             END
-            IF @W_U_AskPrimarykey IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskPrimarykey] = @U_AskPrimarykey'
+            IF @W_AskPrimarykey IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskPrimarykey] = @AskPrimarykey'
             END
-            IF @W_U_AskAutoincrement IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskAutoincrement] = @U_AskAutoincrement'
+            IF @W_AskAutoincrement IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskAutoincrement] = @AskAutoincrement'
             END
-            IF @W_U_AskFilterable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskFilterable] = @U_AskFilterable'
+            IF @W_AskFilterable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskFilterable] = @AskFilterable'
             END
-            IF @W_U_AskGridable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskGridable] = @U_AskGridable'
+            IF @W_AskGridable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskGridable] = @AskGridable'
             END
-            IF @W_U_AskCodification IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[AskCodification] = @U_AskCodification'
+            IF @W_AskCodification IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[AskCodification] = @AskCodification'
             END
-            IF @W_U_IsLikeable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsLikeable] = @U_IsLikeable'
+            IF @W_IsLikeable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsLikeable] = @IsLikeable'
             END
-            IF @W_U_IsActive IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsActive] = @U_IsActive'
+            IF @W_IsActive IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS tinyint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_AskLength IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskLength] = @S_AskLength'
-            END
-            IF @W_S_AskDecimals IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskDecimals] = @S_AskDecimals'
-            END
-            IF @W_S_AskPrimarykey IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskPrimarykey] = @S_AskPrimarykey'
-            END
-            IF @W_S_AskAutoincrement IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskAutoincrement] = @S_AskAutoincrement'
-            END
-            IF @W_S_AskFilterable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskFilterable] = @S_AskFilterable'
-            END
-            IF @W_S_AskGridable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskGridable] = @S_AskGridable'
-            END
-            IF @W_S_AskCodification IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[AskCodification] = @S_AskCodification'
-            END
-            IF @W_S_IsLikeable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsLikeable] = @S_IsLikeable'
-            END
-            IF @W_S_IsActive IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsActive] = @S_IsActive'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Types] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] tinyint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] tinyint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Types] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id tinyint,@U_Id tinyint,@S_Id tinyint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_AskLength bit,@U_AskLength bit,@S_AskLength bit
-                               ,@F_AskDecimals bit,@U_AskDecimals bit,@S_AskDecimals bit
-                               ,@F_AskPrimarykey bit,@U_AskPrimarykey bit,@S_AskPrimarykey bit
-                               ,@F_AskAutoincrement bit,@U_AskAutoincrement bit,@S_AskAutoincrement bit
-                               ,@F_AskFilterable bit,@U_AskFilterable bit,@S_AskFilterable bit
-                               ,@F_AskGridable bit,@U_AskGridable bit,@S_AskGridable bit
-                               ,@F_AskCodification bit,@U_AskCodification bit,@S_AskCodification bit
-                               ,@F_IsLikeable bit,@U_IsLikeable bit,@S_IsLikeable bit
-                               ,@F_IsActive bit,@U_IsActive bit,@S_IsActive bit,@PickerValue nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_AskLength = @W_F_AskLength
-                           ,@U_AskLength = @W_U_AskLength
-                           ,@S_AskLength = @W_S_AskLength
-                           ,@F_AskDecimals = @W_F_AskDecimals
-                           ,@U_AskDecimals = @W_U_AskDecimals
-                           ,@S_AskDecimals = @W_S_AskDecimals
-                           ,@F_AskPrimarykey = @W_F_AskPrimarykey
-                           ,@U_AskPrimarykey = @W_U_AskPrimarykey
-                           ,@S_AskPrimarykey = @W_S_AskPrimarykey
-                           ,@F_AskAutoincrement = @W_F_AskAutoincrement
-                           ,@U_AskAutoincrement = @W_U_AskAutoincrement
-                           ,@S_AskAutoincrement = @W_S_AskAutoincrement
-                           ,@F_AskFilterable = @W_F_AskFilterable
-                           ,@U_AskFilterable = @W_U_AskFilterable
-                           ,@S_AskFilterable = @W_S_AskFilterable
-                           ,@F_AskGridable = @W_F_AskGridable
-                           ,@U_AskGridable = @W_U_AskGridable
-                           ,@S_AskGridable = @W_S_AskGridable
-                           ,@F_AskCodification = @W_F_AskCodification
-                           ,@U_AskCodification = @W_U_AskCodification
-                           ,@S_AskCodification = @W_S_AskCodification
-                           ,@F_IsLikeable = @W_F_IsLikeable
-                           ,@U_IsLikeable = @W_U_IsLikeable
-                           ,@S_IsLikeable = @W_S_IsLikeable
-                           ,@F_IsActive = @W_F_IsActive
-                           ,@U_IsActive = @W_U_IsActive
-                           ,@S_IsActive = @W_S_IsActive
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(25)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id tinyint,@Name nvarchar(25),@AskLength bit,@AskDecimals bit,@AskPrimarykey bit,@AskAutoincrement bit,@AskFilterable bit,@AskGridable bit,@AskCodification bit,@IsLikeable bit,@IsActive bit'
+                               ,@Id = @W_Id
+                               ,@Name = @W_Name
+                               ,@AskLength = @W_AskLength
+                               ,@AskDecimals = @W_AskDecimals
+                               ,@AskPrimarykey = @W_AskPrimarykey
+                               ,@AskAutoincrement = @W_AskAutoincrement
+                               ,@AskFilterable = @W_AskFilterable
+                               ,@AskGridable = @W_AskGridable
+                               ,@AskCodification = @W_AskCodification
+                               ,@IsLikeable = @W_IsLikeable
+                               ,@IsActive = @W_IsActive
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -17426,15 +17251,78 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id tinyint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS tinyint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_AskLength bit = CAST(JSON_VALUE(@RecordSearch, '$.AskLength') AS bit)
+                       ,@S_AskDecimals bit = CAST(JSON_VALUE(@RecordSearch, '$.AskDecimals') AS bit)
+                       ,@S_AskPrimarykey bit = CAST(JSON_VALUE(@RecordSearch, '$.AskPrimarykey') AS bit)
+                       ,@S_AskAutoincrement bit = CAST(JSON_VALUE(@RecordSearch, '$.AskAutoincrement') AS bit)
+                       ,@S_AskFilterable bit = CAST(JSON_VALUE(@RecordSearch, '$.AskFilterable') AS bit)
+                       ,@S_AskGridable bit = CAST(JSON_VALUE(@RecordSearch, '$.AskGridable') AS bit)
+                       ,@S_AskCodification bit = CAST(JSON_VALUE(@RecordSearch, '$.AskCodification') AS bit)
+                       ,@S_IsLikeable bit = CAST(JSON_VALUE(@RecordSearch, '$.IsLikeable') AS bit)
+                       ,@S_IsActive bit = CAST(JSON_VALUE(@RecordSearch, '$.IsActive') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_AskLength IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskLength], [O].[AskLength]) = @AskLength'
+                IF @S_AskDecimals IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskDecimals], [O].[AskDecimals]) = @AskDecimals'
+                IF @S_AskPrimarykey IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskPrimarykey], [O].[AskPrimarykey]) = @AskPrimarykey'
+                IF @S_AskAutoincrement IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskAutoincrement], [O].[AskAutoincrement]) = @AskAutoincrement'
+                IF @S_AskFilterable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskFilterable], [O].[AskFilterable]) = @AskFilterable'
+                IF @S_AskGridable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskGridable], [O].[AskGridable]) = @AskGridable'
+                IF @S_AskCodification IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[AskCodification], [O].[AskCodification]) = @AskCodification'
+                IF @S_IsLikeable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsLikeable], [O].[IsLikeable]) = @IsLikeable'
+                IF @S_IsActive IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsActive], [O].[IsActive]) = @IsActive'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Types] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id tinyint,@Name nvarchar(25),@AskLength bit,@AskDecimals bit,@AskPrimarykey bit,@AskAutoincrement bit,@AskFilterable bit,@AskGridable bit,@AskCodification bit,@IsLikeable bit,@IsActive bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Name = @S_Name
+                                       ,@AskLength = @S_AskLength
+                                       ,@AskDecimals = @S_AskDecimals
+                                       ,@AskPrimarykey = @S_AskPrimarykey
+                                       ,@AskAutoincrement = @S_AskAutoincrement
+                                       ,@AskFilterable = @S_AskFilterable
+                                       ,@AskGridable = @S_AskGridable
+                                       ,@AskCodification = @S_AskCodification
+                                       ,@IsLikeable = @S_IsLikeable
+                                       ,@IsActive = @S_IsActive
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS tinyint) AS [Id]
                     ,CAST(NULL AS tinyint) AS [CategoryId]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
@@ -17451,8 +17339,9 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsLikeable]
                     ,CAST(NULL AS bit) AS [IsActive]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Type'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[CategoryId]
                               ,[T].[Name]
@@ -17473,6 +17362,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Type'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[CategoryId]
                                   ,[O].[Name]
@@ -17491,8 +17381,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Category' AS [Kind]
@@ -18022,6 +17912,7 @@ IF(SELECT object_id('[dbo].[MasksRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -18045,9 +17936,11 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -18062,7 +17955,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Masks') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -18071,6 +17964,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -18088,76 +17983,46 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Masks] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Masks] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-        ELSE
+                               ,N'@Id bigint,@Name nvarchar(25)'
+                               ,@Id = @W_Id
+                               ,@Name = @W_Name
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -18171,21 +18036,49 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Masks] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Name nvarchar(25), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Name = @S_Name
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(max)) AS [Mask]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Mask'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Mask]
@@ -18194,14 +18087,15 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Mask'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Mask]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
@@ -18776,6 +18670,7 @@ IF(SELECT object_id('[dbo].[DomainsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -18799,9 +18694,11 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -18816,7 +18713,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Domains') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -18825,9 +18722,11 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -18853,160 +18752,79 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_TypeId tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TypeId') AS tinyint)
-               ,@W_U_TypeId tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.TypeId') AS tinyint)
-               ,@W_S_TypeId tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Search.TypeId') AS tinyint)
-               ,@W_F_MaskId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.MaskId') AS bigint)
-               ,@W_U_MaskId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.MaskId') AS bigint)
-               ,@W_S_MaskId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.MaskId') AS bigint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_ValidValues nvarchar(max) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ValidValues') AS nvarchar(max))
-               ,@W_U_ValidValues nvarchar(max) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ValidValues') AS nvarchar(max))
-               ,@W_S_ValidValues nvarchar(max) = CAST(JSON_VALUE(@RecordFilter, '$.Search.ValidValues') AS nvarchar(max))
-               ,@W_F_Codification nvarchar(5) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Codification') AS nvarchar(5))
-               ,@W_U_Codification nvarchar(5) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Codification') AS nvarchar(5))
-               ,@W_S_Codification nvarchar(5) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Codification') AS nvarchar(5))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_TypeId IS NOT NULL BEGIN
-            IF @W_F_TypeId < CAST('1' AS tinyint)
-                THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[TypeId] = @F_TypeId'
-        END
-        IF @W_F_MaskId IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[MaskId] = @F_MaskId'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_ValidValues IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ValidValues] = @F_ValidValues'
-        END
-        IF @W_F_Codification IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Codification] = @F_Codification'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_TypeId tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TypeId') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TypeId') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.TypeId') AS tinyint))
+                   ,@W_MaskId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.MaskId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.MaskId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.MaskId') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_ValidValues nvarchar(max) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ValidValues') AS nvarchar(max)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ValidValues') AS nvarchar(max)), CAST(JSON_VALUE(@RecordFilter, '$.ValidValues') AS nvarchar(max)))
+                   ,@W_Codification nvarchar(5) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Codification') AS nvarchar(5)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Codification') AS nvarchar(5)), CAST(JSON_VALUE(@RecordFilter, '$.Codification') AS nvarchar(5)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_TypeId IS NOT NULL BEGIN
-                IF @W_U_TypeId < CAST('1' AS tinyint)
+            IF @W_TypeId IS NOT NULL BEGIN
+                IF @W_TypeId < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[TypeId] = @U_TypeId'
+                SET @Where = @Where + ' AND [T].[TypeId] = @TypeId'
             END
-            IF @W_U_MaskId IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[MaskId] = @U_MaskId'
+            IF @W_MaskId IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[MaskId] = @MaskId'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_ValidValues IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ValidValues] = @U_ValidValues'
+            IF @W_ValidValues IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ValidValues] = @ValidValues'
             END
-            IF @W_U_Codification IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Codification] = @U_Codification'
+            IF @W_Codification IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Codification] = @Codification'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_TypeId IS NOT NULL BEGIN
-                IF @W_S_TypeId < CAST('1' AS tinyint)
-                    THROW 51000, 'Valor de TypeId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[TypeId] = @S_TypeId'
-            END
-            IF @W_S_MaskId IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[MaskId] = @S_MaskId'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_ValidValues IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ValidValues] = @S_ValidValues'
-            END
-            IF @W_S_Codification IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Codification] = @S_Codification'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Domains] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Domains] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_TypeId tinyint,@U_TypeId tinyint,@S_TypeId tinyint
-                               ,@F_MaskId bigint,@U_MaskId bigint,@S_MaskId bigint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_ValidValues nvarchar(max),@U_ValidValues nvarchar(max),@S_ValidValues nvarchar(max)
-                               ,@F_Codification nvarchar(5),@U_Codification nvarchar(5),@S_Codification nvarchar(5),@PickerValue nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_TypeId = @W_F_TypeId
-                           ,@U_TypeId = @W_U_TypeId
-                           ,@S_TypeId = @W_S_TypeId
-                           ,@F_MaskId = @W_F_MaskId
-                           ,@U_MaskId = @W_U_MaskId
-                           ,@S_MaskId = @W_S_MaskId
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_ValidValues = @W_F_ValidValues
-                           ,@U_ValidValues = @W_U_ValidValues
-                           ,@S_ValidValues = @W_S_ValidValues
-                           ,@F_Codification = @W_F_Codification
-                           ,@U_Codification = @W_U_Codification
-                           ,@S_Codification = @W_S_Codification
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(25)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@TypeId tinyint,@MaskId bigint,@Name nvarchar(25),@ValidValues nvarchar(max),@Codification nvarchar(5)'
+                               ,@Id = @W_Id
+                               ,@TypeId = @W_TypeId
+                               ,@MaskId = @W_MaskId
+                               ,@Name = @W_Name
+                               ,@ValidValues = @W_ValidValues
+                               ,@Codification = @W_Codification
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -19020,15 +18838,58 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_TypeId tinyint = CAST(JSON_VALUE(@RecordSearch, '$.TypeId') AS tinyint)
+                       ,@S_MaskId bigint = CAST(JSON_VALUE(@RecordSearch, '$.MaskId') AS bigint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_ValidValues nvarchar(max) = CAST(JSON_VALUE(@RecordSearch, '$.ValidValues') AS nvarchar(max))
+                       ,@S_Codification nvarchar(5) = CAST(JSON_VALUE(@RecordSearch, '$.Codification') AS nvarchar(5))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_TypeId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[TypeId], [O].[TypeId]) = @TypeId'
+                IF @S_MaskId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[MaskId], [O].[MaskId]) = @MaskId'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_ValidValues IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ValidValues], [O].[ValidValues]) LIKE ''%'' + @ValidValues + ''%'''
+                IF @S_Codification IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Codification], [O].[Codification]) LIKE ''%'' + @Codification + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Domains] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@TypeId tinyint,@MaskId bigint,@Name nvarchar(25),@ValidValues nvarchar(max),@Codification nvarchar(5), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@TypeId = @S_TypeId
+                                       ,@MaskId = @S_MaskId
+                                       ,@Name = @S_Name
+                                       ,@ValidValues = @S_ValidValues
+                                       ,@Codification = @S_Codification
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS tinyint) AS [TypeId]
                     ,CAST(NULL AS bigint) AS [MaskId]
@@ -19041,8 +18902,9 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(max)) AS [Maximum]
                     ,CAST(NULL AS nvarchar(5)) AS [Codification]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Domain'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TypeId]
                               ,[T].[MaskId]
@@ -19059,6 +18921,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Domain'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TypeId]
                                   ,[O].[MaskId]
@@ -19073,8 +18936,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Type' AS [Kind]
@@ -19672,6 +19535,7 @@ IF(SELECT object_id('[dbo].[SystemsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -19695,9 +19559,11 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -19712,7 +19578,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Systems') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -19721,9 +19587,11 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -19744,106 +19612,62 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_ClientName nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ClientName') AS nvarchar(15))
-               ,@W_U_ClientName nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ClientName') AS nvarchar(15))
-               ,@W_S_ClientName nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Search.ClientName') AS nvarchar(15))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_ClientName IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ClientName] = @F_ClientName'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_ClientName nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ClientName') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ClientName') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.ClientName') AS nvarchar(15)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_ClientName IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ClientName] = @U_ClientName'
+            IF @W_ClientName IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ClientName] = @ClientName'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_ClientName IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ClientName] = @S_ClientName'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Systems] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Systems] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_ClientName nvarchar(15),@U_ClientName nvarchar(15),@S_ClientName nvarchar(15),@PickerValue nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_ClientName = @W_F_ClientName
-                           ,@U_ClientName = @W_U_ClientName
-                           ,@S_ClientName = @W_S_ClientName
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(25)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@Name nvarchar(25),@ClientName nvarchar(15)'
+                               ,@Id = @W_Id
+                               ,@Name = @W_Name
+                               ,@ClientName = @W_ClientName
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -19857,15 +19681,46 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_ClientName nvarchar(15) = CAST(JSON_VALUE(@RecordSearch, '$.ClientName') AS nvarchar(15))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_ClientName IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ClientName], [O].[ClientName]) LIKE ''%'' + @ClientName + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Systems] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Name nvarchar(25),@ClientName nvarchar(15), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Name = @S_Name
+                                       ,@ClientName = @S_ClientName
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
@@ -19873,8 +19728,9 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS tinyint) AS [MaxRetryLogins]
                     ,CAST(NULL AS bit) AS [IsOffAir]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''System'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Description]
@@ -19886,6 +19742,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''System'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Description]
@@ -19895,8 +19752,8 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
@@ -20451,6 +20308,7 @@ IF(SELECT object_id('[dbo].[MenusRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -20474,9 +20332,11 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -20491,7 +20351,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Menus') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -20500,6 +20360,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -20521,104 +20383,55 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint)
-               ,@W_U_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint)
-               ,@W_S_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.SystemId') AS bigint)
-               ,@W_F_Caption nvarchar(20) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Caption') AS nvarchar(20))
-               ,@W_U_Caption nvarchar(20) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Caption') AS nvarchar(20))
-               ,@W_S_Caption nvarchar(20) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Caption') AS nvarchar(20))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_SystemId IS NOT NULL BEGIN
-            IF @W_F_SystemId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[SystemId] = @F_SystemId'
-        END
-        IF @W_F_Caption IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Caption] = @F_Caption'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
+                   ,@W_Caption nvarchar(20) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Caption') AS nvarchar(20)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Caption') AS nvarchar(20)), CAST(JSON_VALUE(@RecordFilter, '$.Caption') AS nvarchar(20)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_SystemId IS NOT NULL BEGIN
-                IF @W_U_SystemId < CAST('1' AS bigint)
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[SystemId] = @U_SystemId'
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF @W_U_Caption IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Caption] = @U_Caption'
+            IF @W_Caption IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Caption] = @Caption'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_SystemId IS NOT NULL BEGIN
-                IF @W_S_SystemId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[SystemId] = @S_SystemId'
-            END
-            IF @W_S_Caption IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Caption] = @S_Caption'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Menus] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Menus] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_SystemId bigint,@U_SystemId bigint,@S_SystemId bigint
-                               ,@F_Caption nvarchar(20),@U_Caption nvarchar(20),@S_Caption nvarchar(20)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_SystemId = @W_F_SystemId
-                           ,@U_SystemId = @W_U_SystemId
-                           ,@S_SystemId = @W_S_SystemId
-                           ,@F_Caption = @W_F_Caption
-                           ,@U_Caption = @W_U_Caption
-                           ,@S_Caption = @W_S_Caption
-        ELSE
+                               ,N'@Id bigint,@SystemId bigint,@Caption nvarchar(20)'
+                               ,@Id = @W_Id
+                               ,@SystemId = @W_SystemId
+                               ,@Caption = @W_Caption
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -20632,15 +20445,46 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_SystemId bigint = CAST(JSON_VALUE(@RecordSearch, '$.SystemId') AS bigint)
+                       ,@S_Caption nvarchar(20) = CAST(JSON_VALUE(@RecordSearch, '$.Caption') AS nvarchar(20))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_SystemId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[SystemId], [O].[SystemId]) = @SystemId'
+                IF @S_Caption IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Caption], [O].[Caption]) LIKE ''%'' + @Caption + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Menus] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@SystemId bigint,@Caption nvarchar(20), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@SystemId = @S_SystemId
+                                       ,@Caption = @S_Caption
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS smallint) AS [Sequence]
@@ -20649,8 +20493,9 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(50)) AS [Action]
                     ,CAST(NULL AS bigint) AS [ParentMenuId]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Menu'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[Sequence]
@@ -20663,6 +20508,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Menu'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[Sequence]
@@ -20673,8 +20519,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'System' AS [Kind]
@@ -21240,6 +21086,7 @@ IF(SELECT object_id('[dbo].[UsersRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -21263,9 +21110,11 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -21280,7 +21129,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Users') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -21289,9 +21138,11 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -21312,122 +21163,67 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_FullName nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.FullName') AS nvarchar(50))
-               ,@W_U_FullName nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.FullName') AS nvarchar(50))
-               ,@W_S_FullName nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Search.FullName') AS nvarchar(50))
-               ,@W_F_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsActive') AS bit)
-               ,@W_U_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsActive') AS bit)
-               ,@W_S_IsActive bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsActive') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_FullName IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[FullName] = @F_FullName'
-        END
-        IF @W_F_IsActive IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsActive] = @F_IsActive'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_FullName nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.FullName') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.FullName') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.FullName') AS nvarchar(50)))
+                   ,@W_IsActive bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsActive') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsActive') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_FullName IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[FullName] = @U_FullName'
+            IF @W_FullName IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[FullName] = @FullName'
             END
-            IF @W_U_IsActive IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsActive] = @U_IsActive'
+            IF @W_IsActive IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsActive] = @IsActive'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_FullName IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[FullName] = @S_FullName'
-            END
-            IF @W_S_IsActive IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsActive] = @S_IsActive'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Users] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Users] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_FullName nvarchar(50),@U_FullName nvarchar(50),@S_FullName nvarchar(50)
-                               ,@F_IsActive bit,@U_IsActive bit,@S_IsActive bit,@PickerValue nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_FullName = @W_F_FullName
-                           ,@U_FullName = @W_U_FullName
-                           ,@S_FullName = @W_S_FullName
-                           ,@F_IsActive = @W_F_IsActive
-                           ,@U_IsActive = @W_U_IsActive
-                           ,@S_IsActive = @W_S_IsActive
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(25)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@Name nvarchar(25),@FullName nvarchar(50),@IsActive bit'
+                               ,@Id = @W_Id
+                               ,@Name = @W_Name
+                               ,@FullName = @W_FullName
+                               ,@IsActive = @W_IsActive
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -21441,15 +21237,50 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_FullName nvarchar(50) = CAST(JSON_VALUE(@RecordSearch, '$.FullName') AS nvarchar(50))
+                       ,@S_IsActive bit = CAST(JSON_VALUE(@RecordSearch, '$.IsActive') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_FullName IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[FullName], [O].[FullName]) LIKE ''%'' + @FullName + ''%'''
+                IF @S_IsActive IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsActive], [O].[IsActive]) = @IsActive'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Users] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Name nvarchar(25),@FullName nvarchar(50),@IsActive bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Name = @S_Name
+                                       ,@FullName = @S_FullName
+                                       ,@IsActive = @S_IsActive
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(256)) AS [Password]
@@ -21457,8 +21288,9 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS tinyint) AS [RetryLogins]
                     ,CAST(NULL AS bit) AS [IsActive]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''User'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Password]
@@ -21470,6 +21302,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''User'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Password]
@@ -21479,8 +21312,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
@@ -22003,6 +21836,7 @@ IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -22026,9 +21860,11 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -22043,7 +21879,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'SystemsUsers') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -22052,9 +21888,11 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -22073,134 +21911,71 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint)
-               ,@W_U_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint)
-               ,@W_S_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.SystemId') AS bigint)
-               ,@W_F_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.UserId') AS bigint)
-               ,@W_U_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.UserId') AS bigint)
-               ,@W_S_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.UserId') AS bigint)
-               ,@W_F_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50))
-               ,@W_U_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50))
-               ,@W_S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(50))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_SystemId IS NOT NULL BEGIN
-            IF @W_F_SystemId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[SystemId] = @F_SystemId'
-        END
-        IF @W_F_UserId IS NOT NULL BEGIN
-            IF @W_F_UserId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[UserId] = @F_UserId'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
+                   ,@W_UserId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.UserId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_SystemId IS NOT NULL BEGIN
-                IF @W_U_SystemId < CAST('1' AS bigint)
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[SystemId] = @U_SystemId'
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF @W_U_UserId IS NOT NULL BEGIN
-                IF @W_U_UserId < CAST('1' AS bigint)
+            IF @W_UserId IS NOT NULL BEGIN
+                IF @W_UserId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[UserId] = @U_UserId'
+                SET @Where = @Where + ' AND [T].[UserId] = @UserId'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_SystemId IS NOT NULL BEGIN
-                IF @W_S_SystemId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[SystemId] = @S_SystemId'
-            END
-            IF @W_S_UserId IS NOT NULL BEGIN
-                IF @W_S_UserId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[UserId] = @S_UserId'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[SystemsUsers] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[SystemsUsers] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_SystemId bigint,@U_SystemId bigint,@S_SystemId bigint
-                               ,@F_UserId bigint,@U_UserId bigint,@S_UserId bigint
-                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50),@PickerValue nvarchar(50)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_SystemId = @W_F_SystemId
-                           ,@U_SystemId = @W_U_SystemId
-                           ,@S_SystemId = @W_S_SystemId
-                           ,@F_UserId = @W_F_UserId
-                           ,@U_UserId = @W_U_UserId
-                           ,@S_UserId = @W_S_UserId
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(50)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@SystemId bigint,@UserId bigint,@Name nvarchar(50)'
+                               ,@Id = @W_Id
+                               ,@SystemId = @W_SystemId
+                               ,@UserId = @W_UserId
+                               ,@Name = @W_Name
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -22214,22 +21989,58 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_SystemId bigint = CAST(JSON_VALUE(@RecordSearch, '$.SystemId') AS bigint)
+                       ,@S_UserId bigint = CAST(JSON_VALUE(@RecordSearch, '$.UserId') AS bigint)
+                       ,@S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(50))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_SystemId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[SystemId], [O].[SystemId]) = @SystemId'
+                IF @S_UserId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[UserId], [O].[UserId]) = @UserId'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[SystemsUsers] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@SystemId bigint,@UserId bigint,@Name nvarchar(50), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@SystemId = @S_SystemId
+                                       ,@UserId = @S_UserId
+                                       ,@Name = @S_Name
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS bigint) AS [UserId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''SystemUser'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[UserId]
@@ -22239,6 +22050,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''SystemUser'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[UserId]
@@ -22246,8 +22058,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'System' AS [Kind]
@@ -22768,6 +22580,7 @@ IF(SELECT object_id('[dbo].[ConnectionsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -22791,9 +22604,11 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -22808,7 +22623,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Connections') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -22817,6 +22632,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -22834,92 +22651,51 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_Environment nvarchar(3) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Environment') AS nvarchar(3))
-               ,@W_U_Environment nvarchar(3) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Environment') AS nvarchar(3))
-               ,@W_S_Environment nvarchar(3) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Environment') AS nvarchar(3))
-               ,@W_F_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ConnectionString') AS nvarchar(256))
-               ,@W_U_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ConnectionString') AS nvarchar(256))
-               ,@W_S_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@RecordFilter, '$.Search.ConnectionString') AS nvarchar(256))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Environment IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Environment] = @F_Environment'
-        END
-        IF @W_F_ConnectionString IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ConnectionString] = @F_ConnectionString'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_Environment nvarchar(3) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Environment') AS nvarchar(3)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Environment') AS nvarchar(3)), CAST(JSON_VALUE(@RecordFilter, '$.Environment') AS nvarchar(3)))
+                   ,@W_ConnectionString nvarchar(256) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ConnectionString') AS nvarchar(256)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ConnectionString') AS nvarchar(256)), CAST(JSON_VALUE(@RecordFilter, '$.ConnectionString') AS nvarchar(256)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Environment IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Environment] = @U_Environment'
+            IF @W_Environment IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Environment] = @Environment'
             END
-            IF @W_U_ConnectionString IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ConnectionString] = @U_ConnectionString'
+            IF @W_ConnectionString IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ConnectionString] = @ConnectionString'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Environment IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Environment] = @S_Environment'
-            END
-            IF @W_S_ConnectionString IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ConnectionString] = @S_ConnectionString'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Connections] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Connections] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_Environment nvarchar(3),@U_Environment nvarchar(3),@S_Environment nvarchar(3)
-                               ,@F_ConnectionString nvarchar(256),@U_ConnectionString nvarchar(256),@S_ConnectionString nvarchar(256)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Environment = @W_F_Environment
-                           ,@U_Environment = @W_U_Environment
-                           ,@S_Environment = @W_S_Environment
-                           ,@F_ConnectionString = @W_F_ConnectionString
-                           ,@U_ConnectionString = @W_U_ConnectionString
-                           ,@S_ConnectionString = @W_S_ConnectionString
-        ELSE
+                               ,N'@Id bigint,@Environment nvarchar(3),@ConnectionString nvarchar(256)'
+                               ,@Id = @W_Id
+                               ,@Environment = @W_Environment
+                               ,@ConnectionString = @W_ConnectionString
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -22933,21 +22709,53 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_Environment nvarchar(3) = CAST(JSON_VALUE(@RecordSearch, '$.Environment') AS nvarchar(3))
+                       ,@S_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@RecordSearch, '$.ConnectionString') AS nvarchar(256))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Environment IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Environment], [O].[Environment]) LIKE ''%'' + @Environment + ''%'''
+                IF @S_ConnectionString IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ConnectionString], [O].[ConnectionString]) LIKE ''%'' + @ConnectionString + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Connections] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Environment nvarchar(3),@ConnectionString nvarchar(256), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Environment = @S_Environment
+                                       ,@ConnectionString = @S_ConnectionString
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(3)) AS [Environment]
                     ,CAST(NULL AS nvarchar(256)) AS [ConnectionString]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Connection'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Environment]
                               ,[T].[ConnectionString]
@@ -22956,14 +22764,15 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Connection'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Environment]
                                   ,[O].[ConnectionString]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
@@ -23524,6 +23333,7 @@ IF(SELECT object_id('[dbo].[DatabasesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -23547,9 +23357,11 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -23564,7 +23376,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Databases') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -23573,9 +23385,11 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -23598,128 +23412,69 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_ConnectionId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ConnectionId') AS bigint)
-               ,@W_U_ConnectionId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ConnectionId') AS bigint)
-               ,@W_S_ConnectionId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.ConnectionId') AS bigint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25))
-               ,@W_U_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25))
-               ,@W_S_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Alias') AS nvarchar(25))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_ConnectionId IS NOT NULL BEGIN
-            IF @W_F_ConnectionId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de ConnectionId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ConnectionId] = @F_ConnectionId'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_Alias IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Alias] = @F_Alias'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_ConnectionId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ConnectionId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ConnectionId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ConnectionId') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_ConnectionId IS NOT NULL BEGIN
-                IF @W_U_ConnectionId < CAST('1' AS bigint)
+            IF @W_ConnectionId IS NOT NULL BEGIN
+                IF @W_ConnectionId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de ConnectionId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ConnectionId] = @U_ConnectionId'
+                SET @Where = @Where + ' AND [T].[ConnectionId] = @ConnectionId'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_Alias IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Alias] = @U_Alias'
+            IF @W_Alias IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Alias] = @Alias'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_ConnectionId IS NOT NULL BEGIN
-                IF @W_S_ConnectionId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de ConnectionId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ConnectionId] = @S_ConnectionId'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_Alias IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Alias] = @S_Alias'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Databases] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Databases] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_ConnectionId bigint,@U_ConnectionId bigint,@S_ConnectionId bigint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_Alias nvarchar(25),@U_Alias nvarchar(25),@S_Alias nvarchar(25),@PickerValue nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_ConnectionId = @W_F_ConnectionId
-                           ,@U_ConnectionId = @W_U_ConnectionId
-                           ,@S_ConnectionId = @W_S_ConnectionId
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_Alias = @W_F_Alias
-                           ,@U_Alias = @W_U_Alias
-                           ,@S_Alias = @W_S_Alias
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(25)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@ConnectionId bigint,@Name nvarchar(25),@Alias nvarchar(25)'
+                               ,@Id = @W_Id
+                               ,@ConnectionId = @W_ConnectionId
+                               ,@Name = @W_Name
+                               ,@Alias = @W_Alias
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -23733,15 +23488,50 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_ConnectionId bigint = CAST(JSON_VALUE(@RecordSearch, '$.ConnectionId') AS bigint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Alias') AS nvarchar(25))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_ConnectionId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ConnectionId], [O].[ConnectionId]) = @ConnectionId'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_Alias IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Alias], [O].[Alias]) LIKE ''%'' + @Alias + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Databases] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@ConnectionId bigint,@Name nvarchar(25),@Alias nvarchar(25), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@ConnectionId = @S_ConnectionId
+                                       ,@Name = @S_Name
+                                       ,@Alias = @S_Alias
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [ConnectionId]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
@@ -23751,8 +23541,9 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsLegacy]
                     ,CAST(NULL AS bigint) AS [CurrentOperationId]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Database'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[ConnectionId]
                               ,[T].[Name]
@@ -23766,6 +23557,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Database'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[ConnectionId]
                                   ,[O].[Name]
@@ -23777,8 +23569,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Connection' AS [Kind]
@@ -24313,6 +24105,7 @@ IF(SELECT object_id('[dbo].[SystemsDatabasesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -24336,9 +24129,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -24353,7 +24148,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'SystemsDatabases') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -24362,9 +24157,11 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -24383,134 +24180,71 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint)
-               ,@W_U_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint)
-               ,@W_S_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.SystemId') AS bigint)
-               ,@W_F_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DatabaseId') AS bigint)
-               ,@W_U_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.DatabaseId') AS bigint)
-               ,@W_S_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.DatabaseId') AS bigint)
-               ,@W_F_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50))
-               ,@W_U_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50))
-               ,@W_S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(50))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_SystemId IS NOT NULL BEGIN
-            IF @W_F_SystemId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[SystemId] = @F_SystemId'
-        END
-        IF @W_F_DatabaseId IS NOT NULL BEGIN
-            IF @W_F_DatabaseId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[DatabaseId] = @F_DatabaseId'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
+                   ,@W_DatabaseId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.DatabaseId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_SystemId IS NOT NULL BEGIN
-                IF @W_U_SystemId < CAST('1' AS bigint)
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[SystemId] = @U_SystemId'
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF @W_U_DatabaseId IS NOT NULL BEGIN
-                IF @W_U_DatabaseId < CAST('1' AS bigint)
+            IF @W_DatabaseId IS NOT NULL BEGIN
+                IF @W_DatabaseId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[DatabaseId] = @U_DatabaseId'
+                SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_SystemId IS NOT NULL BEGIN
-                IF @W_S_SystemId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[SystemId] = @S_SystemId'
-            END
-            IF @W_S_DatabaseId IS NOT NULL BEGIN
-                IF @W_S_DatabaseId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[DatabaseId] = @S_DatabaseId'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[SystemsDatabases] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[SystemsDatabases] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_SystemId bigint,@U_SystemId bigint,@S_SystemId bigint
-                               ,@F_DatabaseId bigint,@U_DatabaseId bigint,@S_DatabaseId bigint
-                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50),@PickerValue nvarchar(50)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_SystemId = @W_F_SystemId
-                           ,@U_SystemId = @W_U_SystemId
-                           ,@S_SystemId = @W_S_SystemId
-                           ,@F_DatabaseId = @W_F_DatabaseId
-                           ,@U_DatabaseId = @W_U_DatabaseId
-                           ,@S_DatabaseId = @W_S_DatabaseId
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(50)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@SystemId bigint,@DatabaseId bigint,@Name nvarchar(50)'
+                               ,@Id = @W_Id
+                               ,@SystemId = @W_SystemId
+                               ,@DatabaseId = @W_DatabaseId
+                               ,@Name = @W_Name
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -24524,22 +24258,58 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_SystemId bigint = CAST(JSON_VALUE(@RecordSearch, '$.SystemId') AS bigint)
+                       ,@S_DatabaseId bigint = CAST(JSON_VALUE(@RecordSearch, '$.DatabaseId') AS bigint)
+                       ,@S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(50))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_SystemId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[SystemId], [O].[SystemId]) = @SystemId'
+                IF @S_DatabaseId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) = @DatabaseId'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[SystemsDatabases] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@SystemId bigint,@DatabaseId bigint,@Name nvarchar(50), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@SystemId = @S_SystemId
+                                       ,@DatabaseId = @S_DatabaseId
+                                       ,@Name = @S_Name
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS bigint) AS [DatabaseId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''SystemDatabase'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[DatabaseId]
@@ -24549,6 +24319,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''SystemDatabase'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[DatabaseId]
@@ -24556,8 +24327,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'System' AS [Kind]
@@ -25154,6 +24925,7 @@ IF(SELECT object_id('[dbo].[TablesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -25177,9 +24949,11 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -25194,7 +24968,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Tables') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -25203,9 +24977,11 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -25227,122 +25003,67 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25))
-               ,@W_U_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25))
-               ,@W_S_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Alias') AS nvarchar(25))
-               ,@W_F_IsLegacy bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLegacy') AS bit)
-               ,@W_U_IsLegacy bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLegacy') AS bit)
-               ,@W_S_IsLegacy bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsLegacy') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_Alias IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Alias] = @F_Alias'
-        END
-        IF @W_F_IsLegacy IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsLegacy] = @F_IsLegacy'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(25))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25)))
+                   ,@W_IsLegacy bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLegacy') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLegacy') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsLegacy') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_Alias IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Alias] = @U_Alias'
+            IF @W_Alias IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Alias] = @Alias'
             END
-            IF @W_U_IsLegacy IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsLegacy] = @U_IsLegacy'
+            IF @W_IsLegacy IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsLegacy] = @IsLegacy'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_Alias IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Alias] = @S_Alias'
-            END
-            IF @W_S_IsLegacy IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsLegacy] = @S_IsLegacy'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Tables] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Tables] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_Alias nvarchar(25),@U_Alias nvarchar(25),@S_Alias nvarchar(25)
-                               ,@F_IsLegacy bit,@U_IsLegacy bit,@S_IsLegacy bit,@PickerValue nvarchar(25)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_Alias = @W_F_Alias
-                           ,@U_Alias = @W_U_Alias
-                           ,@S_Alias = @W_S_Alias
-                           ,@F_IsLegacy = @W_F_IsLegacy
-                           ,@U_IsLegacy = @W_U_IsLegacy
-                           ,@S_IsLegacy = @W_S_IsLegacy
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(25)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsLegacy bit'
+                               ,@Id = @W_Id
+                               ,@Name = @W_Name
+                               ,@Alias = @W_Alias
+                               ,@IsLegacy = @W_IsLegacy
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -25356,15 +25077,50 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Alias') AS nvarchar(25))
+                       ,@S_IsLegacy bit = CAST(JSON_VALUE(@RecordSearch, '$.IsLegacy') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_Alias IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Alias], [O].[Alias]) LIKE ''%'' + @Alias + ''%'''
+                IF @S_IsLegacy IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsLegacy], [O].[IsLegacy]) = @IsLegacy'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Tables] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsLegacy bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Name = @S_Name
+                                       ,@Alias = @S_Alias
+                                       ,@IsLegacy = @S_IsLegacy
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(25)) AS [Alias]
@@ -25373,8 +25129,9 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsLegacy]
                     ,CAST(NULL AS bigint) AS [CurrentId]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Table'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[Alias]
@@ -25387,6 +25144,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Table'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[Alias]
@@ -25397,8 +25155,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Table' AS [Kind]
@@ -25944,6 +25702,7 @@ IF(SELECT object_id('[dbo].[DatabasesTablesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -25967,9 +25726,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -25984,7 +25745,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'DatabasesTables') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -25993,9 +25754,11 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -26014,134 +25777,71 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DatabaseId') AS bigint)
-               ,@W_U_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.DatabaseId') AS bigint)
-               ,@W_S_DatabaseId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.DatabaseId') AS bigint)
-               ,@W_F_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint)
-               ,@W_U_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint)
-               ,@W_S_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.TableId') AS bigint)
-               ,@W_F_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50))
-               ,@W_U_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50))
-               ,@W_S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(50))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_DatabaseId IS NOT NULL BEGIN
-            IF @W_F_DatabaseId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[DatabaseId] = @F_DatabaseId'
-        END
-        IF @W_F_TableId IS NOT NULL BEGIN
-            IF @W_F_TableId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[TableId] = @F_TableId'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_DatabaseId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DatabaseId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.DatabaseId') AS bigint))
+                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_DatabaseId IS NOT NULL BEGIN
-                IF @W_U_DatabaseId < CAST('1' AS bigint)
+            IF @W_DatabaseId IS NOT NULL BEGIN
+                IF @W_DatabaseId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[DatabaseId] = @U_DatabaseId'
+                SET @Where = @Where + ' AND [T].[DatabaseId] = @DatabaseId'
             END
-            IF @W_U_TableId IS NOT NULL BEGIN
-                IF @W_U_TableId < CAST('1' AS bigint)
+            IF @W_TableId IS NOT NULL BEGIN
+                IF @W_TableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[TableId] = @U_TableId'
+                SET @Where = @Where + ' AND [T].[TableId] = @TableId'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_DatabaseId IS NOT NULL BEGIN
-                IF @W_S_DatabaseId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de DatabaseId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[DatabaseId] = @S_DatabaseId'
-            END
-            IF @W_S_TableId IS NOT NULL BEGIN
-                IF @W_S_TableId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[TableId] = @S_TableId'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[DatabasesTables] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[DatabasesTables] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_DatabaseId bigint,@U_DatabaseId bigint,@S_DatabaseId bigint
-                               ,@F_TableId bigint,@U_TableId bigint,@S_TableId bigint
-                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50),@PickerValue nvarchar(50)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_DatabaseId = @W_F_DatabaseId
-                           ,@U_DatabaseId = @W_U_DatabaseId
-                           ,@S_DatabaseId = @W_S_DatabaseId
-                           ,@F_TableId = @W_F_TableId
-                           ,@U_TableId = @W_U_TableId
-                           ,@S_TableId = @W_S_TableId
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(50)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@DatabaseId bigint,@TableId bigint,@Name nvarchar(50)'
+                               ,@Id = @W_Id
+                               ,@DatabaseId = @W_DatabaseId
+                               ,@TableId = @W_TableId
+                               ,@Name = @W_Name
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -26155,22 +25855,58 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_DatabaseId bigint = CAST(JSON_VALUE(@RecordSearch, '$.DatabaseId') AS bigint)
+                       ,@S_TableId bigint = CAST(JSON_VALUE(@RecordSearch, '$.TableId') AS bigint)
+                       ,@S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(50))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_DatabaseId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) = @DatabaseId'
+                IF @S_TableId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[TableId], [O].[TableId]) = @TableId'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[DatabasesTables] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@DatabaseId bigint,@TableId bigint,@Name nvarchar(50), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@DatabaseId = @S_DatabaseId
+                                       ,@TableId = @S_TableId
+                                       ,@Name = @S_Name
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [DatabaseId]
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''DatabaseTable'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[DatabaseId]
                               ,[T].[TableId]
@@ -26180,6 +25916,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''DatabaseTable'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[DatabaseId]
                                   ,[O].[TableId]
@@ -26187,8 +25924,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Database' AS [Kind]
@@ -26929,6 +26666,7 @@ IF(SELECT object_id('[dbo].[ColumnsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -26952,9 +26690,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -26969,7 +26709,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Columns') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -26978,6 +26718,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -27014,292 +26756,114 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint)
-               ,@W_U_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint)
-               ,@W_S_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.TableId') AS bigint)
-               ,@W_F_DomainId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DomainId') AS bigint)
-               ,@W_U_DomainId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.DomainId') AS bigint)
-               ,@W_S_DomainId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.DomainId') AS bigint)
-               ,@W_F_ReferenceTableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ReferenceTableId') AS bigint)
-               ,@W_U_ReferenceTableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ReferenceTableId') AS bigint)
-               ,@W_S_ReferenceTableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.ReferenceTableId') AS bigint)
-               ,@W_F_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25))
-               ,@W_U_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25))
-               ,@W_S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(25))
-               ,@W_F_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25))
-               ,@W_U_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25))
-               ,@W_S_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Alias') AS nvarchar(25))
-               ,@W_F_IsAutoIncrement bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsAutoIncrement') AS bit)
-               ,@W_U_IsAutoIncrement bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsAutoIncrement') AS bit)
-               ,@W_S_IsAutoIncrement bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsAutoIncrement') AS bit)
-               ,@W_F_IsRequired bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsRequired') AS bit)
-               ,@W_U_IsRequired bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsRequired') AS bit)
-               ,@W_S_IsRequired bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsRequired') AS bit)
-               ,@W_F_IsListable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsListable') AS bit)
-               ,@W_U_IsListable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsListable') AS bit)
-               ,@W_S_IsListable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsListable') AS bit)
-               ,@W_F_IsFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsFilterable') AS bit)
-               ,@W_U_IsFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsFilterable') AS bit)
-               ,@W_S_IsFilterable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsFilterable') AS bit)
-               ,@W_F_IsEditable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsEditable') AS bit)
-               ,@W_U_IsEditable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsEditable') AS bit)
-               ,@W_S_IsEditable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsEditable') AS bit)
-               ,@W_F_IsGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsGridable') AS bit)
-               ,@W_U_IsGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsGridable') AS bit)
-               ,@W_S_IsGridable bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsGridable') AS bit)
-               ,@W_F_IsEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsEncrypted') AS bit)
-               ,@W_U_IsEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsEncrypted') AS bit)
-               ,@W_S_IsEncrypted bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsEncrypted') AS bit)
-               ,@W_F_IsInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsInWords') AS bit)
-               ,@W_U_IsInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsInWords') AS bit)
-               ,@W_S_IsInWords bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsInWords') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_TableId IS NOT NULL BEGIN
-            IF @W_F_TableId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[TableId] = @F_TableId'
-        END
-        IF @W_F_DomainId IS NOT NULL BEGIN
-            IF @W_F_DomainId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[DomainId] = @F_DomainId'
-        END
-        IF @W_F_ReferenceTableId IS NOT NULL BEGIN
-            IF @W_F_ReferenceTableId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ReferenceTableId] = @F_ReferenceTableId'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_Alias IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Alias] = @F_Alias'
-        END
-        IF @W_F_IsAutoIncrement IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsAutoIncrement] = @F_IsAutoIncrement'
-        END
-        IF @W_F_IsRequired IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsRequired] = @F_IsRequired'
-        END
-        IF @W_F_IsListable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsListable] = @F_IsListable'
-        END
-        IF @W_F_IsFilterable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsFilterable] = @F_IsFilterable'
-        END
-        IF @W_F_IsEditable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsEditable] = @F_IsEditable'
-        END
-        IF @W_F_IsGridable IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsGridable] = @F_IsGridable'
-        END
-        IF @W_F_IsEncrypted IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsEncrypted] = @F_IsEncrypted'
-        END
-        IF @W_F_IsInWords IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsInWords] = @F_IsInWords'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint))
+                   ,@W_DomainId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.DomainId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.DomainId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.DomainId') AS bigint))
+                   ,@W_ReferenceTableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ReferenceTableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ReferenceTableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ReferenceTableId') AS bigint))
+                   ,@W_Name nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(25)))
+                   ,@W_Alias nvarchar(25) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Alias') AS nvarchar(25)), CAST(JSON_VALUE(@RecordFilter, '$.Alias') AS nvarchar(25)))
+                   ,@W_IsAutoIncrement bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsAutoIncrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsAutoIncrement') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsAutoIncrement') AS bit))
+                   ,@W_IsRequired bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsRequired') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsRequired') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsRequired') AS bit))
+                   ,@W_IsListable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsListable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsListable') AS bit))
+                   ,@W_IsFilterable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsFilterable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsFilterable') AS bit))
+                   ,@W_IsEditable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsEditable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsEditable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsEditable') AS bit))
+                   ,@W_IsGridable bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsGridable') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsGridable') AS bit))
+                   ,@W_IsEncrypted bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsEncrypted') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsEncrypted') AS bit))
+                   ,@W_IsInWords bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsInWords') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsInWords') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_TableId IS NOT NULL BEGIN
-                IF @W_U_TableId < CAST('1' AS bigint)
+            IF @W_TableId IS NOT NULL BEGIN
+                IF @W_TableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[TableId] = @U_TableId'
+                SET @Where = @Where + ' AND [T].[TableId] = @TableId'
             END
-            IF @W_U_DomainId IS NOT NULL BEGIN
-                IF @W_U_DomainId < CAST('1' AS bigint)
+            IF @W_DomainId IS NOT NULL BEGIN
+                IF @W_DomainId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[DomainId] = @U_DomainId'
+                SET @Where = @Where + ' AND [T].[DomainId] = @DomainId'
             END
-            IF @W_U_ReferenceTableId IS NOT NULL BEGIN
-                IF @W_U_ReferenceTableId < CAST('1' AS bigint)
+            IF @W_ReferenceTableId IS NOT NULL BEGIN
+                IF @W_ReferenceTableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ReferenceTableId] = @U_ReferenceTableId'
+                SET @Where = @Where + ' AND [T].[ReferenceTableId] = @ReferenceTableId'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_Alias IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Alias] = @U_Alias'
+            IF @W_Alias IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Alias] = @Alias'
             END
-            IF @W_U_IsAutoIncrement IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsAutoIncrement] = @U_IsAutoIncrement'
+            IF @W_IsAutoIncrement IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsAutoIncrement] = @IsAutoIncrement'
             END
-            IF @W_U_IsRequired IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsRequired] = @U_IsRequired'
+            IF @W_IsRequired IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsRequired] = @IsRequired'
             END
-            IF @W_U_IsListable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsListable] = @U_IsListable'
+            IF @W_IsListable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsListable] = @IsListable'
             END
-            IF @W_U_IsFilterable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsFilterable] = @U_IsFilterable'
+            IF @W_IsFilterable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsFilterable] = @IsFilterable'
             END
-            IF @W_U_IsEditable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsEditable] = @U_IsEditable'
+            IF @W_IsEditable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsEditable] = @IsEditable'
             END
-            IF @W_U_IsGridable IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsGridable] = @U_IsGridable'
+            IF @W_IsGridable IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsGridable] = @IsGridable'
             END
-            IF @W_U_IsEncrypted IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsEncrypted] = @U_IsEncrypted'
+            IF @W_IsEncrypted IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsEncrypted] = @IsEncrypted'
             END
-            IF @W_U_IsInWords IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsInWords] = @U_IsInWords'
+            IF @W_IsInWords IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsInWords] = @IsInWords'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_TableId IS NOT NULL BEGIN
-                IF @W_S_TableId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[TableId] = @S_TableId'
-            END
-            IF @W_S_DomainId IS NOT NULL BEGIN
-                IF @W_S_DomainId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de DomainId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[DomainId] = @S_DomainId'
-            END
-            IF @W_S_ReferenceTableId IS NOT NULL BEGIN
-                IF @W_S_ReferenceTableId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de ReferenceTableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ReferenceTableId] = @S_ReferenceTableId'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_Alias IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Alias] = @S_Alias'
-            END
-            IF @W_S_IsAutoIncrement IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsAutoIncrement] = @S_IsAutoIncrement'
-            END
-            IF @W_S_IsRequired IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsRequired] = @S_IsRequired'
-            END
-            IF @W_S_IsListable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsListable] = @S_IsListable'
-            END
-            IF @W_S_IsFilterable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsFilterable] = @S_IsFilterable'
-            END
-            IF @W_S_IsEditable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsEditable] = @S_IsEditable'
-            END
-            IF @W_S_IsGridable IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsGridable] = @S_IsGridable'
-            END
-            IF @W_S_IsEncrypted IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsEncrypted] = @S_IsEncrypted'
-            END
-            IF @W_S_IsInWords IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsInWords] = @S_IsInWords'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Columns] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Columns] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_TableId bigint,@U_TableId bigint,@S_TableId bigint
-                               ,@F_DomainId bigint,@U_DomainId bigint,@S_DomainId bigint
-                               ,@F_ReferenceTableId bigint,@U_ReferenceTableId bigint,@S_ReferenceTableId bigint
-                               ,@F_Name nvarchar(25),@U_Name nvarchar(25),@S_Name nvarchar(25)
-                               ,@F_Alias nvarchar(25),@U_Alias nvarchar(25),@S_Alias nvarchar(25)
-                               ,@F_IsAutoIncrement bit,@U_IsAutoIncrement bit,@S_IsAutoIncrement bit
-                               ,@F_IsRequired bit,@U_IsRequired bit,@S_IsRequired bit
-                               ,@F_IsListable bit,@U_IsListable bit,@S_IsListable bit
-                               ,@F_IsFilterable bit,@U_IsFilterable bit,@S_IsFilterable bit
-                               ,@F_IsEditable bit,@U_IsEditable bit,@S_IsEditable bit
-                               ,@F_IsGridable bit,@U_IsGridable bit,@S_IsGridable bit
-                               ,@F_IsEncrypted bit,@U_IsEncrypted bit,@S_IsEncrypted bit
-                               ,@F_IsInWords bit,@U_IsInWords bit,@S_IsInWords bit'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_TableId = @W_F_TableId
-                           ,@U_TableId = @W_U_TableId
-                           ,@S_TableId = @W_S_TableId
-                           ,@F_DomainId = @W_F_DomainId
-                           ,@U_DomainId = @W_U_DomainId
-                           ,@S_DomainId = @W_S_DomainId
-                           ,@F_ReferenceTableId = @W_F_ReferenceTableId
-                           ,@U_ReferenceTableId = @W_U_ReferenceTableId
-                           ,@S_ReferenceTableId = @W_S_ReferenceTableId
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_Alias = @W_F_Alias
-                           ,@U_Alias = @W_U_Alias
-                           ,@S_Alias = @W_S_Alias
-                           ,@F_IsAutoIncrement = @W_F_IsAutoIncrement
-                           ,@U_IsAutoIncrement = @W_U_IsAutoIncrement
-                           ,@S_IsAutoIncrement = @W_S_IsAutoIncrement
-                           ,@F_IsRequired = @W_F_IsRequired
-                           ,@U_IsRequired = @W_U_IsRequired
-                           ,@S_IsRequired = @W_S_IsRequired
-                           ,@F_IsListable = @W_F_IsListable
-                           ,@U_IsListable = @W_U_IsListable
-                           ,@S_IsListable = @W_S_IsListable
-                           ,@F_IsFilterable = @W_F_IsFilterable
-                           ,@U_IsFilterable = @W_U_IsFilterable
-                           ,@S_IsFilterable = @W_S_IsFilterable
-                           ,@F_IsEditable = @W_F_IsEditable
-                           ,@U_IsEditable = @W_U_IsEditable
-                           ,@S_IsEditable = @W_S_IsEditable
-                           ,@F_IsGridable = @W_F_IsGridable
-                           ,@U_IsGridable = @W_U_IsGridable
-                           ,@S_IsGridable = @W_S_IsGridable
-                           ,@F_IsEncrypted = @W_F_IsEncrypted
-                           ,@U_IsEncrypted = @W_U_IsEncrypted
-                           ,@S_IsEncrypted = @W_S_IsEncrypted
-                           ,@F_IsInWords = @W_F_IsInWords
-                           ,@U_IsInWords = @W_U_IsInWords
-                           ,@S_IsInWords = @W_S_IsInWords
-        ELSE
+                               ,N'@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit'
+                               ,@Id = @W_Id
+                               ,@TableId = @W_TableId
+                               ,@DomainId = @W_DomainId
+                               ,@ReferenceTableId = @W_ReferenceTableId
+                               ,@Name = @W_Name
+                               ,@Alias = @W_Alias
+                               ,@IsAutoIncrement = @W_IsAutoIncrement
+                               ,@IsRequired = @W_IsRequired
+                               ,@IsListable = @W_IsListable
+                               ,@IsFilterable = @W_IsFilterable
+                               ,@IsEditable = @W_IsEditable
+                               ,@IsGridable = @W_IsGridable
+                               ,@IsEncrypted = @W_IsEncrypted
+                               ,@IsInWords = @W_IsInWords
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -27313,15 +26877,90 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_TableId bigint = CAST(JSON_VALUE(@RecordSearch, '$.TableId') AS bigint)
+                       ,@S_DomainId bigint = CAST(JSON_VALUE(@RecordSearch, '$.DomainId') AS bigint)
+                       ,@S_ReferenceTableId bigint = CAST(JSON_VALUE(@RecordSearch, '$.ReferenceTableId') AS bigint)
+                       ,@S_Name nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(25))
+                       ,@S_Alias nvarchar(25) = CAST(JSON_VALUE(@RecordSearch, '$.Alias') AS nvarchar(25))
+                       ,@S_IsAutoIncrement bit = CAST(JSON_VALUE(@RecordSearch, '$.IsAutoIncrement') AS bit)
+                       ,@S_IsRequired bit = CAST(JSON_VALUE(@RecordSearch, '$.IsRequired') AS bit)
+                       ,@S_IsListable bit = CAST(JSON_VALUE(@RecordSearch, '$.IsListable') AS bit)
+                       ,@S_IsFilterable bit = CAST(JSON_VALUE(@RecordSearch, '$.IsFilterable') AS bit)
+                       ,@S_IsEditable bit = CAST(JSON_VALUE(@RecordSearch, '$.IsEditable') AS bit)
+                       ,@S_IsGridable bit = CAST(JSON_VALUE(@RecordSearch, '$.IsGridable') AS bit)
+                       ,@S_IsEncrypted bit = CAST(JSON_VALUE(@RecordSearch, '$.IsEncrypted') AS bit)
+                       ,@S_IsInWords bit = CAST(JSON_VALUE(@RecordSearch, '$.IsInWords') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_TableId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[TableId], [O].[TableId]) = @TableId'
+                IF @S_DomainId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[DomainId], [O].[DomainId]) = @DomainId'
+                IF @S_ReferenceTableId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) = @ReferenceTableId'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_Alias IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Alias], [O].[Alias]) LIKE ''%'' + @Alias + ''%'''
+                IF @S_IsAutoIncrement IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsAutoIncrement], [O].[IsAutoIncrement]) = @IsAutoIncrement'
+                IF @S_IsRequired IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsRequired], [O].[IsRequired]) = @IsRequired'
+                IF @S_IsListable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsListable], [O].[IsListable]) = @IsListable'
+                IF @S_IsFilterable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsFilterable], [O].[IsFilterable]) = @IsFilterable'
+                IF @S_IsEditable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsEditable], [O].[IsEditable]) = @IsEditable'
+                IF @S_IsGridable IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsGridable], [O].[IsGridable]) = @IsGridable'
+                IF @S_IsEncrypted IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsEncrypted], [O].[IsEncrypted]) = @IsEncrypted'
+                IF @S_IsInWords IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsInWords], [O].[IsInWords]) = @IsInWords'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Columns] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@TableId bigint,@DomainId bigint,@ReferenceTableId bigint,@Name nvarchar(25),@Alias nvarchar(25),@IsAutoIncrement bit,@IsRequired bit,@IsListable bit,@IsFilterable bit,@IsEditable bit,@IsGridable bit,@IsEncrypted bit,@IsInWords bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@TableId = @S_TableId
+                                       ,@DomainId = @S_DomainId
+                                       ,@ReferenceTableId = @S_ReferenceTableId
+                                       ,@Name = @S_Name
+                                       ,@Alias = @S_Alias
+                                       ,@IsAutoIncrement = @S_IsAutoIncrement
+                                       ,@IsRequired = @S_IsRequired
+                                       ,@IsListable = @S_IsListable
+                                       ,@IsFilterable = @S_IsFilterable
+                                       ,@IsEditable = @S_IsEditable
+                                       ,@IsGridable = @S_IsGridable
+                                       ,@IsEncrypted = @S_IsEncrypted
+                                       ,@IsInWords = @S_IsInWords
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS smallint) AS [Sequence]
@@ -27345,8 +26984,9 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsEncrypted]
                     ,CAST(NULL AS bit) AS [IsInWords]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Column'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TableId]
                               ,[T].[Sequence]
@@ -27374,6 +27014,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Column'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TableId]
                                   ,[O].[Sequence]
@@ -27399,8 +27040,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Table' AS [Kind]
@@ -28045,6 +27686,7 @@ IF(SELECT object_id('[dbo].[IndexesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -28068,9 +27710,11 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -28085,7 +27729,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Indexes') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -28094,9 +27738,11 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -28115,128 +27761,69 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint)
-               ,@W_U_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint)
-               ,@W_S_TableId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.TableId') AS bigint)
-               ,@W_F_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50))
-               ,@W_U_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50))
-               ,@W_S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(50))
-               ,@W_F_IsUnique bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsUnique') AS bit)
-               ,@W_U_IsUnique bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsUnique') AS bit)
-               ,@W_S_IsUnique bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsUnique') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_TableId IS NOT NULL BEGIN
-            IF @W_F_TableId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[TableId] = @F_TableId'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_IsUnique IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsUnique] = @F_IsUnique'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(50))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_TableId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.TableId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.TableId') AS bigint))
+                   ,@W_Name nvarchar(50) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(50)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(50)))
+                   ,@W_IsUnique bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsUnique') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsUnique') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsUnique') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_TableId IS NOT NULL BEGIN
-                IF @W_U_TableId < CAST('1' AS bigint)
+            IF @W_TableId IS NOT NULL BEGIN
+                IF @W_TableId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[TableId] = @U_TableId'
+                SET @Where = @Where + ' AND [T].[TableId] = @TableId'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_IsUnique IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsUnique] = @U_IsUnique'
+            IF @W_IsUnique IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsUnique] = @IsUnique'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_TableId IS NOT NULL BEGIN
-                IF @W_S_TableId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de TableId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[TableId] = @S_TableId'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_IsUnique IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsUnique] = @S_IsUnique'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Indexes] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Indexes] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_TableId bigint,@U_TableId bigint,@S_TableId bigint
-                               ,@F_Name nvarchar(50),@U_Name nvarchar(50),@S_Name nvarchar(50)
-                               ,@F_IsUnique bit,@U_IsUnique bit,@S_IsUnique bit,@PickerValue nvarchar(50)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_TableId = @W_F_TableId
-                           ,@U_TableId = @W_U_TableId
-                           ,@S_TableId = @W_S_TableId
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_IsUnique = @W_F_IsUnique
-                           ,@U_IsUnique = @W_U_IsUnique
-                           ,@S_IsUnique = @W_S_IsUnique
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(50)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id bigint,@TableId bigint,@Name nvarchar(50),@IsUnique bit'
+                               ,@Id = @W_Id
+                               ,@TableId = @W_TableId
+                               ,@Name = @W_Name
+                               ,@IsUnique = @W_IsUnique
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -28250,22 +27837,58 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_TableId bigint = CAST(JSON_VALUE(@RecordSearch, '$.TableId') AS bigint)
+                       ,@S_Name nvarchar(50) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(50))
+                       ,@S_IsUnique bit = CAST(JSON_VALUE(@RecordSearch, '$.IsUnique') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_TableId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[TableId], [O].[TableId]) = @TableId'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_IsUnique IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsUnique], [O].[IsUnique]) = @IsUnique'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Indexes] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@TableId bigint,@Name nvarchar(50),@IsUnique bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@TableId = @S_TableId
+                                       ,@Name = @S_Name
+                                       ,@IsUnique = @S_IsUnique
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
                     ,CAST(NULL AS bit) AS [IsUnique]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Index'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TableId]
                               ,[T].[Name]
@@ -28275,6 +27898,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Index'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TableId]
                                   ,[O].[Name]
@@ -28282,8 +27906,8 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Table' AS [Kind]
@@ -28843,6 +28467,7 @@ IF(SELECT object_id('[dbo].[IndexkeysRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -28866,9 +28491,11 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -28883,7 +28510,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Indexkeys') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -28892,6 +28519,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -28911,126 +28540,62 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_IndexId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IndexId') AS bigint)
-               ,@W_U_IndexId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IndexId') AS bigint)
-               ,@W_S_IndexId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.IndexId') AS bigint)
-               ,@W_F_ColumnId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId') AS bigint)
-               ,@W_U_ColumnId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId') AS bigint)
-               ,@W_S_ColumnId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.ColumnId') AS bigint)
-               ,@W_F_IsDescending bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsDescending') AS bit)
-               ,@W_U_IsDescending bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsDescending') AS bit)
-               ,@W_S_IsDescending bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsDescending') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_IndexId IS NOT NULL BEGIN
-            IF @W_F_IndexId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IndexId] = @F_IndexId'
-        END
-        IF @W_F_ColumnId IS NOT NULL BEGIN
-            IF @W_F_ColumnId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ColumnId] = @F_ColumnId'
-        END
-        IF @W_F_IsDescending IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsDescending] = @F_IsDescending'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_IndexId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IndexId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IndexId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.IndexId') AS bigint))
+                   ,@W_ColumnId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ColumnId') AS bigint))
+                   ,@W_IsDescending bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsDescending') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsDescending') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsDescending') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_IndexId IS NOT NULL BEGIN
-                IF @W_U_IndexId < CAST('1' AS bigint)
+            IF @W_IndexId IS NOT NULL BEGIN
+                IF @W_IndexId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IndexId] = @U_IndexId'
+                SET @Where = @Where + ' AND [T].[IndexId] = @IndexId'
             END
-            IF @W_U_ColumnId IS NOT NULL BEGIN
-                IF @W_U_ColumnId < CAST('1' AS bigint)
+            IF @W_ColumnId IS NOT NULL BEGIN
+                IF @W_ColumnId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ColumnId] = @U_ColumnId'
+                SET @Where = @Where + ' AND [T].[ColumnId] = @ColumnId'
             END
-            IF @W_U_IsDescending IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsDescending] = @U_IsDescending'
+            IF @W_IsDescending IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsDescending] = @IsDescending'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_IndexId IS NOT NULL BEGIN
-                IF @W_S_IndexId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de IndexId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IndexId] = @S_IndexId'
-            END
-            IF @W_S_ColumnId IS NOT NULL BEGIN
-                IF @W_S_ColumnId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de ColumnId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ColumnId] = @S_ColumnId'
-            END
-            IF @W_S_IsDescending IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsDescending] = @S_IsDescending'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Indexkeys] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Indexkeys] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_IndexId bigint,@U_IndexId bigint,@S_IndexId bigint
-                               ,@F_ColumnId bigint,@U_ColumnId bigint,@S_ColumnId bigint
-                               ,@F_IsDescending bit,@U_IsDescending bit,@S_IsDescending bit'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_IndexId = @W_F_IndexId
-                           ,@U_IndexId = @W_U_IndexId
-                           ,@S_IndexId = @W_S_IndexId
-                           ,@F_ColumnId = @W_F_ColumnId
-                           ,@U_ColumnId = @W_U_ColumnId
-                           ,@S_ColumnId = @W_S_ColumnId
-                           ,@F_IsDescending = @W_F_IsDescending
-                           ,@U_IsDescending = @W_U_IsDescending
-                           ,@S_IsDescending = @W_S_IsDescending
-        ELSE
+                               ,N'@Id bigint,@IndexId bigint,@ColumnId bigint,@IsDescending bit'
+                               ,@Id = @W_Id
+                               ,@IndexId = @W_IndexId
+                               ,@ColumnId = @W_ColumnId
+                               ,@IsDescending = @W_IsDescending
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -29044,23 +28609,59 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_IndexId bigint = CAST(JSON_VALUE(@RecordSearch, '$.IndexId') AS bigint)
+                       ,@S_ColumnId bigint = CAST(JSON_VALUE(@RecordSearch, '$.ColumnId') AS bigint)
+                       ,@S_IsDescending bit = CAST(JSON_VALUE(@RecordSearch, '$.IsDescending') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_IndexId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IndexId], [O].[IndexId]) = @IndexId'
+                IF @S_ColumnId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ColumnId], [O].[ColumnId]) = @ColumnId'
+                IF @S_IsDescending IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsDescending], [O].[IsDescending]) = @IsDescending'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Indexkeys] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@IndexId bigint,@ColumnId bigint,@IsDescending bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@IndexId = @S_IndexId
+                                       ,@ColumnId = @S_ColumnId
+                                       ,@IsDescending = @S_IsDescending
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [IndexId]
                     ,CAST(NULL AS smallint) AS [Sequence]
                     ,CAST(NULL AS bigint) AS [ColumnId]
                     ,CAST(NULL AS bit) AS [IsDescending]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Indexkey'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[IndexId]
                               ,[T].[Sequence]
@@ -29071,6 +28672,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Indexkey'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[IndexId]
                                   ,[O].[Sequence]
@@ -29079,8 +28681,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Index' AS [Kind]
@@ -29696,6 +29298,7 @@ IF(SELECT object_id('[dbo].[SessionsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -29719,9 +29322,11 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -29736,7 +29341,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Sessions') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -29745,6 +29350,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -29764,126 +29371,62 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint)
-               ,@W_U_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint)
-               ,@W_S_SystemId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.SystemId') AS bigint)
-               ,@W_F_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.UserId') AS bigint)
-               ,@W_U_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.UserId') AS bigint)
-               ,@W_S_UserId bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.UserId') AS bigint)
-               ,@W_F_IsLogged bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLogged') AS bit)
-               ,@W_U_IsLogged bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLogged') AS bit)
-               ,@W_S_IsLogged bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsLogged') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_SystemId IS NOT NULL BEGIN
-            IF @W_F_SystemId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[SystemId] = @F_SystemId'
-        END
-        IF @W_F_UserId IS NOT NULL BEGIN
-            IF @W_F_UserId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[UserId] = @F_UserId'
-        END
-        IF @W_F_IsLogged IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsLogged] = @F_IsLogged'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_SystemId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.SystemId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.SystemId') AS bigint))
+                   ,@W_UserId bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.UserId') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.UserId') AS bigint))
+                   ,@W_IsLogged bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsLogged') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsLogged') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsLogged') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_SystemId IS NOT NULL BEGIN
-                IF @W_U_SystemId < CAST('1' AS bigint)
+            IF @W_SystemId IS NOT NULL BEGIN
+                IF @W_SystemId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[SystemId] = @U_SystemId'
+                SET @Where = @Where + ' AND [T].[SystemId] = @SystemId'
             END
-            IF @W_U_UserId IS NOT NULL BEGIN
-                IF @W_U_UserId < CAST('1' AS bigint)
+            IF @W_UserId IS NOT NULL BEGIN
+                IF @W_UserId < CAST('1' AS bigint)
                     THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[UserId] = @U_UserId'
+                SET @Where = @Where + ' AND [T].[UserId] = @UserId'
             END
-            IF @W_U_IsLogged IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsLogged] = @U_IsLogged'
+            IF @W_IsLogged IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsLogged] = @IsLogged'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_SystemId IS NOT NULL BEGIN
-                IF @W_S_SystemId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de SystemId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[SystemId] = @S_SystemId'
-            END
-            IF @W_S_UserId IS NOT NULL BEGIN
-                IF @W_S_UserId < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de UserId deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[UserId] = @S_UserId'
-            END
-            IF @W_S_IsLogged IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsLogged] = @S_IsLogged'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Sessions] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Sessions] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_SystemId bigint,@U_SystemId bigint,@S_SystemId bigint
-                               ,@F_UserId bigint,@U_UserId bigint,@S_UserId bigint
-                               ,@F_IsLogged bit,@U_IsLogged bit,@S_IsLogged bit'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_SystemId = @W_F_SystemId
-                           ,@U_SystemId = @W_U_SystemId
-                           ,@S_SystemId = @W_S_SystemId
-                           ,@F_UserId = @W_F_UserId
-                           ,@U_UserId = @W_U_UserId
-                           ,@S_UserId = @W_S_UserId
-                           ,@F_IsLogged = @W_F_IsLogged
-                           ,@U_IsLogged = @W_U_IsLogged
-                           ,@S_IsLogged = @W_S_IsLogged
-        ELSE
+                               ,N'@Id bigint,@SystemId bigint,@UserId bigint,@IsLogged bit'
+                               ,@Id = @W_Id
+                               ,@SystemId = @W_SystemId
+                               ,@UserId = @W_UserId
+                               ,@IsLogged = @W_IsLogged
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -29897,23 +29440,59 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_SystemId bigint = CAST(JSON_VALUE(@RecordSearch, '$.SystemId') AS bigint)
+                       ,@S_UserId bigint = CAST(JSON_VALUE(@RecordSearch, '$.UserId') AS bigint)
+                       ,@S_IsLogged bit = CAST(JSON_VALUE(@RecordSearch, '$.IsLogged') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_SystemId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[SystemId], [O].[SystemId]) = @SystemId'
+                IF @S_UserId IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[UserId], [O].[UserId]) = @UserId'
+                IF @S_IsLogged IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsLogged], [O].[IsLogged]) = @IsLogged'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Sessions] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@SystemId bigint,@UserId bigint,@IsLogged bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@SystemId = @S_SystemId
+                                       ,@UserId = @S_UserId
+                                       ,@IsLogged = @S_IsLogged
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SystemId]
                     ,CAST(NULL AS bigint) AS [UserId]
                     ,CAST(NULL AS nvarchar(256)) AS [PublicKey]
                     ,CAST(NULL AS bit) AS [IsLogged]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Session'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[UserId]
@@ -29924,6 +29503,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Session'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
                                   ,[O].[UserId]
@@ -29932,8 +29512,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'System' AS [Kind]
@@ -30227,6 +29807,7 @@ IF(SELECT object_id('[dbo].[TransactionsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -30250,9 +29831,11 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -30267,7 +29850,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Transactions') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -30276,6 +29859,8 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -30293,66 +29878,43 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Transactions] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Transactions] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-        ELSE
+                               ,N'@Id bigint'
+                               ,@Id = @W_Id
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -30366,21 +29928,45 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Transactions] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [SessionId]
                     ,CAST(NULL AS bit) AS [IsConfirmed]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Transaction'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SessionId]
                               ,[T].[IsConfirmed]
@@ -30389,14 +29975,15 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Transaction'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SessionId]
                                   ,[O].[IsConfirmed]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Session' AS [Kind]
@@ -30952,6 +30539,7 @@ IF(SELECT object_id('[dbo].[OperationsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -30975,9 +30563,11 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -30992,7 +30582,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Operations') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -31001,6 +30591,8 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -31022,66 +30614,43 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Operations] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Operations] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-        ELSE
+                               ,N'@Id bigint'
+                               ,@Id = @W_Id
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -31095,15 +30664,38 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Operations] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [TransactionId]
                     ,CAST(NULL AS nvarchar(25)) AS [TableName]
@@ -31112,8 +30704,9 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(max)) AS [ActualRecord]
                     ,CAST(NULL AS bit) AS [IsConfirmed]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Operation'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TransactionId]
                               ,[T].[TableName]
@@ -31126,6 +30719,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Operation'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TransactionId]
                                   ,[O].[TableName]
@@ -31136,8 +30730,8 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Transaction' AS [Kind]
@@ -31691,6 +31285,7 @@ IF(SELECT object_id('[dbo].[UnicitiesRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -31714,9 +31309,11 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -31731,7 +31328,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Unicities') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -31740,6 +31337,8 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -31758,114 +31357,58 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint)
-               ,@W_U_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint)
-               ,@W_S_Id bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS bigint)
-               ,@W_F_ColumnId1 bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId1') AS bigint)
-               ,@W_U_ColumnId1 bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId1') AS bigint)
-               ,@W_S_ColumnId1 bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.ColumnId1') AS bigint)
-               ,@W_F_ColumnId2 bigint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId2') AS bigint)
-               ,@W_U_ColumnId2 bigint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId2') AS bigint)
-               ,@W_S_ColumnId2 bigint = CAST(JSON_VALUE(@RecordFilter, '$.Search.ColumnId2') AS bigint)
-               ,@W_F_IsBidirectional bit = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsBidirectional') AS bit)
-               ,@W_U_IsBidirectional bit = CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsBidirectional') AS bit)
-               ,@W_S_IsBidirectional bit = CAST(JSON_VALUE(@RecordFilter, '$.Search.IsBidirectional') AS bit)
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS bigint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_ColumnId1 IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ColumnId1] = @F_ColumnId1'
-        END
-        IF @W_F_ColumnId2 IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[ColumnId2] = @F_ColumnId2'
-        END
-        IF @W_F_IsBidirectional IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[IsBidirectional] = @F_IsBidirectional'
-        END
         IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS bigint)
+            DECLARE @W_Id bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS bigint))
+                   ,@W_ColumnId1 bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId1') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId1') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ColumnId1') AS bigint))
+                   ,@W_ColumnId2 bigint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.ColumnId2') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.ColumnId2') AS bigint), CAST(JSON_VALUE(@RecordFilter, '$.ColumnId2') AS bigint))
+                   ,@W_IsBidirectional bit = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.IsBidirectional') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.IsBidirectional') AS bit), CAST(JSON_VALUE(@RecordFilter, '$.IsBidirectional') AS bit))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS bigint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_ColumnId1 IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ColumnId1] = @U_ColumnId1'
+            IF @W_ColumnId1 IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ColumnId1] = @ColumnId1'
             END
-            IF @W_U_ColumnId2 IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[ColumnId2] = @U_ColumnId2'
+            IF @W_ColumnId2 IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[ColumnId2] = @ColumnId2'
             END
-            IF @W_U_IsBidirectional IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[IsBidirectional] = @U_IsBidirectional'
+            IF @W_IsBidirectional IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[IsBidirectional] = @IsBidirectional'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS bigint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_ColumnId1 IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ColumnId1] = @S_ColumnId1'
-            END
-            IF @W_S_ColumnId2 IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[ColumnId2] = @S_ColumnId2'
-            END
-            IF @W_S_IsBidirectional IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[IsBidirectional] = @S_IsBidirectional'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Unicities] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] bigint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Unicities] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id bigint,@U_Id bigint,@S_Id bigint
-                               ,@F_ColumnId1 bigint,@U_ColumnId1 bigint,@S_ColumnId1 bigint
-                               ,@F_ColumnId2 bigint,@U_ColumnId2 bigint,@S_ColumnId2 bigint
-                               ,@F_IsBidirectional bit,@U_IsBidirectional bit,@S_IsBidirectional bit'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_ColumnId1 = @W_F_ColumnId1
-                           ,@U_ColumnId1 = @W_U_ColumnId1
-                           ,@S_ColumnId1 = @W_S_ColumnId1
-                           ,@F_ColumnId2 = @W_F_ColumnId2
-                           ,@U_ColumnId2 = @W_U_ColumnId2
-                           ,@S_ColumnId2 = @W_S_ColumnId2
-                           ,@F_IsBidirectional = @W_F_IsBidirectional
-                           ,@U_IsBidirectional = @W_U_IsBidirectional
-                           ,@S_IsBidirectional = @W_S_IsBidirectional
-        ELSE
+                               ,N'@Id bigint,@ColumnId1 bigint,@ColumnId2 bigint,@IsBidirectional bit'
+                               ,@Id = @W_Id
+                               ,@ColumnId1 = @W_ColumnId1
+                               ,@ColumnId2 = @W_ColumnId2
+                               ,@IsBidirectional = @W_IsBidirectional
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -31879,22 +31422,58 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id bigint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS bigint)
+                       ,@S_ColumnId1 bigint = CAST(JSON_VALUE(@RecordSearch, '$.ColumnId1') AS bigint)
+                       ,@S_ColumnId2 bigint = CAST(JSON_VALUE(@RecordSearch, '$.ColumnId2') AS bigint)
+                       ,@S_IsBidirectional bit = CAST(JSON_VALUE(@RecordSearch, '$.IsBidirectional') AS bit)
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_ColumnId1 IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ColumnId1], [O].[ColumnId1]) = @ColumnId1'
+                IF @S_ColumnId2 IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[ColumnId2], [O].[ColumnId2]) = @ColumnId2'
+                IF @S_IsBidirectional IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[IsBidirectional], [O].[IsBidirectional]) = @IsBidirectional'
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Unicities] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@ColumnId1 bigint,@ColumnId2 bigint,@IsBidirectional bit, @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@ColumnId1 = @S_ColumnId1
+                                       ,@ColumnId2 = @S_ColumnId2
+                                       ,@IsBidirectional = @S_IsBidirectional
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [ColumnId1]
                     ,CAST(NULL AS bigint) AS [ColumnId2]
                     ,CAST(NULL AS bit) AS [IsBidirectional]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Unicity'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[ColumnId1]
                               ,[T].[ColumnId2]
@@ -31904,6 +31483,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Unicity'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[ColumnId1]
                                   ,[O].[ColumnId2]
@@ -31911,8 +31491,8 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT DISTINCT 'Column' AS [Kind]
@@ -32522,6 +32102,7 @@ IF(SELECT object_id('[dbo].[OperatorsRead]', 'P')) IS NULL
 GO
 ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                                           ,@RecordFilter NVARCHAR(MAX)
+                                          ,@RecordSearch NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
                                           ,@PaddingGridLastPage BIT
                                           ,@IsActionList BIT
@@ -32545,9 +32126,11 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
             SET @RecordFilter = '{}'
         ELSE IF ISJSON(@RecordFilter) = 0
             THROW 51000, 'Valor de @RecordFilter não está no formato JSON', 1
+        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0
+            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1
         SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
         IF @OrderBy = ''
-            SET @OrderBy = '[Id]'
+            SET @OrderBy = '[T].[Id] ASC'
         ELSE BEGIN
             SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
             IF EXISTS(SELECT 1 
@@ -32562,7 +32145,7 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                                                     WHERE [#2].[name] = 'Operators') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
                                                          WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
                                                          ELSE TRIM([value])
                                                     END) + '] ' + 
@@ -32571,9 +32154,11 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                                                          ELSE 'ASC'
                                                     END, ', ')
                 FROM STRING_SPLIT(@OrderBy, ',')
+            IF CHARINDEX('[T].[Id]', @OrderBy) = 0
+                SET @OrderBy = @OrderBy + ', [T].[Id] ASC'
         END
         IF @IsActionList = 1
-            SET @OrderBy = '[Name]'
+            SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(15) = NULL
 
         DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
@@ -32592,122 +32177,67 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$.Filter._'))
-               ,@WhereFixed NVARCHAR(MAX) = ''
-               ,@WhereFilter NVARCHAR(MAX) = ''
-               ,@WhereSearch NVARCHAR(MAX) = ''
-               ,@WhereUser NVARCHAR(MAX) = ''
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilter, '$._'))
                ,@Where NVARCHAR(MAX) = ''
                ,@sql NVARCHAR(MAX)
 
-        DECLARE @W_F_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint)
-               ,@W_U_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint)
-               ,@W_S_Id tinyint = CAST(JSON_VALUE(@RecordFilter, '$.Search.Id') AS tinyint)
-               ,@W_F_Name nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(15))
-               ,@W_U_Name nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(15))
-               ,@W_S_Name nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Search.Name') AS nvarchar(15))
-               ,@W_F_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.CodeSQL') AS nvarchar(15))
-               ,@W_U_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.CodeSQL') AS nvarchar(15))
-               ,@W_S_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Search.CodeSQL') AS nvarchar(15))
-               ,@W_F_CodeJS nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Fixed.CodeJS') AS nvarchar(15))
-               ,@W_U_CodeJS nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Filter.CodeJS') AS nvarchar(15))
-               ,@W_S_CodeJS nvarchar(15) = CAST(JSON_VALUE(@RecordFilter, '$.Search.CodeJS') AS nvarchar(15))
-
-        IF @W_F_Id IS NOT NULL BEGIN
-            IF @W_F_Id < CAST('1' AS tinyint)
-                THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Id] = @F_Id'
-        END
-        IF @W_F_Name IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[Name] = @F_Name'
-        END
-        IF @W_F_CodeSQL IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[CodeSQL] = @F_CodeSQL'
-        END
-        IF @W_F_CodeJS IS NOT NULL BEGIN
-            SET @WhereFixed = @WhereFixed + ' AND [T].[CodeJS] = @F_CodeJS'
-        END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@RecordFilter, '$.Picker.Value') AS nvarchar(15))
             IF @PickerValue IS NULL
                 SET @PickerValue = ''
-            SET @WhereUser = '[T].[Name] LIKE ''%'' + @PickerValue + ''%'''
-        END ELSE BEGIN
-        IF @_ IS NULL BEGIN
-            IF @W_U_Id IS NOT NULL BEGIN
-                IF @W_U_Id < CAST('1' AS tinyint)
+            SET @Where = @Where + ' AND [T].[Name] LIKE ''%'' + @PickerValue + ''%'''
+        END ELSE IF @_ IS NULL BEGIN
+            DECLARE @W_Id tinyint = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Id') AS tinyint), CAST(JSON_VALUE(@RecordFilter, '$.Id') AS tinyint))
+                   ,@W_Name nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.Name') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.Name') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Name') AS nvarchar(15)))
+                   ,@W_CodeSQL nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.CodeSQL') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.CodeSQL') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.CodeSQL') AS nvarchar(15)))
+                   ,@W_CodeJS nvarchar(15) = COALESCE(CAST(JSON_VALUE(@RecordFilter, '$.Filter.CodeJS') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.Fixed.CodeJS') AS nvarchar(15)), CAST(JSON_VALUE(@RecordFilter, '$.CodeJS') AS nvarchar(15)))
+
+            IF @W_Id IS NOT NULL BEGIN
+                IF @W_Id < CAST('1' AS tinyint)
                     THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Id] = @U_Id'
+                SET @Where = @Where + ' AND [T].[Id] = @Id'
             END
-            IF @W_U_Name IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[Name] = @U_Name'
+            IF @W_Name IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[Name] = @Name'
             END
-            IF @W_U_CodeSQL IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[CodeSQL] = @U_CodeSQL'
+            IF @W_CodeSQL IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[CodeSQL] = @CodeSQL'
             END
-            IF @W_U_CodeJS IS NOT NULL BEGIN
-                SET @WhereFilter = @WhereFilter + ' AND [T].[CodeJS] = @U_CodeJS'
+            IF @W_CodeJS IS NOT NULL BEGIN
+                SET @Where = @Where + ' AND [T].[CodeJS] = @CodeJS'
             END
-            IF @W_S_Id IS NOT NULL BEGIN
-                IF @W_S_Id < CAST('1' AS tinyint)
-                    THROW 51000, 'Valor de Id deve ser maior que ou igual a ''1''', 1
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Id] = @S_Id'
-            END
-            IF @W_S_Name IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[Name] = @S_Name'
-            END
-            IF @W_S_CodeSQL IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[CodeSQL] = @S_CodeSQL'
-            END
-            IF @W_S_CodeJS IS NOT NULL BEGIN
-                SET @WhereSearch = @WhereSearch + ' AND [T].[CodeJS] = @S_CodeJS'
-            END
-            IF @WhereFilter <> '' AND @WhereSearch <> ''
-                SET @WhereUser = '(' + STUFF(@WhereFilter, 1, 5, '') + ') OR (' + STUFF(@WhereSearch, 1, 5, '') + ')'
-            ELSE IF @WhereFilter <> ''
-                SET @WhereUser = STUFF(@WhereFilter, 1, 5, '')
-            ELSE IF @WhereSearch <> ''
-                SET @WhereUser = STUFF(@WhereSearch, 1, 5, '')
         END ELSE
-            SET @WhereUser = '[T].[Id] IN (' + @_ + ')'
-        END
-        SET @Where = @WhereFixed
-        IF @WhereUser <> ''
-            SET @Where = @Where + ' AND (' + @WhereUser + ')'
-        SET @sql = 'INSERT [#tmpTable]
-                        SELECT ''T'' AS [_]
-                              ,[T].[Id]
-                            FROM [dbo].[Operators] [T]
-                                LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
-                            WHERE [#].[Id] IS NULL'
-        SET @sql = @sql + @Where + '
-                        UNION ALL
-                            SELECT ''O'' AS [_]
-                                  ,[T].[Id]
-                                FROM [#tmpOperations] [T]
-                                WHERE [T].[_] <> ''delete'''
-        SET @sql = @sql + @Where
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Id] tinyint)
-        IF @_ IS NULL
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] tinyint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [dbo].[Operators] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                                        ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@F_Id tinyint,@U_Id tinyint,@S_Id tinyint
-                               ,@F_Name nvarchar(15),@U_Name nvarchar(15),@S_Name nvarchar(15)
-                               ,@F_CodeSQL nvarchar(15),@U_CodeSQL nvarchar(15),@S_CodeSQL nvarchar(15)
-                               ,@F_CodeJS nvarchar(15),@U_CodeJS nvarchar(15),@S_CodeJS nvarchar(15),@PickerValue nvarchar(15)'
-                           ,@F_Id = @W_F_Id
-                           ,@U_Id = @W_U_Id
-                           ,@S_Id = @W_S_Id
-                           ,@F_Name = @W_F_Name
-                           ,@U_Name = @W_U_Name
-                           ,@S_Name = @W_S_Name
-                           ,@F_CodeSQL = @W_F_CodeSQL
-                           ,@U_CodeSQL = @W_U_CodeSQL
-                           ,@S_CodeSQL = @W_S_CodeSQL
-                           ,@F_CodeJS = @W_F_CodeJS
-                           ,@U_CodeJS = @W_U_CodeJS
-                           ,@S_CodeJS = @W_S_CodeJS
-                           ,@PickerValue = @PickerValue
-        ELSE
+                               ,N'@PickerValue nvarchar(15)'
+                               ,@PickerValue = @PickerValue
+        END ELSE IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@Id tinyint,@Name nvarchar(15),@CodeSQL nvarchar(15),@CodeJS nvarchar(15)'
+                               ,@Id = @W_Id
+                               ,@Name = @W_Name
+                               ,@CodeSQL = @W_CodeSQL
+                               ,@CodeJS = @W_CodeJS
+        END ELSE
             EXEC sp_executesql @sql
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -32721,22 +32251,58 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
             SET @MaxPage = 1
         END ELSE BEGIN
             SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF @RecordSearch IS NOT NULL BEGIN
+                DECLARE @Recno BIGINT
+                       ,@S_Id tinyint = CAST(JSON_VALUE(@RecordSearch, '$.Id') AS tinyint)
+                       ,@S_Name nvarchar(15) = CAST(JSON_VALUE(@RecordSearch, '$.Name') AS nvarchar(15))
+                       ,@S_CodeSQL nvarchar(15) = CAST(JSON_VALUE(@RecordSearch, '$.CodeSQL') AS nvarchar(15))
+                       ,@S_CodeJS nvarchar(15) = CAST(JSON_VALUE(@RecordSearch, '$.CodeJS') AS nvarchar(15))
+
+                SET @Where = ''
+                IF @S_Id IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Id], [O].[Id]) = @Id'
+                IF @S_Name IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[Name], [O].[Name]) LIKE ''%'' + @Name + ''%'''
+                IF @S_CodeSQL IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[CodeSQL], [O].[CodeSQL]) LIKE ''%'' + @CodeSQL + ''%'''
+                IF @S_CodeJS IS NOT NULL
+                    SET @Where = @Where + CASE WHEN @Where = '' THEN '' ELSE ' AND ' END + 'COALESCE([D].[CodeJS], [O].[CodeJS]) LIKE ''%'' + @CodeJS + ''%'''
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Operators] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id tinyint,@Name nvarchar(15),@CodeSQL nvarchar(15),@CodeJS nvarchar(15), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id
+                                       ,@Name = @S_Name
+                                       ,@CodeSQL = @S_CodeSQL
+                                       ,@CodeJS = @S_CodeJS
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
             IF ABS(@PageNumber) > @MaxPage
                 SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            IF @PageNumber < 0
+            ELSE IF @PageNumber < 0
                 SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
             SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @OffSet + @LimitRows > @RowCount
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
                 SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
         END
         SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS tinyint) AS [Id]
                     ,CAST(NULL AS nvarchar(15)) AS [Name]
                     ,CAST(NULL AS nvarchar(15)) AS [CodeSQL]
                     ,CAST(NULL AS nvarchar(15)) AS [CodeJS]
             INTO [#result]
-        SET @sql = 'INSERT #result
+        SET @sql = 'INSERT [#result]
                         SELECT ''Operator'' AS [Kind]
+                              ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
                               ,[T].[CodeSQL]
@@ -32746,6 +32312,7 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                             WHERE [#].[_] = ''T''
                         UNION ALL
                             SELECT ''Operator'' AS [Kind]
+                                  ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
                                   ,[O].[CodeSQL]
@@ -32753,8 +32320,8 @@ ALTER PROCEDURE [dbo].[OperatorsRead](@Login NVARCHAR(MAX)
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
-                        ORDER BY ' + @OrderBy + '
-                        OFFSET ' + CAST(@offset AS NVARCHAR(20)) + ' ROWS
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
         SELECT (SELECT [Kind]
