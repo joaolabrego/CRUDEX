@@ -6764,7 +6764,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -6819,7 +6819,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -6874,7 +6874,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -6929,7 +6929,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -6984,7 +6984,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7039,7 +7039,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7094,7 +7094,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7369,7 +7369,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -7424,7 +7424,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -7479,7 +7479,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7534,7 +7534,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7589,7 +7589,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7644,7 +7644,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7699,7 +7699,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7754,7 +7754,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7809,7 +7809,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7864,7 +7864,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -7919,7 +7919,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -8469,7 +8469,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -8524,7 +8524,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -8579,7 +8579,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -8634,7 +8634,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -8689,7 +8689,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -9019,7 +9019,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -10504,7 +10504,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -11934,7 +11934,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -11989,7 +11989,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12044,7 +12044,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12099,7 +12099,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12154,7 +12154,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12209,7 +12209,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -12264,7 +12264,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12319,7 +12319,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12374,7 +12374,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12429,7 +12429,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12484,7 +12484,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12539,7 +12539,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12594,7 +12594,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,NULL
@@ -12814,7 +12814,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -13089,7 +13089,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -13254,7 +13254,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,CAST(N'1' AS nvarchar(max))
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -13419,7 +13419,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -14189,7 +14189,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL
                                 ,NULL
-                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,NULL
                                 ,CAST('1' AS bit)
                                 ,NULL
@@ -15708,10 +15708,11 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS tinyint
+               ,@W_Id tinyint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -15743,7 +15744,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
                                           AND [TableName] = 'Categories'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Categories', 1
@@ -15854,10 +15855,11 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id tinyint
+               ,@W_Id tinyint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -16796,17 +16798,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Categories] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -17377,10 +17379,11 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS tinyint
+               ,@W_Id tinyint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -17412,7 +17415,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
                                           AND [TableName] = 'Types'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Types', 1
@@ -17543,10 +17546,11 @@ ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id tinyint
+               ,@W_Id tinyint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -18611,17 +18615,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Types] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -19316,10 +19320,11 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -19349,7 +19354,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
                                           AND [TableName] = 'Masks'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Masks', 1
@@ -19422,10 +19427,11 @@ ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -19947,17 +19953,17 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Masks] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -20174,10 +20180,11 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -20209,7 +20216,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
                                           AND [TableName] = 'Domains'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Domains', 1
@@ -20316,10 +20323,11 @@ ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -21109,17 +21117,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Domains] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -21605,10 +21613,11 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -21640,7 +21649,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
                                           AND [TableName] = 'Systems'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Systems', 1
@@ -21736,10 +21745,11 @@ ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -22342,17 +22352,17 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Systems] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -22633,10 +22643,11 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -22668,7 +22679,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                                           AND [TableName] = 'Menus'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Menus', 1
@@ -22767,10 +22778,11 @@ ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -23383,17 +23395,17 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Menus] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -23705,10 +23717,11 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -23740,7 +23753,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
                                           AND [TableName] = 'Users'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Users', 1
@@ -23832,10 +23845,11 @@ ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -24489,17 +24503,17 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Users] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -24825,10 +24839,11 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -24860,7 +24875,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
                                           AND [TableName] = 'SystemsUsers'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em SystemsUsers', 1
@@ -24942,10 +24957,11 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -25595,17 +25611,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[SystemsUsers] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -25949,10 +25965,11 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -25982,7 +25999,7 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
                                           AND [TableName] = 'Connections'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Connections', 1
@@ -26055,10 +26072,11 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -26631,17 +26649,17 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Connections] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -26902,10 +26920,11 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -26937,7 +26956,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                                           AND [TableName] = 'Databases'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Databases', 1
@@ -27041,10 +27060,11 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -27714,17 +27734,17 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Databases] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -28068,10 +28088,11 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -28103,7 +28124,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
                                           AND [TableName] = 'SystemsDatabases'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em SystemsDatabases', 1
@@ -28185,10 +28206,11 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -28838,17 +28860,17 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[SystemsDatabases] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -29204,10 +29226,11 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -29239,7 +29262,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                                           AND [TableName] = 'Tables'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Tables', 1
@@ -29339,10 +29362,11 @@ ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -29945,17 +29969,17 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Tables] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -30249,10 +30273,11 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -30284,7 +30309,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
                                           AND [TableName] = 'DatabasesTables'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em DatabasesTables', 1
@@ -30376,10 +30401,11 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -31029,17 +31055,17 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[DatabasesTables] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -31407,10 +31433,11 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -31442,7 +31469,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                                           AND [TableName] = 'Columns'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Columns', 1
@@ -31605,10 +31632,11 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -32929,17 +32957,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Columns] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -33915,10 +33943,11 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -33950,7 +33979,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
                                           AND [TableName] = 'Indexes'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Indexes', 1
@@ -34032,10 +34061,11 @@ ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -34681,17 +34711,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Indexes] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -35034,10 +35064,11 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -35069,7 +35100,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                                           AND [TableName] = 'Indexkeys'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Indexkeys', 1
@@ -35158,10 +35189,11 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -35809,17 +35841,17 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Indexkeys] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -36222,10 +36254,11 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -36257,7 +36290,7 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                                           AND [TableName] = 'Sessions'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Sessions', 1
@@ -36349,10 +36382,11 @@ ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -37006,17 +37040,17 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Sessions] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -37359,10 +37393,11 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -37394,7 +37429,7 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
                                           AND [TableName] = 'Transactions'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Transactions', 1
@@ -37469,10 +37504,11 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -37716,17 +37752,17 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Transactions] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -37925,10 +37961,11 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -37960,7 +37997,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
                                           AND [TableName] = 'Operations'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Operations', 1
@@ -38049,10 +38086,11 @@ ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -38551,17 +38589,17 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Operations] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -38786,10 +38824,11 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS bigint
+               ,@W_Id bigint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -38821,7 +38860,7 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
                                           AND [TableName] = 'Unicities'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Unicities', 1
@@ -38899,10 +38938,11 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id bigint
+               ,@W_Id bigint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
@@ -39536,17 +39576,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Unicities] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -39963,10 +40003,11 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS tinyint
+               ,@W_Id tinyint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -39998,7 +40039,7 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
                                           AND [TableName] = 'Comparators'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Comparators', 1
@@ -40074,10 +40115,11 @@ ALTER PROCEDURE [dbo].[ComparatorPersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id tinyint
+               ,@W_Id tinyint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -40719,17 +40761,17 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Comparators] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
@@ -41047,10 +41089,11 @@ ALTER PROCEDURE [dbo].[RuleValidate](@SessionId BIGINT
         DECLARE @IsConfirmed BIT
                ,@CreatedBy NVARCHAR(25)
                ,@IsPendingCreate BIT = 0
-               ,@W_Id AS tinyint
+               ,@W_Id tinyint
 
         IF @Action = 'delete'
             SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
         ELSE
             SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -41082,7 +41125,7 @@ ALTER PROCEDURE [dbo].[RuleValidate](@SessionId BIGINT
                                           AND [TableName] = 'Rules'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
-                                          AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
         ELSE IF @Action <> 'create'
             THROW 51000, 'Chave-primária não existe em Rules', 1
@@ -41155,10 +41198,11 @@ ALTER PROCEDURE [dbo].[RulePersist](@Login NVARCHAR(MAX)
                ,@CreatedBy NVARCHAR(25)
                ,@ActionAux NVARCHAR(15)
                ,@IsConfirmed BIT
-           ,@W_Id tinyint
+               ,@W_Id tinyint
 
     IF @Action = 'delete'
         SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
+
     ELSE
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
@@ -41735,17 +41779,17 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
         SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
                         SELECT [_]
                               ,[Recno]
-                              ,[Id]
+                              ,[U].[Id]
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [dbo].[Rules] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [#].[Id] = [T].[Id]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
                                   SELECT ''O'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                                        ,[T].[Id]
+                              ,[T].[Id]
                                     FROM [#tmpOperations] [T]
                                     WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
                             ORDER BY [Recno]'
