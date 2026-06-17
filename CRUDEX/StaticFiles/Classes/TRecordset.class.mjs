@@ -136,7 +136,7 @@ export default class TRecordSet {
                 RecordFilterTable: null,
                 RecordSearch: null,
                 OrderBy: listable ? `[${listable.Name}]` : "",
-                PaddingGridLastPage: false,
+                PaddingGridLastPage: true,
                 IsActionList: true,
             },
             OutParams: {},

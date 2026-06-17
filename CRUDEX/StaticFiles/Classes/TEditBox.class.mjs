@@ -1201,9 +1201,18 @@ export default class TEditBox {
                 return;
             }
 
-            this.#conditionValueDropdown = TDropdown.Addable(this.#body, {
+            const values = Array.isArray(raw) ? raw : (TConfig.IsEmpty(raw) ? [] : [raw]);
+            const catalog = values.map(value => ({ Id: value, Name: String(value) }));
+
+            this.#conditionValueDropdown = TDropdown.Multi(this.#body, {
                 allowEmpty: true,
-                value: Array.isArray(raw) ? raw : (TConfig.IsEmpty(raw) ? [] : [raw]),
+                valueAs: "id",
+                idField: "Id",
+                labelField: "Name",
+                catalog,
+                itemsPerPage: 5,
+                placeholder: "Selecionar...",
+                value: TCheckbox.isNullMarker(raw) ? [] : values,
                 nullCondition: TCheckbox.isNullMarker(raw),
             });
             this.#conditionValueDropdown.element.addEventListener("change", (event) => {

@@ -6,7 +6,6 @@ export default class TDropdown {
     static Modes = {
         SINGLE: "single",
         MULTI: "multi",
-        ADDABLE: "addable",
     };
 
     static #Style = "";
@@ -32,18 +31,17 @@ export default class TDropdown {
     #required = false;
     #allowEmpty = false;
     #readOnly = false;
-    #manualValues = [];
 
     #inputWrap = null;
     #input = null;
     #trigger = null;
-    #plus = null;
     #icon = null;
     #list = null;
     #itemsBox = null;
     #prevBtn = null;
     #nextBtn = null;
     #listSearchInput = null;
+    #selectionTip = null;
     #listSearch = false;
     #handleOutside = null;
     #handleGlobal = null;
@@ -53,7 +51,14 @@ export default class TDropdown {
     #query = "";
     #serverPage = 1;
     #serverPageCount = 1;
+    #serverRowCount = 0;
+    #unselectedCache = [];
+    #unselectedCacheThroughPage = 0;
+    #renderPass = false;
     #paginate = true;
+    #listFocusIndex = -1;
+    #itemSourcePages = new Map();
+    #pendingFocusKey = null;
 
     static Initialize(styles) {
         if (styles.ClassName !== "Styles")
@@ -71,10 +76,6 @@ export default class TDropdown {
 
     static Multi(container, options = {}) {
         return new TDropdown(container, { ...options, mode: TDropdown.Modes.MULTI });
-    }
-
-    static Addable(container, options = {}) {
-        return new TDropdown(container, { ...options, mode: TDropdown.Modes.ADDABLE });
     }
 
     constructor(container, options = {}) {
@@ -133,9 +134,7 @@ export default class TDropdown {
         } else if (options.value !== undefined && options.value !== null && options.value !== ""
             && !TCheckbox.isNullMarker(options.value)) {
             this.setValue(options.value, false);
-        } else if (this.#isAddableMode())
-            this.#manualValues = [];
-        else
+        } else
             this.#clearSingle();
 
         this.#refresh();
@@ -175,26 +174,24 @@ export default class TDropdown {
         return { id, label, title, raw: item };
     }
 
-    #isListMode() {
-        return this.#mode === TDropdown.Modes.MULTI
-            || this.#mode === TDropdown.Modes.ADDABLE;
-    }
-
-    #isAddableMode() {
-        return this.#mode === TDropdown.Modes.ADDABLE;
-    }
-
     #buildDom() {
         this.#inputWrap = document.createElement("div");
         this.#inputWrap.className = "tdropdown-input-wrap";
         this.#container.append(this.#inputWrap);
 
         if (this.#mode === TDropdown.Modes.MULTI) {
-            this.#trigger = document.createElement("button");
-            this.#trigger.type = "button";
-            this.#trigger.className = "tdropdown-trigger";
-            this.#trigger.textContent = this.#placeholder || "Selecionar...";
-            this.#inputWrap.append(this.#trigger);
+            this.#input = document.createElement("input");
+            this.#input.type = "text";
+            this.#input.className = "tdropdown-input tdropdown-multi-input";
+            this.#input.readOnly = true;
+            this.#input.placeholder = this.#placeholder || "Selecionar...";
+            this.#input.autocomplete = "off";
+            this.#inputWrap.append(this.#input);
+
+            this.#selectionTip = document.createElement("div");
+            this.#selectionTip.className = "tdropdown-selection-tip";
+            this.#selectionTip.hidden = true;
+            this.#inputWrap.append(this.#selectionTip);
         } else {
             this.#input = document.createElement("input");
             this.#input.type = "text";
@@ -202,14 +199,6 @@ export default class TDropdown {
             this.#input.placeholder = this.#placeholder;
             this.#input.autocomplete = "off";
             this.#inputWrap.append(this.#input);
-
-            if (this.#isAddableMode()) {
-                this.#plus = document.createElement("span");
-                this.#plus.className = "tdropdown-plus";
-                this.#plus.title = "Adicionar";
-                this.#plus.textContent = "+";
-                this.#inputWrap.append(this.#plus);
-            }
         }
 
         this.#icon = document.createElement("span");
@@ -229,6 +218,7 @@ export default class TDropdown {
             this.#listSearchInput.className = "tdropdown-list-search-input";
             this.#listSearchInput.placeholder = "Filtrar...";
             this.#listSearchInput.autocomplete = "off";
+            this.#listSearchInput.readOnly = false;
             searchWrap.append(this.#listSearchInput);
             this.#list.append(searchWrap);
         }
@@ -268,8 +258,8 @@ export default class TDropdown {
         }
         if (this.#icon)
             this.#icon.style.visibility = "hidden";
-        if (this.#plus)
-            this.#plus.style.visibility = "hidden";
+        if (this.#listSearchInput)
+            this.#listSearchInput.readOnly = false;
         this.#hideList();
     }
 
@@ -286,42 +276,47 @@ export default class TDropdown {
         }
 
         if (this.#input && !this.#readOnly) {
-            this.#input.addEventListener("input", (e) => {
-                this.dismissValidityBalloon();
-                void this.#filterItems(e.target.value.trim());
-                this.#showList();
-            });
-            this.#input.addEventListener("click", (e) => {
-                e.stopPropagation();
-                void this.#toggleList();
-            });
-            this.#input.addEventListener("blur", () => {
-                this.#commitPendingInput(false);
-                this.#revertInput();
-                this.#hideList();
-                this.#updateValidity();
-            });
+            if (this.#mode === TDropdown.Modes.MULTI) {
+                this.#input.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    this.dismissValidityBalloon();
+                    void this.#toggleList();
+                });
+                this.#input.addEventListener("keydown", (e) => this.#onMultiInputKeyDown(e));
+                this.#input.addEventListener("beforeinput", (e) => e.preventDefault());
+                this.#input.addEventListener("paste", (e) => e.preventDefault());
+                this.#input.addEventListener("blur", () => {
+                    requestAnimationFrame(() => {
+                        if (!this.#container.contains(document.activeElement))
+                            this.#hideList();
+                    });
+                });
+                this.#inputWrap.addEventListener("mouseenter", () => this.#showSelectionTip());
+                this.#inputWrap.addEventListener("mouseleave", () => this.#hideSelectionTip());
+            } else {
+                this.#input.addEventListener("input", (e) => {
+                    this.dismissValidityBalloon();
+                    void this.#filterItems(e.target.value.trim());
+                    this.#showList();
+                });
+                this.#input.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    void this.#toggleList();
+                });
+                this.#input.addEventListener("blur", () => {
+                    this.#commitPendingInput(false);
+                    this.#revertInput();
+                    this.#hideList();
+                    this.#updateValidity();
+                });
+            }
         }
 
         if (this.#trigger) {
             this.#trigger.addEventListener("click", (e) => {
                 e.stopPropagation();
                 this.dismissValidityBalloon();
-                this.#toggleList();
-            });
-        }
-
-        if (this.#plus) {
-            this.#plus.addEventListener("mousedown", (e) => {
-                e.preventDefault();
-                this.#addFromInput();
-            });
-            this.#input.addEventListener("keydown", (e) => {
-                if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (this.#isAddableMode())
-                        this.#addFromInput();
-                }
+                void this.#toggleList();
             });
         }
 
@@ -338,20 +333,18 @@ export default class TDropdown {
                 this.#hideList();
         });
 
-        this.#list.addEventListener("mousedown", (e) => e.preventDefault());
+        this.#list.addEventListener("mousedown", (e) => {
+            if (e.target.closest("input, textarea, button, select"))
+                return;
+            e.preventDefault();
+        });
 
         if (this.#listSearchInput && !this.#readOnly) {
             this.#listSearchInput.addEventListener("input", (e) => {
                 void this.#filterItems(e.target.value.trim());
             });
-            this.#listSearchInput.addEventListener("keydown", (e) => e.stopPropagation());
+            this.#listSearchInput.addEventListener("keydown", (e) => this.#onListSearchKeyDown(e));
         }
-    }
-
-    #sourceItems() {
-        if (this.#isAddableMode())
-            return this.#manualValues.map(v => TDropdown.#normalizeItem(v, this.#idField, this.#labelField, this.#titleField));
-        return this.#catalog;
     }
 
     async #filterItems(query) {
@@ -360,16 +353,27 @@ export default class TDropdown {
             await this.#loadServerPage(1);
             return;
         }
-        const source = this.#isAddableMode() ? this.#sourceItems() : this.#catalog;
         const needle = query.toLowerCase();
         this.#filtered = needle
-            ? source.filter(item => item.label.toLowerCase().includes(needle))
-            : [...source];
+            ? this.#catalog.filter(item => item.label.toLowerCase().includes(needle))
+            : [...this.#catalog];
         this.#currentPage = 0;
         this.#renderItems();
     }
 
     async #changePage(delta) {
+        if (this.#loader && this.#mode === TDropdown.Modes.MULTI) {
+            const pages = this.#multiDisplayPageCount();
+            if (delta > 0 && this.#currentPage >= pages - 1)
+                return;
+            if (delta < 0 && this.#currentPage <= 0)
+                return;
+            this.#currentPage = Math.min(Math.max(this.#currentPage + delta, 0), pages - 1);
+            this.#listFocusIndex = 0;
+            await this.#prepareMultiDisplayPage();
+            this.#renderItems();
+            return;
+        }
         if (this.#loader) {
             const next = this.#serverPage + delta;
             if (next < 1 || next > this.#serverPageCount)
@@ -379,6 +383,7 @@ export default class TDropdown {
         }
         const pages = Math.max(1, Math.ceil(this.#filtered.length / this.#itemsPerPage));
         this.#currentPage = Math.min(Math.max(this.#currentPage + delta, 0), pages - 1);
+        this.#listFocusIndex = 0;
         this.#renderItems();
     }
 
@@ -389,20 +394,112 @@ export default class TDropdown {
         }
     }
 
-    async #loadServerPage(page) {
-        const result = await this.#loader(this.#query, page);
+    #resetUnselectedCache() {
+        this.#unselectedCache = [];
+        this.#unselectedCacheThroughPage = 0;
+    }
+
+    #ingestServerResult(page, result, items) {
         this.#serverPage = result.pageNumber ?? page;
         this.#serverPageCount = Math.max(1, result.pageCount ?? 1);
-        const items = (result.items ?? [])
-            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField))
-            .filter(Boolean);
+        this.#serverRowCount = Number(result.rowCount ?? this.#serverRowCount ?? 0);
         this.#filtered = items;
         this.#mergeCatalog(items);
         this.#mergeRecordSet(result);
         if (this.#selected.length)
             this.#mergeCatalog(this.#selected);
-        this.#currentPage = 0;
+
+        if (this.#mode !== TDropdown.Modes.MULTI)
+            return;
+
+        const pinnedKeys = new Set(this.#pinnedSelectedItems().map(item => this.#itemKey(item)));
+        const unselected = items.filter(item => !pinnedKeys.has(this.#itemKey(item)));
+        if (page > this.#unselectedCacheThroughPage) {
+            if (this.#unselectedCacheThroughPage === 0)
+                this.#unselectedCache = unselected;
+            else
+                this.#appendUnselectedToCache(unselected);
+            this.#unselectedCacheThroughPage = page;
+        }
+    }
+
+    #appendUnselectedToCache(items) {
+        const seen = new Set(this.#unselectedCache.map(item => this.#itemKey(item)));
+        for (const item of items) {
+            const key = this.#itemKey(item);
+            if (seen.has(key))
+                continue;
+            this.#unselectedCache.push(item);
+            seen.add(key);
+        }
+    }
+
+    #allServerPagesCached() {
+        return this.#unselectedCacheThroughPage >= this.#serverPageCount;
+    }
+
+    #canLoadMoreUnselected() {
+        return !this.#allServerPagesCached();
+    }
+
+    async #ensureUnselectedCacheThrough(neededEnd) {
+        while (this.#unselectedStream().length < neededEnd && this.#canLoadMoreUnselected()) {
+            const before = this.#unselectedCacheThroughPage;
+            const page = before + 1;
+            const result = await this.#loader(this.#query, page);
+            const items = (result.items ?? [])
+                .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField))
+                .filter(Boolean);
+            this.#ingestServerResult(page, result, items);
+            if (this.#unselectedCacheThroughPage === before)
+                break;
+        }
+    }
+
+    async #prepareMultiDisplayPage() {
+        if (this.#mode !== TDropdown.Modes.MULTI || !this.#loader)
+            return;
+        const neededEnd = this.#unselectedNeededForDisplay();
+        if (neededEnd > 0)
+            await this.#ensureUnselectedCacheThrough(neededEnd);
+    }
+
+    #unselectedNeededForDisplay() {
+        const pageSize = this.#itemsPerPage;
+        const start = this.#currentPage * pageSize;
+        const pinnedLen = this.#pinnedSelectedItems().length;
+        const sliceStart = this.#paddedVirtualSliceStart(start, pageSize);
+        const unselectedOffset = Math.max(0, sliceStart - pinnedLen);
+        return unselectedOffset + pageSize;
+    }
+
+    #paddedVirtualSliceStart(start, length) {
+        if (!this.#loader || this.#currentPage < this.#multiDisplayPageCount() - 1)
+            return start;
+        const count = this.#multiVirtualSlice(start, length).length;
+        if (count >= length || count === 0)
+            return start;
+        return Math.max(0, start - (length - count));
+    }
+
+    async #loadServerPage(page, { resetDisplayPage = true } = {}) {
+        const result = await this.#loader(this.#query, page);
+        const items = (result.items ?? [])
+            .map(item => TDropdown.#normalizeItem(item, this.#idField, this.#labelField, this.#titleField))
+            .filter(Boolean);
+        if (resetDisplayPage) {
+            this.#currentPage = 0;
+            this.#resetUnselectedCache();
+        }
+        this.#ingestServerResult(page, result, items);
+        if (this.#mode !== TDropdown.Modes.MULTI)
+            this.#currentPage = 0;
         this.#renderItems();
+        if (this.#pendingFocusKey) {
+            const focusKey = this.#pendingFocusKey;
+            this.#pendingFocusKey = null;
+            this.#focusItemByKey(focusKey);
+        }
     }
 
     #mergeRecordSet(result) {
@@ -413,14 +510,245 @@ export default class TDropdown {
             this.#records.set(record.Id, record);
     }
 
-    #renderItems() {
+    #itemKey(item) {
+        return `${item.id}\0${item.label}`;
+    }
+
+    #pinnedSelectedItems() {
+        return [...this.#selected];
+    }
+
+    #focusItemByKey(key) {
+        const index = this.#pageItems().findIndex(item => this.#itemKey(item) === key);
+        this.#listFocusIndex = index >= 0 ? index : 0;
+        this.#syncListFocus();
+    }
+
+    #targetPageForDeselectedItem(item, storedPage) {
+        if (storedPage != null)
+            return storedPage;
+        if (this.#loader)
+            return this.#serverNaturalPageForItem(item);
+        return this.#clientNaturalPageForItem(item);
+    }
+
+    #clientNaturalPageForItem(item) {
+        const key = this.#itemKey(item);
+        const pool = this.#filtered.filter(i => !this.#isSelected(i) || this.#itemKey(i) === key);
+        const index = pool.findIndex(i => this.#itemKey(i) === key);
+        if (index < 0)
+            return this.#currentPage;
+        return Math.floor(index / this.#itemsPerPage);
+    }
+
+    #serverNaturalPageForItem(item) {
+        const key = this.#itemKey(item);
+        const needle = this.#query.trim().toLowerCase();
+        let pool = this.#catalog.filter(i => !needle || i.label.toLowerCase().includes(needle));
+        pool = pool.filter(i => !this.#isSelected(i) || this.#itemKey(i) === key);
+        pool.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+        const index = pool.findIndex(i => this.#itemKey(i) === key);
+        if (index < 0)
+            return 1;
+        return Math.floor(index / this.#itemsPerPage) + 1;
+    }
+
+    #multiVirtualList() {
+        const pinned = this.#pinnedSelectedItems();
+        const pinnedKeys = new Set(pinned.map(item => this.#itemKey(item)));
+        const rest = this.#filtered.filter(item => !pinnedKeys.has(this.#itemKey(item)));
+        return [...pinned, ...rest];
+    }
+
+    #multiVirtualLength() {
+        const pinnedLen = this.#pinnedSelectedItems().length;
+        if (!this.#loader)
+            return this.#multiVirtualList().length;
+        const unselectedLen = this.#unselectedStream().length;
+        if (this.#allServerPagesCached())
+            return pinnedLen + unselectedLen;
+        return Math.max(pinnedLen + unselectedLen, this.#serverRowCount);
+    }
+
+    #multiDisplayPageCount() {
+        return Math.ceil(this.#multiVirtualLength() / this.#itemsPerPage) || 1;
+    }
+
+    #unselectedStream() {
+        const pinnedKeys = new Set(this.#pinnedSelectedItems().map(item => this.#itemKey(item)));
+        if (this.#loader)
+            return this.#unselectedCache.filter(item => !pinnedKeys.has(this.#itemKey(item)));
+        const pinned = this.#pinnedSelectedItems();
+        return this.#filtered.filter(item => !pinnedKeys.has(this.#itemKey(item)));
+    }
+
+    #multiVirtualSlice(start, length) {
+        const end = start + length;
+        const pinned = this.#pinnedSelectedItems();
+        const selectedPart = start < pinned.length
+            ? pinned.slice(start, Math.min(end, pinned.length))
+            : [];
+        const need = length - selectedPart.length;
+        if (need <= 0)
+            return selectedPart;
+        const unselectedOffset = Math.max(0, start - pinned.length);
+        const unselectedPart = this.#unselectedStream()
+            .slice(unselectedOffset, unselectedOffset + need);
+        return [...selectedPart, ...unselectedPart];
+    }
+
+    #displayPageForDeselectedItem(item) {
+        const key = this.#itemKey(item);
+        const pinnedLen = this.#selected.length;
+        const unselectedOffset = this.#unselectedOffsetForItem(item);
+        if (unselectedOffset < 0)
+            return this.#currentPage;
+        const virtualIndex = pinnedLen + unselectedOffset;
+        return Math.floor(virtualIndex / this.#itemsPerPage);
+    }
+
+    #unselectedOffsetForItem(item) {
+        const key = this.#itemKey(item);
+        const needle = this.#query.trim().toLowerCase();
+        let pool = this.#catalog.filter(i => !needle || i.label.toLowerCase().includes(needle));
+        pool = pool.filter(i => !this.#isSelected(i) || this.#itemKey(i) === key);
+        pool.sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+        return pool.findIndex(i => this.#itemKey(i) === key);
+    }
+
+    #displayOrderedItems() {
+        if (this.#mode !== TDropdown.Modes.MULTI)
+            return this.#filtered;
+        if (this.#loader)
+            return this.#multiVirtualSlice(0, this.#multiVirtualLength());
+        return this.#multiVirtualList();
+    }
+
+    #pageItems() {
+        if (this.#mode !== TDropdown.Modes.MULTI) {
+            if (this.#loader || !this.#paginate)
+                return this.#filtered;
+            const start = this.#currentPage * this.#itemsPerPage;
+            return this.#filtered.slice(start, start + this.#itemsPerPage);
+        }
+        if (!this.#paginate)
+            return this.#multiVirtualSlice(0, Number.MAX_SAFE_INTEGER);
         const start = this.#currentPage * this.#itemsPerPage;
-        const end = start + this.#itemsPerPage;
-        const pageItems = this.#loader
-            ? this.#filtered
-            : this.#paginate
-                ? this.#filtered.slice(start, end)
-                : this.#filtered;
+        const sliceStart = this.#paddedVirtualSliceStart(start, this.#itemsPerPage);
+        return this.#multiVirtualSlice(sliceStart, this.#itemsPerPage);
+    }
+
+    #resetListFocus() {
+        this.#listFocusIndex = -1;
+    }
+
+    #syncListFocus() {
+        const rows = [...this.#itemsBox.querySelectorAll(".tdropdown-item")];
+        rows.forEach((row, index) => {
+            row.classList.toggle("tdropdown-item-focused", index === this.#listFocusIndex);
+            if (index === this.#listFocusIndex)
+                row.scrollIntoView({ block: "nearest" });
+        });
+    }
+
+    #moveListFocus(delta) {
+        const rows = this.#itemsBox.querySelectorAll(".tdropdown-item");
+        if (!rows.length)
+            return;
+        if (this.#listFocusIndex < 0)
+            this.#listFocusIndex = 0;
+        else
+            this.#listFocusIndex = Math.min(Math.max(this.#listFocusIndex + delta, 0), rows.length - 1);
+        this.#syncListFocus();
+    }
+
+    #activateFocusedItem() {
+        const pageItems = this.#pageItems();
+        const item = pageItems[this.#listFocusIndex];
+        if (!item)
+            return;
+        if (this.#mode === TDropdown.Modes.MULTI)
+            this.#toggleSelected(item);
+    }
+
+    #onMultiInputKeyDown(e) {
+        if (this.#readOnly)
+            return;
+
+        if (this.#list.classList.contains("open")) {
+            if (e.key === "Escape") {
+                e.preventDefault();
+                this.#hideList();
+                return;
+            }
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                this.#moveListFocus(1);
+                return;
+            }
+            if (e.key === "ArrowUp") {
+                e.preventDefault();
+                this.#moveListFocus(-1);
+                return;
+            }
+            if (e.key === " " || e.key === "Enter") {
+                e.preventDefault();
+                this.#activateFocusedItem();
+            }
+            return;
+        }
+
+        if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            void this.#openList();
+            return;
+        }
+
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey)
+            e.preventDefault();
+    }
+
+    #onListSearchKeyDown(e) {
+        e.stopPropagation();
+        if (this.#mode !== TDropdown.Modes.MULTI)
+            return;
+
+        if (e.key === "Escape") {
+            e.preventDefault();
+            this.#hideList();
+            this.#input?.focus();
+            return;
+        }
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            this.#moveListFocus(1);
+            return;
+        }
+        if (e.key === "ArrowUp") {
+            e.preventDefault();
+            this.#moveListFocus(-1);
+            return;
+        }
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            this.#activateFocusedItem();
+        }
+    }
+
+    #renderItems() {
+        if (this.#mode === TDropdown.Modes.MULTI && this.#loader && !this.#renderPass) {
+            const neededEnd = this.#unselectedNeededForDisplay();
+            if (neededEnd > this.#unselectedStream().length && this.#canLoadMoreUnselected()) {
+                this.#renderPass = true;
+                void this.#ensureUnselectedCacheThrough(neededEnd).then(() => {
+                    this.#renderPass = false;
+                    this.#renderItems();
+                });
+                return;
+            }
+        }
+
+        const pageItems = this.#pageItems();
 
         this.#itemsBox.replaceChildren();
 
@@ -463,27 +791,8 @@ export default class TDropdown {
                 row.title = item.title;
             row.append(label);
 
-            if (this.#isAddableMode()) {
-                const del = document.createElement("button");
-                del.type = "button";
-                del.className = "tdropdown-del";
-                del.title = "Remover";
-                del.textContent = "−";
-                del.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    this.#removeManual(item.label);
-                });
-                row.append(del);
-            }
-
             if (this.#mode === TDropdown.Modes.SINGLE) {
                 row.addEventListener("click", () => this.#selectSingle(item));
-            } else if (this.#isAddableMode()) {
-                row.addEventListener("click", () => {
-                    if (this.#input)
-                        this.#input.value = item.label;
-                    this.#hideList();
-                });
             } else {
                 row.addEventListener("click", (e) => {
                     if (e.target.type === "checkbox")
@@ -498,13 +807,32 @@ export default class TDropdown {
         });
 
         this.#updatePagination();
-        if (this.#filtered.length === 0)
+        const emptyResults = this.#multiVirtualLength() === 0
+            && this.#pinnedSelectedItems().length === 0;
+        const keepOpenWhileFiltering = this.#list.classList.contains("open")
+            && this.#query.trim() !== "";
+        if (emptyResults && !keepOpenWhileFiltering)
             this.#hideList();
+        else if (this.#mode === TDropdown.Modes.MULTI && this.#list.classList.contains("open")) {
+            const count = this.#itemsBox.querySelectorAll(".tdropdown-item").length;
+            if (count === 0)
+                this.#listFocusIndex = -1;
+            else if (this.#listFocusIndex < 0 || this.#listFocusIndex >= count)
+                this.#listFocusIndex = 0;
+            this.#syncListFocus();
+        }
     }
 
     #updatePagination() {
         if (!this.#paginate) {
             this.#prevBtn.parentElement.style.display = "none";
+            return;
+        }
+        if (this.#loader && this.#mode === TDropdown.Modes.MULTI) {
+            const pages = this.#multiDisplayPageCount();
+            this.#prevBtn.disabled = this.#currentPage === 0;
+            this.#nextBtn.disabled = this.#currentPage >= pages - 1;
+            this.#prevBtn.parentElement.style.display = pages > 1 ? "flex" : "none";
             return;
         }
         if (this.#loader) {
@@ -513,7 +841,7 @@ export default class TDropdown {
             this.#prevBtn.parentElement.style.display = this.#serverPageCount > 1 ? "flex" : "none";
             return;
         }
-        const pages = Math.ceil(this.#filtered.length / this.#itemsPerPage) || 1;
+        const pages = this.#multiDisplayPageCount();
         this.#prevBtn.disabled = this.#currentPage === 0;
         this.#nextBtn.disabled = this.#currentPage >= pages - 1;
         this.#prevBtn.parentElement.style.display = pages > 1 ? "flex" : "none";
@@ -522,6 +850,9 @@ export default class TDropdown {
     #showList() {
         if (this.#readOnly)
             return;
+        this.#hideSelectionTip();
+        if (this.#mode === TDropdown.Modes.MULTI && this.#listFocusIndex < 0)
+            this.#listFocusIndex = 0;
         window.dispatchEvent(new CustomEvent("dropdownOpened", {
             detail: { dropdown: this },
             bubbles: true,
@@ -547,7 +878,13 @@ export default class TDropdown {
 
         this.#list.style.visibility = "visible";
         this.#list.classList.add("open");
-        this.#listSearchInput?.focus();
+        if (this.#listSearchInput) {
+            this.#listSearchInput.readOnly = false;
+            this.#listSearchInput.focus();
+        } else if (this.#mode === TDropdown.Modes.MULTI) {
+            this.#syncListFocus();
+            this.#input?.focus();
+        }
     }
 
     #hideList() {
@@ -555,6 +892,7 @@ export default class TDropdown {
         this.#list.style.display = "none";
         this.#list.style.top = "";
         this.#list.style.bottom = "";
+        this.#resetListFocus();
     }
 
     #revertInput() {
@@ -573,7 +911,7 @@ export default class TDropdown {
             this.#listSearchInput.value = "";
         if (this.#loader)
             await this.#loadServerPage(1);
-        else if (!this.#isAddableMode())
+        else
             this.#filtered = [...this.#catalog];
         this.#showList();
     }
@@ -610,72 +948,68 @@ export default class TDropdown {
     }
 
     #toggleSelected(item) {
-        if (this.#isSelected(item))
+        const key = this.#itemKey(item);
+        if (this.#isSelected(item)) {
+            const storedPage = this.#itemSourcePages.get(key);
             this.#selected = this.#selected.filter(s => !(s.id === item.id && s.label === item.label));
-        else {
+            this.#itemSourcePages.delete(key);
+            this.#updateTriggerLabel();
+            const targetPage = this.#targetPageForDeselectedItem(item, storedPage);
+            this.#pendingFocusKey = key;
+            if (this.#loader && this.#mode === TDropdown.Modes.MULTI) {
+                this.#currentPage = storedPage ?? this.#displayPageForDeselectedItem(item);
+                this.#pendingFocusKey = null;
+                this.#resetUnselectedCache();
+                void this.#prepareMultiDisplayPage().then(() => {
+                    this.#renderItems();
+                    this.#focusItemByKey(key);
+                });
+            } else if (this.#loader)
+                void this.#loadServerPage(targetPage, { resetDisplayPage: false });
+            else {
+                this.#currentPage = targetPage;
+                this.#renderItems();
+                this.#pendingFocusKey = null;
+                this.#focusItemByKey(key);
+            }
+        } else {
             if (this.#selected.length >= this.#maxItems)
                 return;
+            const sourcePage = this.#currentPage;
             this.#selected.push(item);
+            this.#itemSourcePages.set(key, sourcePage);
+            this.#updateTriggerLabel();
+            if (this.#loader && this.#mode === TDropdown.Modes.MULTI) {
+                this.#resetUnselectedCache();
+                void this.#prepareMultiDisplayPage().then(() => this.#renderItems());
+            } else
+                this.#renderItems();
         }
-        this.#updateTriggerLabel();
-        this.#renderItems();
         this.#emitChange();
         this.#updateValidity();
+    }
+
+    #showSelectionTip() {
+        if (!this.#selectionTip || !this.#selected.length || this.#list.classList.contains("open"))
+            return;
+        this.#selectionTip.textContent = this.#selected.map(item => item.label).join("\n");
+        this.#selectionTip.hidden = false;
+    }
+
+    #hideSelectionTip() {
+        if (this.#selectionTip)
+            this.#selectionTip.hidden = true;
     }
 
     #updateTriggerLabel() {
-        if (!this.#trigger)
+        if (this.#mode !== TDropdown.Modes.MULTI || !this.#input)
             return;
         const labels = this.#selected.map(s => s.label);
-        this.#trigger.textContent = labels.length
-            ? labels.join(", ")
-            : (this.#placeholder || "Selecionar...");
-    }
-
-    #sanitize(value) {
-        return (value ?? "").trim();
-    }
-
-    #existsManual(value) {
-        const needle = value.toLowerCase();
-        return this.#unique && this.#manualValues.some(v => String(v).toLowerCase() === needle);
-    }
-
-    #addFromInput() {
-        const value = this.#sanitize(this.#input?.value);
-        if (!value)
-            return;
-        if (this.#existsManual(value))
-            return;
-        if (this.#manualValues.length >= this.#maxItems)
-            return;
-
-        const catalogHit = this.#catalog.find(c => c.label.toLowerCase() === value.toLowerCase());
-        this.#manualValues.push(catalogHit ? catalogHit.raw : value);
-        this.#manualValues.sort((a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: "base" }));
-
-        if (this.#input) {
-            this.#input.value = "";
-            this.#filterItems("");
-        }
-        this.#showList();
-        this.#emitChange();
-        this.#updateValidity();
-    }
-
-    #removeManual(label) {
-        const needle = label.toLowerCase();
-        const before = this.#manualValues.length;
-        this.#manualValues = this.#manualValues.filter(v => {
-            const item = TDropdown.#normalizeItem(v, this.#idField, this.#labelField, this.#titleField);
-            return item.label.toLowerCase() !== needle;
-        });
-        if (this.#manualValues.length !== before) {
-            this.#filterItems(this.#input?.value.trim() ?? "");
-            if (this.#filtered.length === 0 && this.#currentPage > 0)
-                this.#changePage(-1);
-            this.#emitChange();
-            this.#updateValidity();
+        this.#input.value = labels.length ? labels.join(", ") : "";
+        this.#input.title = labels.length ? labels.join(", ") : "";
+        if (this.#selectionTip) {
+            this.#selectionTip.textContent = labels.join("\n");
+            this.#selectionTip.hidden = true;
         }
     }
 
@@ -687,9 +1021,7 @@ export default class TDropdown {
     }
 
     #refresh() {
-        if (this.#isAddableMode())
-            void this.#filterItems(this.#input?.value.trim() ?? "");
-        else if (!this.#loader)
+        if (!this.#loader)
             this.#filtered = [...this.#catalog];
         this.#updateTriggerLabel();
         this.#updateValidity();
@@ -785,13 +1117,12 @@ export default class TDropdown {
                 if (this.#input)
                     this.#input.value = this.#selected[0]?.label ?? "";
             }
-        } else if (this.#isAddableMode()) {
-            this.#manualValues = Array.isArray(value) ? [...value] : (value ? [value] : []);
         } else {
             const list = Array.isArray(value) ? value : (value ? [value] : []);
             this.#selected = list
                 .map(item => this.#resolveItem(item))
                 .filter(Boolean);
+            this.#itemSourcePages.clear();
             if (this.#selected.length)
                 this.#mergeCatalog(this.#selected);
             this.#updateTriggerLabel();
@@ -804,11 +1135,6 @@ export default class TDropdown {
     getValue() {
         if (this.#mode === TDropdown.Modes.SINGLE)
             return this.#exportItem(this.#selected[0] ?? null);
-        if (this.#isAddableMode())
-            return this.#manualValues.map(v => {
-                const item = TDropdown.#normalizeItem(v, this.#idField, this.#labelField, this.#titleField);
-                return this.#valueAs === "id" ? item.id : (typeof v === "object" ? v : item);
-            });
         return this.#selected.map(item => this.#exportItem(item));
     }
 
@@ -828,7 +1154,7 @@ export default class TDropdown {
             return this.#selected.length === 1 && this.#hasSelectedId();
         }
 
-        const count = this.#isAddableMode() ? this.#manualValues.length : this.#selected.length;
+        const count = this.#selected.length;
 
         if (this.#exactItems != null && this.#requireExact)
             return count === this.#exactItems;
