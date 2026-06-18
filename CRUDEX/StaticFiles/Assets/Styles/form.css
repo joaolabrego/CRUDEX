@@ -113,27 +113,8 @@
     -webkit-appearance: none;
 }
 
-.tedit-between-row {
-    display: flex;
-    align-items: center;
-    gap: 0.35dvmin;
-    width: 100%;
-}
-
-.tedit-between-row input,
-.tedit-between-row textarea {
-    flex: 1 1 0;
-    min-width: 0;
-}
-
-.tedit-between-sep {
-    flex: 0 0 auto;
-    color: #666;
-    user-select: none;
-}
-
 .tedit-condition-value {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-width: 0;
     margin-left: 0 !important;
 }
@@ -173,7 +154,7 @@
 }
 
 .tedit-body .tdropdown {
-    width: 100%;
+    box-sizing: border-box;
 }
 
 .form textarea {

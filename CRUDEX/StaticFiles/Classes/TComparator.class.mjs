@@ -34,8 +34,17 @@ export default class TComparator {
         const arity = this.#Arity;
         if (arity === null || arity === undefined || String(arity).trim() === "")
             return "list";
-        if (String(arity) === "3")
+        const n = Number(arity);
+        if (Number.isFinite(n) && n > 2)
             return "between";
         return "single";
+    }
+
+    /** BETWEEN: quantidade de valores = Arity - 1. */
+    get BetweenSlotCount() {
+        if (this.ValueMode !== "between")
+            return null;
+        const n = Number(this.#Arity);
+        return Number.isFinite(n) ? n - 1 : null;
     }
 }

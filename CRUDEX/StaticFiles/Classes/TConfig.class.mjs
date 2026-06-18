@@ -164,6 +164,15 @@ export default class TConfig {
             return false;
         return String(value).trim() === "";
     }
+    static ClearObject(target) {
+        if (target instanceof Map || target instanceof Set)
+            target.clear();
+        else if (Array.isArray(target))
+            target.splice(0);
+        else
+            for (const key of Object.keys(target))
+                delete target[key];
+    }
     static CreateProperties(origin, target) {
         for (let [key, value] of Object.entries(origin)) {
             let propertyName = `#${key}`;

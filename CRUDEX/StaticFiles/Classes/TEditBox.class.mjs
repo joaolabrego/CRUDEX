@@ -21,7 +21,6 @@ export default class TEditBox {
     #operatorShell = null;
     #operatorHost = null;
     #conditionValueDropdown = null;
-    #betweenInputs = null;
     #conditionOp = TCondition.DEFAULT_OP;
     #isConditionField = false;
     #isReference = false;
@@ -219,10 +218,16 @@ export default class TEditBox {
 
     static #FIELD_MAX_WIDTH_CH = 45;
 
-    #applyControlWidth() {
+    static #ADDABLE_ICON_CH = 5;
+
+    #applyControlWidth(options = {}) {
         if (this.#isCheckboxInline || !this.#body)
             return;
-        this.#body.style.maxWidth = `${TEditBox.#FIELD_MAX_WIDTH_CH}ch`;
+        const addable = options.addable ?? this.#body.classList.contains("tedit-addable-value");
+        const iconCh = addable ? TEditBox.#ADDABLE_ICON_CH : 0;
+        this.#body.style.maxWidth = addable
+            ? `calc(${TEditBox.#FIELD_MAX_WIDTH_CH}ch + var(--field-h-chrome) + ${iconCh}ch)`
+            : `${TEditBox.#FIELD_MAX_WIDTH_CH}ch`;
         const ch = this.#fieldWidthCh();
         if (ch == null) {
             this.#body.style.width = "";
@@ -230,9 +235,12 @@ export default class TEditBox {
         }
 
         const capped = Math.min(ch, TEditBox.#FIELD_MAX_WIDTH_CH);
-        // ch = caracteres visíveis; --field-h-chrome = padding (0.5×2) + border (0.1×2) do controlo.
-        const width = `calc(${capped}ch + var(--field-h-chrome))`;
+        const width = `calc(${capped + iconCh}ch + var(--field-h-chrome))`;
         this.#body.style.width = width;
+        for (const dropdown of this.#body.querySelectorAll(".tdropdown")) {
+            dropdown.style.maxWidth = this.#body.style.maxWidth;
+            dropdown.style.width = "100%";
+        }
     }
 
     #syncControlAlignment() {
@@ -376,6 +384,22 @@ export default class TEditBox {
     reportValidity() {
         if (this.#readOnly)
             return true;
+        if (this.#conditionValueDropdown) {
+            if (this.#conditionValueDropdown.isValid()) {
+                this.#conditionValueDropdown.dismissValidityBalloon();
+                this.#conditionValueDropdown.syncFormValidity();
+                return true;
+            }
+            const values = this.#conditionValueDropdown.getValue();
+            const cmp = this.#getConditionComparator();
+            const betweenPartial = TCondition.isBetweenPartial(cmp, values);
+            const slots = cmp?.BetweenSlotCount;
+            const message = betweenPartial && slots != null
+                ? `Informe os ${slots} valores do intervalo`
+                : `Informe ${this.#column.Caption}`;
+            this.#conditionValueDropdown.validityInput?.focus();
+            return this.#conditionValueDropdown.reportValidity(message);
+        }
         if (this.#dropdown) {
             if (!this.#isRequired || this.#dropdown.isValid()) {
                 this.#dropdown.input?.setCustomValidity("");
@@ -605,6 +629,55 @@ export default class TEditBox {
         control.onchange = null;
     }
 
+    #formatAddableMaskedInput(control, editMask) {
+        const lastValid = control.dataset.lastValidValue ?? "";
+        const rawInput = control.value;
+        const rejectInput = () => {
+            this.#restoreInputValue(control, lastValid, {
+                start: control.selectionStart ?? 0,
+                end: control.selectionEnd ?? 0,
+            });
+        };
+
+        if (editMask.kind === "decimal")
+            TMask.FormatDecimalInput(control, editMask.precision, editMask.scale);
+        else
+            TMask.FormatInputValue(control, editMask.mask, editMask.options);
+
+        if (rawInput === "") {
+            control.dataset.lastValidValue = "";
+            return;
+        }
+
+        if (control.value === "" && lastValid !== "") {
+            rejectInput();
+            return;
+        }
+
+        if (this.#rejectsMaskInput(editMask, rawInput, lastValid)) {
+            rejectInput();
+            return;
+        }
+
+        control.dataset.lastValidValue = control.value;
+    }
+
+    #bindAddableInputMask(control, editMask) {
+        control.dataset.maskPlaceholder = editMask.placeholder;
+        control.placeholder = editMask.placeholder;
+        control.dataset.lastValidValue = control.value ?? "";
+        control.maxLength = editMask.placeholder.length;
+
+        control.addEventListener("beforeinput", () => {
+            control.dataset.savedSelection = JSON.stringify({
+                start: control.selectionStart ?? 0,
+                end: control.selectionEnd ?? 0,
+            });
+        });
+
+        return () => this.#formatAddableMaskedInput(control, editMask);
+    }
+
     static #getRefListLabel(refTable, ref) {
         if (!ref)
             return null;
@@ -699,8 +772,9 @@ export default class TEditBox {
     }
 
     #configureReferenceBetween(options) {
+        const slots = this.#getConditionComparator()?.BetweenSlotCount ?? 2;
         this.#configureReferenceMulti(options, {
-            exactItems: 2,
+            exactItems: slots,
             requireExact: true,
         });
     }
@@ -709,62 +783,70 @@ export default class TEditBox {
         this.#configureReferenceMulti(options);
     }
 
-    #readBetweenInputValue(input) {
-        const raw = input.value ?? "";
-        if (TConfig.IsEmpty(raw))
-            return null;
-        if (this.#editMask)
-            return this.#parseMaskedValue(this.#editMask, raw);
-        return raw;
-    }
-
-    #configureBetweenInputs(options) {
-        const { action, onConfirm, onCancel, onFirstInput, emit, parsed } = options;
+    #configureScalarAddableList(options) {
+        const {
+            action, onConfirm, onCancel, onFirstInput, emit, parsed,
+            maxItems = Infinity,
+            validItemCounts = null,
+            betweenSlots = null,
+        } = options;
         const raw = parsed?.isNull ? TCheckbox.NULL_MARKER : (parsed?.value ?? null);
-        const values = Array.isArray(raw) ? raw : [];
-        const domain = this.#effectiveDomain();
-        const htmlInputType = domain.Type.Category.HtmlInputType;
         const editMask = this.#getEditMask();
-        this.#editMask = editMask && !this.#readOnly ? editMask : null;
+        const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
+        const hasMask = editMask && !readOnly;
 
-        const wrap = document.createElement("div");
-        wrap.className = "tedit-between-row";
+        this.#body.classList.add("tedit-addable-value");
 
-        const emitBetween = () => {
-            const parts = this.#betweenInputs.map(input => this.#readBetweenInputValue(input));
-            if (parts.every(part => part === null || part === undefined))
-                emit(null);
-            else
-                emit(parts);
-        };
+        this.#conditionValueDropdown = TDropdown.Addable(this.#body, {
+            allowEmpty: true,
+            maxItems,
+            validItemCounts,
+            placeholder: hasMask ? (editMask.placeholder ?? "") : "Type to add",
+            value: Array.isArray(raw) ? raw : (TConfig.IsEmpty(raw) ? [] : [raw]),
+            nullCondition: TCheckbox.isNullMarker(raw),
+            parseValue: (text) => {
+                if (TConfig.IsEmpty(text))
+                    return null;
+                if (editMask)
+                    return this.#parseMaskedValue(editMask, text);
+                return text;
+            },
+            formatItem: (value) => {
+                if (value == null || value === "")
+                    return "";
+                if (editMask)
+                    return this.#formatRawValue(editMask, value);
+                return String(value);
+            },
+        });
 
-        this.#betweenInputs = [];
-        for (let i = 0; i < 2; i++) {
-            const input = this.#createNativeInput(htmlInputType);
-            input.name = `${this.#fieldInputName()}_${i}`;
-            input.Column = this.#column;
-            input.style.textAlign = domain.Type.Category.HtmlInputAlign;
-            const rawVal = values[i];
-            if (this.#editMask && rawVal != null && !TConfig.IsEmpty(rawVal))
-                input.value = this.#formatRawValue(this.#editMask, rawVal);
-            else
-                input.value = rawVal ?? "";
-            input.addEventListener("input", emitBetween);
-            this.#bindControlKeys(input, action, onConfirm, onCancel, (_name, value) => {
-                if (value === null)
-                    emit(null);
-            });
-            input.onfocus = (event) => event.target.select();
-            this.#betweenInputs.push(input);
+        const input = this.#conditionValueDropdown.input;
+        if (input) {
+            const domain = this.#effectiveDomain();
+            const align = domain.Type.Category.HtmlInputAlign ?? "left";
+            input.dataset.textAlign = align;
+            if (hasMask)
+                this.#conditionValueDropdown.setFormatInput(this.#bindAddableInputMask(input, editMask));
         }
 
-        const sep = document.createElement("span");
-        sep.className = "tedit-between-sep";
-        sep.textContent = " … ";
-        wrap.append(this.#betweenInputs[0], sep, this.#betweenInputs[1]);
-        this.#body.append(wrap);
-        this.#control = this.#betweenInputs[0];
+        this.#conditionValueDropdown.element.addEventListener("change", (event) => {
+            const values = event.detail.value;
+            if (!Array.isArray(values) || values.length === 0) {
+                emit(null);
+                return;
+            }
+            if (betweenSlots != null) {
+                emit(TCondition.isBetweenComplete(this.#conditionOp, values)
+                    ? TCondition.sortBetweenValues(this.#conditionOp, values)
+                    : null);
+                return;
+            }
+            emit(values);
+        });
+        this.#control = this.#conditionValueDropdown.input;
+        this.#bindControlKeys(this.#control, action, onConfirm, onCancel, (_name, value) => emit(value));
         onFirstInput?.(this.#control);
+        this.#applyControlWidth({ addable: true });
     }
 
     #getDisplayValue(record, sourceRecord) {
@@ -786,6 +868,8 @@ export default class TEditBox {
     #bindControlKeys(control, action, onConfirm, onCancel, onChange = null) {
         control.onkeydown = (event) => {
             if (event.key === "Enter" || event.key === "Tab") {
+                if (event.key === "Enter" && control.closest(".tdropdown-addable"))
+                    return;
                 event.preventDefault();
                 const focusableElements = Array.from(document.querySelectorAll("input, textarea, .tcheckbox-button"));
                 const currentIndex = focusableElements.indexOf(document.activeElement);
@@ -1027,12 +1111,6 @@ export default class TEditBox {
     }
 
     #readConditionValuePart() {
-        if (this.#betweenInputs) {
-            const parts = this.#betweenInputs.map(input => this.#readBetweenInputValue(input));
-            if (parts.every(part => part === null || part === undefined))
-                return null;
-            return parts;
-        }
         if (this.#conditionValueDropdown)
             return this.#conditionValueDropdown.getValue();
         if (this.#dropdown)
@@ -1062,6 +1140,9 @@ export default class TEditBox {
 
         if (this.#operatorSelect)
             this.#conditionOp = Number(this.#operatorSelect.value);
+
+        if (this.#conditionValueDropdown && !this.#conditionValueDropdown.isValid())
+            return null;
 
         const valuePart = this.#readConditionValuePart();
         if (TCheckbox.isNullMarker(valuePart))
@@ -1141,7 +1222,7 @@ export default class TEditBox {
         if (parsed.isNull)
             this.#conditionOp = defaultOp;
         else
-            this.#conditionOp = parsed.op ?? defaultOp;
+            this.#conditionOp = parsed.comparator ?? defaultOp;
 
         const operators = TCondition.operatorsForCategory(category.Id);
 
@@ -1151,11 +1232,21 @@ export default class TEditBox {
         this.#operatorHost.append(this.#operatorShell);
         this.#operatorSelect.addEventListener("change", () => {
             this.#syncOperatorSelectDisplay(this.#operatorShell);
+            const previousMode = this.#getConditionComparator()?.ValueMode ?? "single";
             this.#conditionOp = Number(this.#operatorSelect.value);
-            const freshParsed = TCondition.parse(record[this.#column.Name], { defaultOp });
+            const newMode = this.#getConditionComparator()?.ValueMode ?? "single";
+
+            let parsedForRebuild;
+            if (previousMode !== newMode) {
+                emit(null);
+                parsedForRebuild = { comparator: this.#conditionOp, value: null, isNull: false };
+            } else {
+                parsedForRebuild = TCondition.parse(record[this.#column.Name], { defaultOp });
+            }
+
             this.#rebuildConditionValue({
                 action, record, sourceRecord, onConfirm, onCancel, onFirstInput, emit,
-                parsed: freshParsed,
+                parsed: parsedForRebuild,
             });
         });
 
@@ -1173,10 +1264,10 @@ export default class TEditBox {
         const innerOnChange = (_name, value) => emit(value);
 
         this.#conditionValueDropdown = null;
-        this.#betweenInputs = null;
         this.#control = null;
         this.#dropdown = null;
         this.#checkbox = null;
+        this.#body.classList.remove("tedit-addable-value");
         this.#body.replaceChildren();
 
         if (mode === "between") {
@@ -1187,8 +1278,12 @@ export default class TEditBox {
                 return;
             }
 
-            this.#configureBetweenInputs({
-                action, record, sourceRecord, onConfirm, onCancel, onFirstInput, emit, parsed,
+            const slots = comparator.BetweenSlotCount;
+            this.#configureScalarAddableList({
+                action, onConfirm, onCancel, onFirstInput, emit, parsed,
+                maxItems: slots,
+                validItemCounts: [0, slots],
+                betweenSlots: slots,
             });
             return;
         }
@@ -1201,26 +1296,9 @@ export default class TEditBox {
                 return;
             }
 
-            const values = Array.isArray(raw) ? raw : (TConfig.IsEmpty(raw) ? [] : [raw]);
-            const catalog = values.map(value => ({ Id: value, Name: String(value) }));
-
-            this.#conditionValueDropdown = TDropdown.Multi(this.#body, {
-                allowEmpty: true,
-                valueAs: "id",
-                idField: "Id",
-                labelField: "Name",
-                catalog,
-                itemsPerPage: 5,
-                placeholder: "Selecionar...",
-                value: TCheckbox.isNullMarker(raw) ? [] : values,
-                nullCondition: TCheckbox.isNullMarker(raw),
+            this.#configureScalarAddableList({
+                action, onConfirm, onCancel, onFirstInput, emit, parsed,
             });
-            this.#conditionValueDropdown.element.addEventListener("change", (event) => {
-                emit(event.detail.value);
-            });
-            this.#control = this.#conditionValueDropdown.input;
-            this.#bindControlKeys(this.#control, action, onConfirm, onCancel, innerOnChange);
-            onFirstInput?.(this.#control);
             return;
         }
 

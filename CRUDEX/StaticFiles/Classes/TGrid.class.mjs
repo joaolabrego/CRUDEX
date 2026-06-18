@@ -10,8 +10,6 @@ import TRecordSet from "./TRecordset.class.mjs";
 import TScrollBar from "./TScrollBar.class.mjs";
 
 export default class TGrid {
-    #FilterValues = {};
-    #SearchValues = {};
     #RowCount = 0;
     #LastPageNumber = 1;
     #PageNumber = 1;
@@ -30,8 +28,6 @@ export default class TGrid {
     #readOnlyCud = false;
     #enabled = true;
     #rowsPerPage = 0;
-
-    #OrderBy = "";
 
     #HTML = {
         Container: null,
@@ -92,17 +88,6 @@ export default class TGrid {
                     this.Renderize(pageNumber);
             },
         });
-        this.#Table.Columns.filter((column) => column.IsFilterable).forEach(column => {
-            this.#FilterValues[column.Name] = null;
-            this.#SearchValues[column.Name] = null;
-        });
-        if (options.fixedFilter)
-            this.#RecordSet.setFixedFilter(options.fixedFilter);
-    }
-    setParentFilter(columnName, value) {
-        if (!columnName)
-            return;
-        this.#RecordSet.setFixedFilter({ [columnName]: value });
     }
     setEnabled(enabled) {
         this.#enabled = enabled;
@@ -280,73 +265,18 @@ export default class TGrid {
         this.#HTML.Container.appendChild(this.#HTML.GridViewport);
     };
 
-    SaveFilters(record) {
-        for (let key in this.#FilterValues) {
-            if (!record.hasOwnProperty(key))
-                continue;
-            let value = record[key];
-            if (typeof value === "object" && value !== null
-                && !TCheckbox.hasCondition(value) && !TCondition.isCriterion(value))
-                value = null;
-            if (TCheckbox.hasCondition(value))
-                this.#FilterValues[key] = value;
-            else
-                this.#FilterValues[key] = TCondition.normalizeStoredFilter(value);
-        }
-        this.#RecordSet.setFilter(this.#FilterValues);
-    }
-    ClearFilters() {
-        for (let key in this.#FilterValues) this.#FilterValues[key] = null;
-        this.#RecordSet.clearFilters();
-        this.#RecordSet.setFilter(this.#FilterValues);
-    }
-    IsFiltered() {
-        for (let key in this.#FilterValues) {
-            if (TCondition.willApplyFilter(this.#FilterValues[key]))
-                return true;
-        }
-
-        return false;
-    }
-    SaveSearchs(record) {
-        for (let key in this.#SearchValues) {
-            if (!record.hasOwnProperty(key))
-                continue;
-            let value = record[key];
-            if (typeof value === "object" && value !== null
-                && !TCheckbox.hasCondition(value) && !TCondition.isCriterion(value))
-                value = null;
-            if (TCheckbox.hasCondition(value))
-                this.#SearchValues[key] = value;
-            else
-                this.#SearchValues[key] = TCondition.normalizeStoredFilter(value);
-        }
-        this.#RecordSet.setSearch(this.#SearchValues);
-    }
-    ClearSearches() {
-        for (let key in this.#SearchValues) this.#SearchValues[key] = null;
-        this.#RecordSet.clearSearch();
-    }
-    IsSearched() {
-        for (let key in this.#SearchValues) {
-            if (TCondition.willApplyFilter(this.#SearchValues[key]))
-                return true;
-        }
-
-        return false;
-    }
     #valueMatchesSearch(column, record, searchValue) {
         if (TCheckbox.isIgnored(searchValue) && TConfig.IsEmpty(searchValue))
             return true;
         if (TCondition.isCriterion(searchValue)) {
-            const op = searchValue.op;
+            const comparator = searchValue.comparator;
             const expected = searchValue.value;
             const actual = record[column.Name];
             if (TCheckbox.isNullMarker(searchValue))
                 return actual == null;
             if (expected === null || expected === undefined)
                 return actual == null;
-            if (op === 9 && expected != null)
+            if (comparator === 9 && expected != null)
                 return String(actual ?? "").toLowerCase().includes(String(expected).replace(/^%|%$/g, "").toLowerCase());
             if (Array.isArray(expected))
                 return expected.some(item => item == actual);
@@ -371,13 +301,13 @@ export default class TGrid {
         return isText ? left.includes(right) : left === right;
     }
     #selectSearchedRow() {
-        if (!this.IsSearched() || !this.#Data?.length)
+        if (!this.#RecordSet.isSearched() || !this.#Data?.length)
             return;
         const columns = this.#Table.Columns.filter(column => column.IsFilterable);
         for (let index = 0; index < this.#Data.length; index++) {
             const record = this.#Data[index];
             if (columns.every(column =>
-                this.#valueMatchesSearch(column, record, this.#SearchValues[column.Name]))) {
+                this.#valueMatchesSearch(column, record, this.#RecordSet.Search.get(column.Name)))) {
                 this.#RowNumber = index;
                 return;
             }
@@ -385,9 +315,6 @@ export default class TGrid {
         this.#RowNumber = this.#Data.length - 1;
     }
     async #ReadDataPage(pageNumber) {
-        this.#RecordSet.setFilter(this.#FilterValues);
-        this.#RecordSet.setSearch(this.#SearchValues);
-        this.#RecordSet.setOrderByRaw(this.#OrderBy);
         await this.#RecordSet.goPage(pageNumber);
 
         this.#RowCount = this.#RecordSet.rowCount;
@@ -479,16 +406,10 @@ export default class TGrid {
 
         this.#gridColumns().forEach(
             (column) => {
-                let th = document.createElement("th"),
-                    columnNameAsc = "[" + column.Name + "] ASC,",
-                    columnNameDesc = "[" + column.Name + "] DESC,";
+                let th = document.createElement("th");
 
                 th.Name = column.Name;
-                th.IsOrdered = this.#OrderBy.includes(columnNameAsc)
-                    ? false
-                    : this.#OrderBy.includes(columnNameDesc)
-                        ? true
-                        : null;
+                th.IsOrdered = this.#RecordSet.getColumnOrder(column);
                 th.innerHTML =
                     column.Title +
                     (th.IsOrdered === null
@@ -499,24 +420,17 @@ export default class TGrid {
                 if (this.#ColumnTitle)
                     th.title = this.#ColumnTitle;
                 th.onclick = (event) => {
-                    if (TConfig.IsEmpty(event.target.IsOrdered)) {
-                        this.#OrderBy += columnNameAsc;
-                        event.target.IsOrdered = false;
-                        event.target.innerHTML = `${column.Title}&nbsp;\u25B2`;
-                        this.#ColumnTitle = "Clique aqui para ordenar em ordem decrescente";
-                    } else if (event.target.IsOrdered === false) {
-                        this.#OrderBy = this.#OrderBy.replace(
-                            columnNameAsc,
-                            columnNameDesc
-                        );
-                        event.target.IsOrdered = true;
-                        event.target.innerHTML = `${column.Title}&nbsp;\u25BC`;
-                        this.#ColumnTitle = "Clique aqui para cancelar ordenação";
-                    } else {
-                        this.#OrderBy = this.#OrderBy.replace(columnNameDesc, "");
-                        event.target.IsOrdered = null;
+                    const orderDirection = this.#RecordSet.toggleOrderDirection(column);
+                    event.target.IsOrdered = orderDirection;
+                    if (orderDirection === null) {
                         event.target.innerHTML = column.Title;
                         this.#ColumnTitle = null;
+                    } else if (orderDirection === false) {
+                        event.target.innerHTML = `${column.Title}&nbsp;\u25B2`;
+                        this.#ColumnTitle = "Clique aqui para ordenar em ordem decrescente";
+                    } else {
+                        event.target.innerHTML = `${column.Title}&nbsp;\u25BC`;
+                        this.#ColumnTitle = "Clique aqui para cancelar ordenação";
                     }
                     this.Renderize();
                 };
@@ -582,7 +496,7 @@ export default class TGrid {
     #BuildHtmlFoot() {
         let tr = document.createElement("tr"),
             th = document.createElement("th"),
-            filtered = this.IsFiltered(),
+            filtered = this.#RecordSet.isFiltered(),
             label;
 
         th.colSpan = this.#gridColumns().length.toString();
@@ -730,7 +644,7 @@ export default class TGrid {
         this.#HTML.UnfilterButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.UnfilterButton.onclick = async () => {
-            this.ClearFilters();
+            this.#RecordSet.clearFilters();
             await this.Renderize(1);
         };
         th.appendChild(this.#HTML.UnfilterButton);
@@ -739,13 +653,13 @@ export default class TGrid {
         this.#HTML.UnorderButton.type = "button";
         this.#HTML.UnorderButton.style.backgroundImage = TGrid.#Images.Unorder;
         this.#HTML.UnorderButton.title = `Limpar ordenação de registros (alt-o): ${this.OrderBy}`;
-        this.#HTML.UnorderButton.hidden = TConfig.IsEmpty(this.#OrderBy);
+        this.#HTML.UnorderButton.hidden = TConfig.IsEmpty(this.#RecordSet.orderBy);
         this.#HTML.UnorderButton.onmouseenter = () =>
             (TScreen.Message = "Limpar ordenação de registros");
         this.#HTML.UnorderButton.onmouseleave = () =>
             (TScreen.Message = TScreen.LastMessage);
         this.#HTML.UnorderButton.onclick = () => {
-            this.#OrderBy = "";
+            this.#RecordSet.clearOrderBy();
             this.Renderize();
         };
         th.appendChild(this.#HTML.UnorderButton);
@@ -782,23 +696,19 @@ export default class TGrid {
     get SelectedRecord() {
         return this.#Data?.[this.#RowNumber] ?? null;
     }
-    get FilterValues() {
-        return this.#FilterValues;
-    }
-    get SearchValues() {
-        return this.#SearchValues;
-    }
     get Primarykeys() {
         return { Id: this.#Data[this.#RowNumber]["Id"] };
     }
     get OrderBy() {
-        return this.#OrderBy.slice(0, -1);
+        return this.#RecordSet.orderBy;
     }
     get Filter() {
         let filter = "";
 
-        for (const key in this.#FilterValues) {
-            const part = TCondition.formatCriterion(key, this.#FilterValues[key]);
+        for (const [key, value] of this.#RecordSet.Filter) {
+            if (this.#RecordSet.isTableFilterKey(key))
+                continue;
+            const part = TCondition.formatCriterion(key, value);
             if (part)
                 filter += `${filter === "" ? "" : " AND "}${part}`;
         }

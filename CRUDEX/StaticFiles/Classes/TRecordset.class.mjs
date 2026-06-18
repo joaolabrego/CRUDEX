@@ -10,9 +10,10 @@ import TTransaction from "./TTransaction.class.mjs";
 
 export default class TRecordSet {
     #Table = null;
-    #FixedFilter = {};
-    #FilterValues = {};
-    #SearchValues = {};
+    #Filter = new Map();
+    #tableFilterKeys = new Set();
+    #filterableKeys = [];
+    #Search = new Map();
     #RowCount = 0;
     #PageNumber = 0;
     #PageCount = 0;
@@ -29,11 +30,17 @@ export default class TRecordSet {
         this.#Table = table;
         this.#showSpinner = options.showSpinner !== false;
         this.#rowsPerPage = options.rowsPerPage ?? TSystem.RowsPerPage;
-        table.Columns.filter(column => column.IsFilterable)
-            .forEach(column => {
-                this.#FilterValues[column.Name] = null;
-                this.#SearchValues[column.Name] = null;
-            });
+        this.#filterableKeys = table.Columns.filter(column => column.IsFilterable).map(column => column.Name);
+        if (options.tableFilter)
+            this.setTableFilter(options.tableFilter);
+    }
+
+    #setCriterion(map, key, value) {
+        const normalized = this.#normalizeCriterionValue(value);
+        if (TCondition.willApplyFilter(normalized))
+            map.set(key, normalized);
+        else
+            map.delete(key);
     }
 
     #appendFilterValue(filter, key, value) {
@@ -49,51 +56,27 @@ export default class TRecordSet {
             filter[key] = filterValue;
     }
 
-    #buildRecordFilter() {
-        const filter = {};
+    #buildPayload(map) {
+        const payload = {};
 
-        for (const [key, value] of Object.entries(this.#FixedFilter))
-            this.#appendFilterValue(filter, key, value);
-        for (const [key, value] of Object.entries(this.#FilterValues))
-            this.#appendFilterValue(filter, key, value);
+        for (const [key, value] of map)
+            this.#appendFilterValue(payload, key, value);
 
-        return filter;
+        return payload;
     }
 
-    #buildRecordSearch() {
-        const search = {};
-
-        for (const [key, value] of Object.entries(this.#SearchValues))
-            this.#appendFilterValue(search, key, value);
-
-        return Object.keys(search).length ? search : null;
-    }
-
-    async goPage(pageNumber = 1) {
-        const recordSearch = this.#buildRecordSearch();
-        const inParams = {
-            RecordFilterGrid: JSON.stringify(this.#buildRecordFilter()),
-            RecordFilterTable: null,
-            RecordSearch: recordSearch ? JSON.stringify(recordSearch) : null,
-            OrderBy: this.orderBy,
-            PaddingGridLastPage: TSystem.PaddingGridLastPage,
-            IsActionList: false,
-        };
-
-        const parameters = {
+    #readParameters(inParams, ioParams) {
+        return {
             DatabaseName: this.#Table.Database.Name,
             TableName: this.#Table.Name,
             Action: TSystem.Actions.READ,
             InParams: inParams,
             OutParams: {},
-            IOParams: {
-                PageNumber: pageNumber,
-                LimitRows: this.#rowsPerPage,
-                MaxPage: 0,
-            },
+            IOParams: ioParams,
         };
+    }
 
-        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
+    #applyPageResult(result, pageNumber) {
         const { main: mainRows, refs } = TConfig.ParseReadDataSet(result.DataSet);
         const refLookup = TRecordSet.#BuildRefLookup(refs);
 
@@ -102,6 +85,24 @@ export default class TRecordSet {
         this.#PageCount = Number(result.Parameters?.MaxPage ?? 0);
         this.#PageSize = mainRows.length;
         this.#Records = mainRows.map(row => new TRecord(this.#Table, row, refLookup));
+
+        return mainRows;
+    }
+
+    async goPage(pageNumber = 1) {
+        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, this.#readParameters({
+            Filter: JSON.stringify(this.#buildPayload(this.#Filter)),
+            Search: JSON.stringify(this.#buildPayload(this.#Search)),
+            OrderBy: this.orderBy,
+            PaddingGridLastPage: TSystem.PaddingGridLastPage,
+            IsActionList: false,
+        }, {
+            PageNumber: pageNumber,
+            LimitRows: this.#rowsPerPage,
+            MaxPage: 0,
+        }), this.#showSpinner);
+
+        this.#applyPageResult(result, pageNumber);
 
         if (this.#AbsoluteRowIndex >= 0) {
             const pageStart = (this.#PageNumber - 1) * this.#rowsPerPage;
@@ -127,35 +128,19 @@ export default class TRecordSet {
     async readPickerPage({ value = "", pageNumber = 1, limitRows = null } = {}) {
         const pageSize = limitRows ?? this.#rowsPerPage;
         const listable = this.#Table.GetListableColumn();
-        const parameters = {
-            DatabaseName: this.#Table.Database.Name,
-            TableName: this.#Table.Name,
-            Action: TSystem.Actions.READ,
-            InParams: {
-                RecordFilterGrid: JSON.stringify({ Picker: { Value: value ?? "" } }),
-                RecordFilterTable: null,
-                RecordSearch: null,
-                OrderBy: listable ? `[${listable.Name}]` : "",
-                PaddingGridLastPage: true,
-                IsActionList: true,
-            },
-            OutParams: {},
-            IOParams: {
-                PageNumber: pageNumber,
-                LimitRows: pageSize,
-                MaxPage: 0,
-            },
-        };
+        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, this.#readParameters({
+            Filter: JSON.stringify({ Picker: { Value: value ?? "" } }),
+            Search: "{}",
+            OrderBy: listable ? `[${listable.Name}]` : "",
+            PaddingGridLastPage: true,
+            IsActionList: true,
+        }, {
+            PageNumber: pageNumber,
+            LimitRows: pageSize,
+            MaxPage: 0,
+        }), this.#showSpinner);
 
-        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
-        const { main: mainRows, refs } = TConfig.ParseReadDataSet(result.DataSet);
-        const refLookup = TRecordSet.#BuildRefLookup(refs);
-
-        this.#RowCount = Number(result.Parameters?.ReturnValue ?? 0);
-        this.#PageNumber = Number(result.Parameters?.PageNumber ?? pageNumber);
-        this.#PageCount = Number(result.Parameters?.MaxPage ?? 0);
-        this.#PageSize = mainRows.length;
-        this.#Records = mainRows.map(row => new TRecord(this.#Table, row, refLookup));
+        this.#applyPageResult(result, pageNumber);
         this.#AbsoluteRowIndex = -1;
 
         return this;
@@ -175,48 +160,23 @@ export default class TRecordSet {
     }
 
     async readOne(recordFilter) {
-        const parameters = {
-            DatabaseName: this.#Table.Database.Name,
-            TableName: this.#Table.Name,
-            Action: TSystem.Actions.READ,
-            InParams: {
-                RecordFilterGrid: JSON.stringify(recordFilter ?? {}),
-                RecordFilterTable: null,
-                RecordSearch: null,
-                OrderBy: null,
-                PaddingGridLastPage: false,
-                IsActionList: false,
-            },
-            OutParams: {},
-            IOParams: {
-                PageNumber: 0,
-                LimitRows: 0,
-                MaxPage: 0,
-            },
-        };
+        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, this.#readParameters({
+            Filter: JSON.stringify(recordFilter ?? {}),
+            Search: "{}",
+            OrderBy: null,
+            PaddingGridLastPage: false,
+            IsActionList: false,
+        }, {
+            PageNumber: 0,
+            LimitRows: 0,
+            MaxPage: 0,
+        }), this.#showSpinner);
 
-        const result = await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
         const { main, refs } = TConfig.ParseReadDataSet(result.DataSet);
         const refLookup = TRecordSet.#BuildRefLookup(refs);
         const row = main[0];
 
         return row ? new TRecord(this.#Table, row, refLookup) : null;
-    }
-
-    #executeParameters(action, inParams = {}, ioParams = {}, table = null) {
-        const target = table ?? this.#Table;
-        return {
-            DatabaseName: target.Database.Name,
-            TableName: target.Name,
-            Action: action,
-            InParams: inParams,
-            OutParams: {},
-            IOParams: ioParams,
-        };
-    }
-
-    async #callExecute(parameters) {
-        return await TConfig.GetAPI(TSystem.Actions.EXECUTE, parameters, this.#showSpinner);
     }
 
     async saveRecord(formAction, actualRecord, lastRecord = null) {
@@ -300,41 +260,93 @@ export default class TRecordSet {
         return this.record;
     }
 
+    #normalizeCriterionValue(value) {
+        if (typeof value === "object" && value !== null
+            && !TCheckbox.hasCondition(value) && !TCondition.isCriterion(value))
+            return undefined;
+        if (TCheckbox.hasCondition(value))
+            return value;
+        return TCondition.normalizeStoredFilter(value);
+    }
+
+    #updateCriteria(map, record, { removeMissing = false, skipTableKeys = false } = {}) {
+        for (const key of this.#filterableKeys) {
+            if (skipTableKeys && this.#tableFilterKeys.has(key))
+                continue;
+            if (!Object.hasOwn(record, key)) {
+                if (removeMissing)
+                    map.delete(key);
+                continue;
+            }
+            this.#setCriterion(map, key, record[key]);
+        }
+    }
+
     clearFilters() {
-        for (const key of Object.keys(this.#FilterValues))
-            this.#FilterValues[key] = null;
+        for (const key of this.#Filter.keys()) {
+            if (!this.#tableFilterKeys.has(key))
+                this.#Filter.delete(key);
+        }
     }
 
     clearSearch() {
-        for (const key of Object.keys(this.#SearchValues))
-            this.#SearchValues[key] = null;
+        TConfig.ClearObject(this.#Search);
+    }
+
+    saveFilter(record) {
+        this.#updateCriteria(this.#Filter, record, { skipTableKeys: true });
+    }
+
+    saveSearch(record) {
+        this.#updateCriteria(this.#Search, record);
     }
 
     setFilter(record) {
-        for (const key of Object.keys(this.#FilterValues))
-            this.#FilterValues[key] = Object.hasOwn(record, key) ? record[key] : null;
+        this.#updateCriteria(this.#Filter, record, { removeMissing: true, skipTableKeys: true });
     }
 
     setSearch(record) {
-        for (const key of Object.keys(this.#SearchValues))
-            this.#SearchValues[key] = Object.hasOwn(record, key) ? record[key] : null;
+        this.#updateCriteria(this.#Search, record, { removeMissing: true });
     }
 
-    setFixedFilter(record) {
-        this.#FixedFilter = { ...record };
+    setTableFilter(record) {
+        for (const key of this.#tableFilterKeys)
+            this.#Filter.delete(key);
+        this.#tableFilterKeys.clear();
+
+        for (const [key, value] of Object.entries(record ?? {})) {
+            this.#tableFilterKeys.add(key);
+            this.#Filter.set(key, value);
+        }
     }
 
     isFiltered() {
-        return Object.keys(this.#FilterValues).some(key => {
-            if (Object.hasOwn(this.#FixedFilter, key))
+        return this.#filterableKeys.some(key => {
+            if (this.#tableFilterKeys.has(key))
                 return false;
-            return TCondition.willApplyFilter(this.#FilterValues[key]);
+            return TCondition.willApplyFilter(this.#Filter.get(key));
         });
     }
 
     isSearched() {
-        return Object.keys(this.#SearchValues).some(key =>
-            TCondition.willApplyFilter(this.#SearchValues[key]));
+        return this.#filterableKeys.some(key =>
+            TCondition.willApplyFilter(this.#Search.get(key)));
+    }
+
+    isTableFilterKey(key) {
+        return this.#tableFilterKeys.has(key);
+    }
+
+    #orderByClause(column, direction) {
+        return `[${column.Name}] ${direction},`;
+    }
+
+    getColumnOrder(column) {
+        if (this.#OrderBy.includes(this.#orderByClause(column, "ASC")))
+            return false;
+        if (this.#OrderBy.includes(this.#orderByClause(column, "DESC")))
+            return true;
+        return null;
     }
 
     clearOrderBy() {
@@ -346,8 +358,8 @@ export default class TRecordSet {
     }
 
     toggleOrderDirection(column) {
-        const ascending = `[${column.Name}] ASC,`;
-        const descending = `[${column.Name}] DESC,`;
+        const ascending = this.#orderByClause(column, "ASC");
+        const descending = this.#orderByClause(column, "DESC");
         let orderDirection = this.#OrderBy.includes(ascending)
             ? false
             : this.#OrderBy.includes(descending)
@@ -378,6 +390,14 @@ export default class TRecordSet {
 
     get orderBy() {
         return this.#OrderBy.endsWith(",") ? this.#OrderBy.slice(0, -1) : this.#OrderBy;
+    }
+
+    get Filter() {
+        return this.#Filter;
+    }
+
+    get Search() {
+        return this.#Search;
     }
 
     get Table() {

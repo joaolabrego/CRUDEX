@@ -21,21 +21,80 @@ namespace crudex.Classes
             "UpdatedAt",
             "UpdatedBy",
             "UniqueIdentifier",
+            "PkSequence",
             ], StringComparer.OrdinalIgnoreCase);
+
+        private static void AppendSqlIf(StringBuilder result, string indent, string keyword, string condition, string statement)
+        {
+            result.Append($"{indent}{keyword} {condition}\r\n");
+            result.Append($"{indent}    {statement}\r\n");
+        }
+
+        private static void AppendSqlIf(StringBuilder result, string indent, string condition, string statement)
+            => AppendSqlIf(result, indent, "IF", condition, statement);
+
+        private static void AppendSqlElseIf(StringBuilder result, string indent, string condition, string statement)
+            => AppendSqlIf(result, indent, "ELSE IF", condition, statement);
+
+        private static void AppendSqlIfBlock(StringBuilder result, string indent, string keyword, string condition)
+            => result.Append($"{indent}{keyword} {condition} BEGIN\r\n");
+
+        private static void AppendSqlIfBlock(StringBuilder result, string indent, string condition)
+            => AppendSqlIfBlock(result, indent, "IF", condition);
+
+        private static void AppendSqlElseIfBlock(StringBuilder result, string indent, string condition)
+            => AppendSqlIfBlock(result, indent, "ELSE IF", condition);
+
+        private static void AppendSqlEnd(StringBuilder result, string indent)
+            => result.Append($"{indent}END\r\n");
+
+        private static string SqlCoalesce(string indent, IEnumerable<string> expressions)
+        {
+            var parts = expressions.ToList();
+            if (parts.Count == 0)
+                return "NULL";
+            if (parts.Count == 1)
+                return parts[0];
+            var sb = new StringBuilder("COALESCE(");
+            for (var i = 0; i < parts.Count; i++)
+                sb.Append($"\r\n{indent}    {parts[i]}{(i < parts.Count - 1 ? "," : "")}");
+            sb.Append($"\r\n{indent})");
+            return sb.ToString();
+        }
+
+        private static void AppendSqlMultiAssign(StringBuilder result, string indent, params (string Variable, string Expression)[] assignments)
+        {
+            if (assignments.Length == 0)
+                return;
+            result.Append($"{indent}SELECT {assignments[0].Variable} = {assignments[0].Expression}");
+            for (var i = 1; i < assignments.Length; i++)
+                result.Append($"\r\n{indent}      ,{assignments[i].Variable} = {assignments[i].Expression}");
+            result.Append("\r\n");
+        }
+
+        private static string FilterScalarDefaultOpCase(string jsonVariable, string name, long defaultOp) =>
+            $"CASE WHEN JSON_VALUE({jsonVariable}, '$.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.{name}') IS NULL THEN {defaultOp} END";
+
         public static async Task Generate(string systemName = "crudex", string databaseName = "crudex", bool saveInDisk = true, bool? isExcel = null, bool withInsertData = true, bool isDocker = true)
         {
             var result = new StringBuilder();
             var dataSet = (isExcel ?? systemName == "crudex") ? await ExcelToDataSet() : await GetDataSet();
-            var system = (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable().ToList()
-                .First(row => Settings.ToString(row["Name"]) == systemName);
-            var database = (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable().ToList()
-                .First(row => Settings.ToString(row["Name"]) == databaseName);
+            var system = RequireRow(
+                (dataSet.Tables["Systems"] ?? throw new Exception("Tabela Systems não existe.")).AsEnumerable(),
+                row => Settings.ToString(row["Name"]) == systemName,
+                $"System '{systemName}' não encontrado em Systems.");
+            var database = RequireRow(
+                (dataSet.Tables["Databases"] ?? throw new Exception("Tabela Databases não existe.")).AsEnumerable(),
+                row => Settings.ToString(row["Name"]) == databaseName,
+                $"Database '{databaseName}' não encontrado em Databases.");
             var columns = (dataSet.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
             var indexes = (dataSet.Tables["Indexes"] ?? throw new Exception("Tabela Indexes não existe.")).AsEnumerable().ToList();
             var indexkeys = (dataSet.Tables["Indexkeys"] ?? throw new Exception("Tabela Indexkeys não existe.")).AsEnumerable().ToList();
             var domains = (dataSet.Tables["Domains"] ?? throw new Exception("Tabela Domains não existe.")).AsEnumerable().ToList();
             var categories = (dataSet.Tables["Categories"] ?? throw new Exception("Tabela Categories não existe.")).AsEnumerable().ToList();
             var types = (dataSet.Tables["Types"] ?? throw new Exception("Tabela Types não existe.")).AsEnumerable().ToList();
+            var comparators = BuildComparators((dataSet.Tables["Comparators"] ?? throw new Exception("Tabela Comparators não existe.")).AsEnumerable().ToList());
+            var rulesByCategory = BuildRulesByCategory((dataSet.Tables["Rules"] ?? throw new Exception("Tabela Rules não existe.")).AsEnumerable().ToList());
             var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
             var unicities = (dataSet.Tables["Unicities"] ?? throw new Exception("Tabela Unicities não existe.")).AsEnumerable().ToList();
             var databaseTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
@@ -43,6 +102,10 @@ namespace crudex.Classes
             var references = new TDataRows();
             var firstTime = true;
             var databaseTableRows = GetDatabaseTableRows(databaseTables, tables, columns);
+            if (databaseTableRows.Count == 0)
+                throw new Exception($"Database '{databaseName}' não possui tabelas em DatabasesTables.");
+            if (comparators.Length == 0)
+                throw new Exception("Comparators não possui registros.");
 
             foreach (var table in databaseTableRows)
             {
@@ -80,7 +143,7 @@ namespace crudex.Classes
                     result.AppendLine(GetScriptOperationUpdate(table, columns).ToString());
                     result.AppendLine(GetScriptOperationDelete(table, columns).ToString());
                 }
-                result.AppendLine(GetScriptReadTable(table, columns, domains, types).ToString());
+                result.AppendLine(GetScriptReadTable(table, columns, domains, types, comparators, rulesByCategory).ToString());
             }
             if (saveInDisk)
             {
@@ -109,7 +172,7 @@ namespace crudex.Classes
                 });
             });
             ApplyPrimaryKeysFromExcelHeaders(dataset);
-            NormalizeExcelDataSetColumnNames(dataset);
+            StripPrimaryKeyMarkersFromExcelDataSet(dataset);
             return dataset;
         }
         private static async Task<DataSet> GetDataSet()
@@ -144,8 +207,11 @@ namespace crudex.Classes
         private static TDictionary GetConstraints(DataRow column, TDataRows domains, TDataRows types)
         {
             var result = new TDictionary();
-            var domain = domains.First(domain => Settings.ToLong(domain["Id"]) == Settings.ToLong(column["DomainId"]));
-            var type = types.First(type => Settings.ToLong(type["Id"]) == Settings.ToLong(domain["TypeId"]));
+            var columnName = Settings.ToString(column["Name"]);
+            var domain = RequireRow(domains, row => Settings.ToLong(row["Id"]) == Settings.ToLong(column["DomainId"]),
+                $"DomainId {column["DomainId"]} não encontrado para coluna '{columnName}'.");
+            var type = RequireRow(types, row => Settings.ToLong(row["Id"]) == Settings.ToLong(domain["TypeId"]),
+                $"TypeId {domain["TypeId"]} não encontrado para coluna '{columnName}'.");
             string value;
 
             result.Add("AskPrimarykey", type["AskPrimarykey"]);
@@ -173,160 +239,145 @@ namespace crudex.Classes
 
             return result;
         }
-        private static void AppendReadFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string indent)
+        private static TDictionary[] GetAllowedComparatorsForColumn(Dictionary<long, List<long>> rulesByCategory, TDictionary[] comparators, DataRow column, TDataRows domains, TDataRows types)
+        {
+            var columnName = Settings.ToString(column["Name"]);
+            var domain = RequireRow(domains, row => Settings.ToLong(row["Id"]) == Settings.ToLong(column["DomainId"]),
+                $"DomainId {column["DomainId"]} não encontrado para coluna '{columnName}'.");
+            var type = RequireRow(types, row => Settings.ToLong(row["Id"]) == Settings.ToLong(domain["TypeId"]),
+                $"TypeId {domain["TypeId"]} não encontrado para coluna '{columnName}'.");
+            var categoryId = Settings.ToLong(type["CategoryId"]);
+            if (!rulesByCategory.TryGetValue(categoryId, out var allowed) || allowed.Count == 0)
+                throw new Exception($"Categoria {categoryId} do tipo '{type["Name"]}' (coluna '{columnName}') não possui regras em Rules.");
+            var allowedSet = allowed.ToHashSet();
+            var filtered = comparators.Where(item => allowedSet.Contains(Settings.ToLong(item["Id"]))).ToArray();
+            if (filtered.Length == 0)
+                throw new Exception($"Categoria {categoryId} (coluna '{columnName}') não possui comparadores válidos em Comparators.");
+            return filtered;
+        }
+
+        private static bool CategoryAllowsBetweenFilter(Dictionary<long, List<long>> rulesByCategory, TDictionary[] comparators, DataRow column, TDataRows domains, TDataRows types) =>
+            GetAllowedComparatorsForColumn(rulesByCategory, comparators, column, domains, types).Any(IsBetweenComparator);
+
+        private static void AppendReadFilterColumn(StringBuilder result, DataRow column, bool needsBetweenSlots, string indent)
         {
             var name = column["Name"];
-            var dataType = column["#DataType"];
-            var validations = GetConstraints(column, domains, types);
+            var dataType = Convert.ToString(column["#DataType"]) ?? string.Empty;
+            var isPrimaryKey = Settings.ToBoolean(column["IsPrimarykey"]);
 
-            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Filter') WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid, '$.Fixed') WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}   OR EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterGrid) WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
-            result.Append($"{indent}ELSE IF @G_{name}_op IS NOT NULL BEGIN\r\n");
-            if (validations.TryGetValue("Minimum", out dynamic? value))
+            if (!isPrimaryKey)
             {
-                result.Append($"{indent}    IF @G_{name}_op NOT IN (7, 8, 11, 12) AND @G_{name}_v IS NOT NULL AND @G_{name}_v < CAST('{value}' AS {dataType})\r\n");
-                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser maior que ou igual a ''{value}''', 1\r\n");
+                result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = '{name}' AND [type] = 0)\r\n");
+                result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
+                result.Append($"{indent}ELSE\r\n");
             }
-            if (validations.TryGetValue("Maximum", out value))
-            {
-                result.Append($"{indent}    IF @G_{name}_op NOT IN (7, 8, 11, 12) AND @G_{name}_v IS NOT NULL AND @G_{name}_v > CAST('{value}' AS {dataType})\r\n");
-                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser menor que ou igual a ''{value}''', 1\r\n");
-            }
-            result.Append($"{indent}    DECLARE @opSql_{name} NVARCHAR(15)\r\n");
-            result.Append($"{indent}    SELECT @opSql_{name} = CASE @G_{name}_op\r\n");
-            result.Append($"{indent}        WHEN 1 THEN '<' WHEN 2 THEN '<=' WHEN 3 THEN '=' WHEN 4 THEN '<>'\r\n");
-            result.Append($"{indent}        WHEN 5 THEN '>=' WHEN 6 THEN '>' WHEN 9 THEN 'LIKE' WHEN 10 THEN 'NOT LIKE'\r\n");
-            result.Append($"{indent}        ELSE '=' END\r\n");
-            result.Append($"{indent}    IF @G_{name}_op IN (7, 8) AND @G_{name}_vals IS NOT NULL\r\n");
-            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] ' + CASE WHEN @G_{name}_op = 7 THEN 'IN' ELSE 'NOT IN' END + ' (SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{name}_vals))'\r\n");
-            result.Append($"{indent}    ELSE IF @G_{name}_op IN (11, 12) AND @G_{name}_v1 IS NOT NULL AND @G_{name}_v2 IS NOT NULL\r\n");
-            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] ' + CASE WHEN @G_{name}_op = 11 THEN 'BETWEEN' ELSE 'NOT BETWEEN' END + ' @{name}_v1 AND @{name}_v2'\r\n");
-            result.Append($"{indent}    ELSE IF @G_{name}_op = 9 AND @G_{name}_v IS NOT NULL\r\n");
-            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] LIKE ''%'' + @{name} + ''%'''\r\n");
-            result.Append($"{indent}    ELSE IF @G_{name}_v IS NOT NULL\r\n");
-            result.Append($"{indent}        SET @Where = @Where + ' AND [T].[{name}] ' + @opSql_{name} + ' @{name}'\r\n");
-            result.Append($"{indent}END\r\n");
+            AppendComparatorPredicateFromMetadata(result, indent, $"@G_{name}_comparator", $"[T].[{name}]", dataType, Settings.ToString(name), isSearch: false, needsBetweenSlots);
         }
         private static void AppendReadTableFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string valueVariable, string parameterName, string indent)
         {
             var name = column["Name"];
-            var dataType = column["#DataType"];
-            var validations = GetConstraints(column, domains, types);
+            var isPrimaryKey = Settings.ToBoolean(column["IsPrimarykey"]);
 
-            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordFilterTable) WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
-            result.Append($"{indent}ELSE IF {valueVariable} IS NOT NULL BEGIN\r\n");
-            if (validations.TryGetValue("Minimum", out dynamic? value))
+            if (!isPrimaryKey)
             {
-                result.Append($"{indent}    IF {valueVariable} < CAST('{value}' AS {dataType})\r\n");
-                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser maior que ou igual a ''{value}''', 1\r\n");
+                result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = '{name}' AND [type] = 0)\r\n");
+                result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
+                result.Append($"{indent}ELSE IF {valueVariable} IS NOT NULL BEGIN\r\n");
             }
-            if (validations.TryGetValue("Maximum", out value))
-            {
-                result.Append($"{indent}    IF {valueVariable} > CAST('{value}' AS {dataType})\r\n");
-                result.Append($"{indent}        THROW 51000, 'Valor de {name} deve ser menor que ou igual a ''{value}''', 1\r\n");
-            }
+            else
+                result.Append($"{indent}IF {valueVariable} IS NOT NULL BEGIN\r\n");
             result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] = {parameterName}'\r\n");
             result.Append($"{indent}END\r\n");
         }
-        private static void AppendReadSearchCondition(StringBuilder result, DataRow column, string indent)
+        private static void AppendReadSearchCondition(StringBuilder result, DataRow column, bool needsBetweenSlots, string indent)
         {
             var name = column["Name"];
             var dataType = Convert.ToString(column["#DataType"]) ?? string.Empty;
+            var isPrimaryKey = Settings.ToBoolean(column["IsPrimarykey"]);
             var colRef = $"COALESCE([D].[{name}], [O].[{name}])";
 
-            result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@RecordSearch) WHERE [key] = '{name}' AND [type] = 0)\r\n");
-            result.Append($"{indent}BEGIN\r\n");
-            result.Append($"{indent}    IF @Where <> '' SET @Where = @Where + ' AND '\r\n");
-            result.Append($"{indent}    SET @Where = @Where + '{colRef} IS NULL'\r\n");
-            result.Append($"{indent}END\r\n");
-            result.Append($"{indent}ELSE IF @S_{name}_op IS NOT NULL BEGIN\r\n");
-            result.Append($"{indent}    DECLARE @opSqlS_{name} NVARCHAR(15)\r\n");
-            result.Append($"{indent}    SELECT @opSqlS_{name} = CASE @S_{name}_op\r\n");
-            result.Append($"{indent}        WHEN 1 THEN '<' WHEN 2 THEN '<=' WHEN 3 THEN '=' WHEN 4 THEN '<>'\r\n");
-            result.Append($"{indent}        WHEN 5 THEN '>=' WHEN 6 THEN '>' WHEN 9 THEN 'LIKE' WHEN 10 THEN 'NOT LIKE'\r\n");
-            result.Append($"{indent}        ELSE '=' END\r\n");
-            result.Append($"{indent}    IF @Where <> '' SET @Where = @Where + ' AND '\r\n");
-            result.Append($"{indent}    IF @S_{name}_op IN (7, 8)\r\n");
-            result.Append($"{indent}        SET @Where = @Where + '{colRef} ' + CASE WHEN @S_{name}_op = 7 THEN 'IN' ELSE 'NOT IN' END + ' (SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{name}_vals))'\r\n");
-            result.Append($"{indent}    ELSE IF @S_{name}_op IN (11, 12)\r\n");
-            result.Append($"{indent}        SET @Where = @Where + '{colRef} ' + CASE WHEN @S_{name}_op = 11 THEN 'BETWEEN' ELSE 'NOT BETWEEN' END + ' @{name}_v1 AND @{name}_v2'\r\n");
-            result.Append($"{indent}    ELSE IF @S_{name}_op = 9\r\n");
-            result.Append($"{indent}        SET @Where = @Where + '{colRef} LIKE ''%'' + @{name} + ''%'''\r\n");
-            result.Append($"{indent}    ELSE\r\n");
-            result.Append($"{indent}        SET @Where = @Where + '{colRef} ' + @opSqlS_{name} + ' @{name}'\r\n");
-            result.Append($"{indent}END\r\n");
+            if (!isPrimaryKey)
+            {
+                result.Append($"{indent}IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = '{name}' AND [type] = 0) BEGIN\r\n");
+                result.Append($"{indent}    IF @Where <> '' SET @Where = @Where + ' AND '\r\n");
+                result.Append($"{indent}    SET @Where = @Where + '{colRef} IS NULL'\r\n");
+                result.Append($"{indent}END ELSE\r\n");
+            }
+            AppendComparatorPredicateFromMetadata(result, indent, $"@S_{name}_comparator", colRef, dataType, Settings.ToString(name), isSearch: true, needsBetweenSlots);
         }
 
-        private static void AppendReadGridFilterDeclareVars(StringBuilder result, DataRow column, bool isSearch, bool declare)
+        private static void AppendReadGridFilterDeclareVars(StringBuilder result, DataRow column, bool isSearch, bool declare, bool needsBetweenSlots)
         {
             var name = column["Name"];
             var dataType = column["#DataType"];
             var prefix = isSearch ? "S" : "G";
             var lead = declare ? "            DECLARE " : "                   ,";
 
-            result.Append($"{lead}@{prefix}_{name}_op TINYINT\r\n");
+            result.Append($"{lead}@{prefix}_{name}_comparator TINYINT\r\n");
             result.Append($"                   ,@{prefix}_{name}_v {dataType}\r\n");
             result.Append($"                   ,@{prefix}_{name}_vals NVARCHAR(MAX)\r\n");
-            result.Append($"                   ,@{prefix}_{name}_v1 {dataType}\r\n");
-            result.Append($"                   ,@{prefix}_{name}_v2 {dataType}\r\n");
+            if (needsBetweenSlots)
+            {
+                result.Append($"                   ,@{prefix}_{name}_v1 {dataType}\r\n");
+                result.Append($"                   ,@{prefix}_{name}_v2 {dataType}\r\n");
+            }
         }
 
-        private static void AppendReadGridFilterAssignVars(StringBuilder result, DataRow column, bool isSearch)
+        private static void AppendReadGridFilterAssignVars(StringBuilder result, DataRow column, bool isSearch, TDictionary[] comparators, Dictionary<long, List<long>> rulesByCategory, TDataRows domains, TDataRows types)
         {
             var name = column["Name"];
             var dataType = column["#DataType"];
             var prefix = isSearch ? "S" : "G";
-            var jsonVariable = isSearch ? "@RecordSearch" : "@RecordFilterGrid";
-            var dataTypeText = Convert.ToString(dataType) ?? string.Empty;
-            var isText = dataTypeText.StartsWith("nvarchar", StringComparison.OrdinalIgnoreCase)
-                || dataTypeText.StartsWith("varchar", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(dataTypeText, "ntext", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(dataTypeText, "text", StringComparison.OrdinalIgnoreCase);
-            var defaultOp = isSearch && isText ? "9" : "3";
+            var jsonVariable = isSearch ? "@Search" : "@Filter";
+            var defaultOp = GetDefaultComparatorId(comparators, rulesByCategory, column, domains, types, isSearch);
             var indent = isSearch ? "                " : "            ";
+            var comparatorVar = $"@{prefix}_{name}_comparator";
+            var valueVar = $"@{prefix}_{name}_v";
+            var valuesVar = $"@{prefix}_{name}_vals";
+            var columnName = Settings.ToString(name);
+            var needsBetweenSlots = CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types);
 
-            if (!isSearch)
+            AppendSqlMultiAssign(result, indent,
+                (comparatorVar, SqlCoalesce(indent,
+                [
+                    $"TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.comparator') AS TINYINT)",
+                    FilterScalarDefaultOpCase(jsonVariable, columnName, defaultOp),
+                ])),
+                (valueVar, SqlCoalesce(indent,
+                [
+                    $"TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.value') AS {dataType})",
+                    $"TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}') AS {dataType})",
+                ])),
+                (valuesVar, SqlCoalesce(indent,
+                [
+                    $"JSON_QUERY({jsonVariable}, '$.{name}.value')",
+                    $"JSON_QUERY({jsonVariable}, '$.{name}')",
+                ])));
+
+            if (needsBetweenSlots)
             {
-                result.Append($"{indent}SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Filter.{name}.op') AS TINYINT)\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Fixed.{name}.op') AS TINYINT)\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.op') AS TINYINT)\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.Filter.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.Filter.{name}') IS NULL SET @{prefix}_{name}_op = 3\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.Fixed.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.Fixed.{name}') IS NULL SET @{prefix}_{name}_op = 3\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.{name}') IS NULL SET @{prefix}_{name}_op = 3\r\n");
-
-                result.Append($"{indent}SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Filter.{name}.value') AS {dataType})\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Fixed.{name}.value') AS {dataType})\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.value') AS {dataType})\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Filter.{name}') AS {dataType})\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.Fixed.{name}') AS {dataType})\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}') AS {dataType})\r\n");
-
-                result.Append($"{indent}SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Filter.{name}.value')\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Fixed.{name}.value')\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}.value')\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Filter.{name}')\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.Fixed.{name}')\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}')\r\n");
+                AppendSqlMultiAssign(result, indent,
+                    ($"@{prefix}_{name}_v1", $"TRY_CAST(JSON_VALUE({valuesVar}, '$[0]') AS {dataType})"),
+                    ($"@{prefix}_{name}_v2", $"TRY_CAST(JSON_VALUE({valuesVar}, '$[1]') AS {dataType})"));
             }
-            else
-            {
-                result.Append($"{indent}SELECT @{prefix}_{name}_op = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.op') AS TINYINT)\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_op IS NULL AND JSON_VALUE({jsonVariable}, '$.{name}') IS NOT NULL AND JSON_QUERY({jsonVariable}, '$.{name}') IS NULL SET @{prefix}_{name}_op = {defaultOp}\r\n");
-
-                result.Append($"{indent}SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}.value') AS {dataType})\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_v IS NULL SELECT @{prefix}_{name}_v = TRY_CAST(JSON_VALUE({jsonVariable}, '$.{name}') AS {dataType})\r\n");
-
-                result.Append($"{indent}SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}.value')\r\n");
-                result.Append($"{indent}IF @{prefix}_{name}_vals IS NULL SELECT @{prefix}_{name}_vals = JSON_QUERY({jsonVariable}, '$.{name}')\r\n");
-            }
-
-            result.Append($"{indent}SELECT @{prefix}_{name}_v1 = TRY_CAST(JSON_VALUE(@{prefix}_{name}_vals, '$[0]') AS {dataType})\r\n");
-            result.Append($"{indent}SELECT @{prefix}_{name}_v2 = TRY_CAST(JSON_VALUE(@{prefix}_{name}_vals, '$[1]') AS {dataType})\r\n");
         }
+
+        private static DataRow RequireRow(IEnumerable<DataRow> rows, Func<DataRow, bool> predicate, string message) =>
+            rows.FirstOrDefault(predicate) ?? throw new Exception(message);
+
+        private static void RequireNotEmpty<T>(ICollection<T> items, string message)
+        {
+            if (items.Count == 0)
+                throw new Exception(message);
+        }
+
+        private static void RequireComparatorIds(string listIds, string comparatorType)
+        {
+            if (listIds == string.Empty)
+                throw new Exception($"Comparators: nenhum comparador do tipo '{comparatorType}' encontrado no metadado.");
+        }
+
+        private static string TableName(DataRow table) => Settings.ToString(table["Name"]);
 
         private static List<DataRow> GetDatabaseTableRows(TDataRows databaseTables, TDataRows tables, TDataRows columns)
         {
@@ -335,7 +386,10 @@ namespace crudex.Classes
 
             foreach (var databaseTable in databaseTables)
             {
-                var table = tables.First(row => Settings.ToLong(row["Id"]) == Settings.ToLong(databaseTable["TableId"]));
+                var table = RequireRow(tables, row => Settings.ToLong(row["Id"]) == Settings.ToLong(databaseTable["TableId"]),
+                    $"DatabasesTables referencia TableId {databaseTable["TableId"]} inexistente em Tables.");
+                if (GetTableColumnRows(columns, table).Count == 0)
+                    throw new Exception($"Tabela '{table["Name"]}' em DatabasesTables não possui colunas cadastradas em Columns.");
                 var id = Settings.ToLong(table["Id"]);
                 if (seen.Add(id))
                     rows.Add(table);
@@ -344,8 +398,10 @@ namespace crudex.Classes
             foreach (var table in tables)
             {
                 var id = Settings.ToLong(table["Id"]);
-                if (seen.Contains(id) || GetTableColumnRows(columns, table).Count == 0)
+                if (seen.Contains(id))
                     continue;
+                if (GetTableColumnRows(columns, table).Count == 0)
+                    throw new Exception($"Tabela '{table["Name"]}' não possui colunas cadastradas em Columns.");
                 rows.Add(table);
                 seen.Add(id);
             }
@@ -366,10 +422,17 @@ namespace crudex.Classes
         {
             if (table.Columns.Contains(columnName))
                 return columnName;
-            var marked = $"*{columnName}";
-            if (table.Columns.Contains(marked))
-                return marked;
-            throw new ArgumentException($"Column '{columnName}' does not belong to table {table.TableName}.");
+
+            var prefixedMatches = table.Columns.Cast<DataColumn>()
+                .Where(column => string.Equals(NormalizeColumnHeader(column.ColumnName), columnName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (prefixedMatches.Count == 1)
+                return prefixedMatches[0].ColumnName;
+            if (prefixedMatches.Count > 1)
+                throw new Exception($"Column '{columnName}' is ambiguous in table {table.TableName}.");
+
+            var availableColumns = string.Join(", ", table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
+            throw new Exception($"Column '{columnName}' does not belong to table {table.TableName}. Columns: [{availableColumns}]");
         }
 
         static object? GetRowValue(DataRow row, string columnName) =>
@@ -387,17 +450,20 @@ namespace crudex.Classes
         static bool IsMarkedPrimaryKeyHeader(string header) =>
             !string.IsNullOrWhiteSpace(header) && header.TrimStart().StartsWith("*");
 
-        static void NormalizeExcelDataSetColumnNames(DataSet dataset)
+        static void StripPrimaryKeyMarkersFromDataTable(DataTable table)
+        {
+            foreach (var column in table.Columns.Cast<DataColumn>().ToList())
+            {
+                var normalized = NormalizeColumnHeader(column.ColumnName);
+                if (!string.Equals(column.ColumnName, normalized, StringComparison.Ordinal))
+                    column.ColumnName = normalized;
+            }
+        }
+
+        static void StripPrimaryKeyMarkersFromExcelDataSet(DataSet dataset)
         {
             foreach (DataTable table in dataset.Tables)
-            {
-                foreach (var column in table.Columns.Cast<DataColumn>().ToList())
-                {
-                    var normalized = NormalizeColumnHeader(column.ColumnName);
-                    if (!string.Equals(column.ColumnName, normalized, StringComparison.Ordinal))
-                        column.ColumnName = normalized;
-                }
-            }
+                StripPrimaryKeyMarkersFromDataTable(table);
         }
 
         static void ApplyPrimaryKeysFromExcelHeaders(DataSet dataset)
@@ -405,51 +471,113 @@ namespace crudex.Classes
             var tables = (dataset.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
             var columns = (dataset.Tables["Columns"] ?? throw new Exception("Tabela Columns não existe.")).AsEnumerable().ToList();
             var columnsTable = dataset.Tables["Columns"]!;
-
-            if (!columnsTable.Columns.Contains("PkSequence"))
-                columnsTable.Columns.Add("PkSequence", typeof(long));
+            var pkSequenceByColumn = new Dictionary<DataRow, long>();
 
             foreach (var table in tables)
             {
                 var worksheetName = Settings.ToString(GetRowValue(table, "Name"));
-                if (string.IsNullOrWhiteSpace(worksheetName) || !dataset.Tables.Contains(worksheetName))
-                    continue;
+                if (string.IsNullOrWhiteSpace(worksheetName))
+                    throw new Exception("Tabela em Tables sem Name definido.");
 
-                var worksheet = dataset.Tables[worksheetName]!;
                 var tableId = Settings.ToLong(GetRowValue(table, "Id"));
                 var tableColumns = columns.FindAll(row => Settings.ToLong(GetRowValue(row, "TableId")) == tableId);
                 if (tableColumns.Count == 0)
-                    continue;
+                    throw new Exception($"Tabela '{worksheetName}' não possui colunas cadastradas em Columns.");
 
-                var headers = worksheet.Columns.Cast<DataColumn>()
-                    .Select(column => $"{column.ColumnName}".Trim())
-                    .Where(columnName => columnName != string.Empty && !columnName.StartsWith("#"))
-                    .ToList();
+                if (!dataset.Tables.Contains(worksheetName))
+                    throw new Exception($"Aba de dados '{worksheetName}' não encontrada no Excel.");
+
+                var worksheet = dataset.Tables[worksheetName]!;
 
                 foreach (var row in tableColumns)
-                {
-                    SetRowValue(row, "IsPrimarykey", false);
-                    row["PkSequence"] = DBNull.Value;
-                }
+                    pkSequenceByColumn.Remove(row);
 
+                var pkHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var dataHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 long pkSequence = 0;
-                foreach (var header in headers)
+                foreach (DataColumn headerColumn in worksheet.Columns.Cast<DataColumn>())
                 {
+                    var header = $"{headerColumn.ColumnName}".Trim();
+                    if (header == string.Empty || header.StartsWith("#"))
+                        continue;
+
                     var normalizedHeader = NormalizeColumnHeader(header);
                     var row = tableColumns.FirstOrDefault(column =>
                         string.Equals(Settings.ToString(GetRowValue(column, "Name")), normalizedHeader, StringComparison.OrdinalIgnoreCase)
                         || string.Equals(Settings.ToString(GetRowValue(column, "Name")), header, StringComparison.OrdinalIgnoreCase));
-                    if (row == null)
-                        continue;
 
-                    SetRowValue(row, "Name", normalizedHeader);
+                    if (row == null)
+                        throw new Exception($"Coluna '{normalizedHeader}' na aba '{worksheetName}' não está cadastrada em Columns.");
+
+                    dataHeaders.Add(normalizedHeader);
+
                     if (IsMarkedPrimaryKeyHeader(header))
                     {
-                        SetRowValue(row, "IsPrimarykey", true);
-                        row["PkSequence"] = ++pkSequence;
+                        if (!Settings.ToBoolean(GetRowValue(row, "IsPrimarykey")))
+                            throw new Exception($"Coluna '{normalizedHeader}' da tabela '{worksheetName}' está marcada com '*' na aba de dados, mas IsPrimarykey não está definido em Columns.");
+
+                        if (!Settings.ToBoolean(GetRowValue(row, "IsRequired")))
+                            throw new Exception($"Coluna '{normalizedHeader}' da tabela '{worksheetName}' está marcada com '*' na aba de dados, mas IsRequired não está definido em Columns.");
+
+                        pkHeaders.Add(normalizedHeader);
+                        pkSequenceByColumn[row] = ++pkSequence;
                     }
+                    else if (Settings.ToBoolean(GetRowValue(row, "IsPrimarykey")))
+                        throw new Exception($"Coluna '{normalizedHeader}' da tabela '{worksheetName}' não está marcada com '*' na aba de dados, mas IsPrimarykey está definido em Columns.");
+
+                    SetRowValue(row, "Name", normalizedHeader);
                 }
+
+                foreach (var row in tableColumns.Where(row => Settings.ToBoolean(GetRowValue(row, "IsPrimarykey"))))
+                {
+                    var name = Settings.ToString(GetRowValue(row, "Name"));
+                    if (!Settings.ToBoolean(GetRowValue(row, "IsRequired")))
+                        throw new Exception($"Coluna '{name}' da tabela '{worksheetName}' tem IsPrimarykey em Columns, mas IsRequired não está definido.");
+                    if (!pkHeaders.Contains(name))
+                        throw new Exception($"Coluna '{name}' tem IsPrimarykey em Columns, mas não está marcada com '*' na aba '{worksheetName}'.");
+                }
+
+                foreach (var row in tableColumns.Where(row => !IsVirtualColumn(row)))
+                {
+                    var name = Settings.ToString(GetRowValue(row, "Name"));
+                    if (!dataHeaders.Contains(name))
+                        throw new Exception($"Coluna '{name}' cadastrada em Columns para '{worksheetName}', mas não existe na aba de dados.");
+                }
+
+                var physicalColumnRows = tableColumns.FindAll(row => !IsVirtualColumn(row));
+                ValidateAutoIncrementPrimaryKeyRules(worksheetName, physicalColumnRows, GetPrimaryKeyColumnRows(physicalColumnRows));
             }
+
+            if (!columnsTable.Columns.Contains("PkSequence"))
+                columnsTable.Columns.Add("PkSequence", typeof(long));
+
+            foreach (var row in columns)
+                row["PkSequence"] = pkSequenceByColumn.TryGetValue(row, out var sequence) ? sequence : DBNull.Value;
+        }
+
+        static void ValidateAutoIncrementPrimaryKeyRules(string tableName, TDataRows physicalColumnRows, List<DataRow> primaryColumns)
+        {
+            var autoIncrementColumns = physicalColumnRows.FindAll(column => Settings.ToBoolean(column["IsAutoIncrement"]));
+            if (autoIncrementColumns.Count == 0)
+                return;
+
+            if (autoIncrementColumns.Count > 1)
+            {
+                var names = string.Join(", ", autoIncrementColumns.Select(column => Settings.ToString(column["Name"])));
+                throw new Exception($"Tabela '{tableName}' possui mais de uma coluna com autoincrement ({names}).");
+            }
+
+            var autoIncrementColumn = autoIncrementColumns[0];
+            var autoIncrementName = Settings.ToString(autoIncrementColumn["Name"]);
+
+            if (!Settings.ToBoolean(autoIncrementColumn["IsPrimarykey"]))
+                throw new Exception($"Coluna '{autoIncrementName}' da tabela '{tableName}' tem autoincrement, mas não é primary key.");
+
+            if (primaryColumns.Count != 1)
+                throw new Exception($"Tabela '{tableName}' com autoincrement deve ter exatamente uma primary key, a coluna '{autoIncrementName}'.");
+
+            if (!string.Equals(Settings.ToString(primaryColumns[0]["Name"]), autoIncrementName, StringComparison.OrdinalIgnoreCase))
+                throw new Exception($"Tabela '{tableName}' com autoincrement deve ter como única primary key a coluna '{autoIncrementName}'.");
         }
 
         static List<DataRow> GetPrimaryKeyColumnRows(TDataRows physicalColumnRows) =>
@@ -486,20 +614,12 @@ namespace crudex.Classes
 
         static void AppendPrimaryKeyVariableAssignments(StringBuilder result, TDataRows primaryColumns, string jsonVariable, string indent)
         {
-            var firstTime = true;
             foreach (var column in primaryColumns)
             {
                 var variable = PkVariableName(column);
-                var line = $"{variable} = CAST(JSON_VALUE({jsonVariable}, '$.{column["Name"]}') AS {column["#DataType"]})";
-                if (firstTime)
-                {
-                    result.Append($"{indent}SET {line}\r\n");
-                    firstTime = false;
-                }
-                else
-                    result.Append($"{indent}    ,{line}\r\n");
+                result.Append($"{indent}SET {variable} = CAST(JSON_VALUE({jsonVariable}, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
             }
-            if (!firstTime)
+            if (primaryColumns.Count > 0)
                 result.Append($"\r\n");
         }
 
@@ -621,7 +741,7 @@ namespace crudex.Classes
             result.Append($"{indent},[{InWordsColumnName(column["Name"])}]\r\n");
         }
 
-        private static void AppendReadExecutesqlParams(StringBuilder result, TDataRows filterableColumns, bool includeTableFilters, bool includeGridFilters, string indent)
+        private static void AppendReadExecutesqlParams(StringBuilder result, TDataRows filterableColumns, bool includeTableFilters, bool includeGridFilters, TDictionary[] comparators, Dictionary<long, List<long>> rulesByCategory, TDataRows domains, TDataRows types, string indent)
         {
             if (!includeTableFilters && !includeGridFilters)
                 return;
@@ -646,6 +766,7 @@ namespace crudex.Classes
                     break;
                 var name = column["Name"];
                 var dataType = column["#DataType"];
+                var needsBetweenSlots = CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types);
                 if (first)
                 {
                     result.Append($"{indent},N'");
@@ -653,12 +774,15 @@ namespace crudex.Classes
                 }
                 else
                     result.Append(",");
-                result.Append($"@{name} {dataType},@{name}_v1 {dataType},@{name}_v2 {dataType},@{name}_vals NVARCHAR(MAX)");
+                result.Append($"@{name} {dataType}");
+                if (needsBetweenSlots)
+                    result.Append($",@{name}_v1 {dataType},@{name}_v2 {dataType}");
+                result.Append($",@{name}_vals NVARCHAR(MAX)");
             }
             if (!first)
                 result.Append($"'\r\n");
         }
-        private static void AppendReadExecutesqlAssignments(StringBuilder result, TDataRows filterableColumns, bool includeTableFilters, bool includeGridFilters, string indent)
+        private static void AppendReadExecutesqlAssignments(StringBuilder result, TDataRows filterableColumns, bool includeTableFilters, bool includeGridFilters, TDictionary[] comparators, Dictionary<long, List<long>> rulesByCategory, TDataRows domains, TDataRows types, string indent)
         {
             if (includeTableFilters)
                 foreach (var column in filterableColumns)
@@ -667,9 +791,13 @@ namespace crudex.Classes
                 foreach (var column in filterableColumns)
                 {
                     var name = column["Name"];
+                    var needsBetweenSlots = CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types);
                     result.Append($"{indent},@{name} = @G_{name}_v\r\n");
-                    result.Append($"{indent},@{name}_v1 = @G_{name}_v1\r\n");
-                    result.Append($"{indent},@{name}_v2 = @G_{name}_v2\r\n");
+                    if (needsBetweenSlots)
+                    {
+                        result.Append($"{indent},@{name}_v1 = @G_{name}_v1\r\n");
+                        result.Append($"{indent},@{name}_v2 = @G_{name}_v2\r\n");
+                    }
                     result.Append($"{indent},@{name}_vals = @G_{name}_vals\r\n");
                 }
         }
@@ -940,7 +1068,8 @@ namespace crudex.Classes
         {
             var result = new StringBuilder();
             var alias = GetTransactionTableAlias(tables);
-            var transactionTable = tables.First(row => string.Equals(Settings.ToString(row["Name"]), "Transactions", StringComparison.OrdinalIgnoreCase));
+            var transactionTable = RequireRow(tables, row => string.Equals(Settings.ToString(row["Name"]), "Transactions", StringComparison.OrdinalIgnoreCase),
+                "Tabela Transactions não encontrada nos metadados.");
             var createProcedure = $"[dbo].[{BuildAliasProcedure(alias, "create")}]";
             var commitProcedure = $"[dbo].[{BuildAliasProcedure(alias, "commit")}]";
             var rollbackProcedure = $"[dbo].[{BuildAliasProcedure(alias, "rollback")}]";
@@ -970,6 +1099,11 @@ namespace crudex.Classes
             var columnRows = GetTableColumnRows(columns, table);
             var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
             var primaryColumns = GetPrimaryKeyColumnRows(physicalColumnRows);
+            var tableName = TableName(table);
+            RequireNotEmpty(columnRows, $"Tabela '{tableName}' não possui colunas cadastradas em Columns.");
+            RequireNotEmpty(physicalColumnRows, $"Tabela '{tableName}' não possui colunas físicas em Columns.");
+            RequireNotEmpty(primaryColumns, $"Tabela '{tableName}' deve ter ao menos uma coluna 'primary key'.");
+            ValidateAutoIncrementPrimaryKeyRules(tableName, physicalColumnRows, primaryColumns);
 
             if (columnRows.Count > 0)
             {
@@ -1006,8 +1140,6 @@ namespace crudex.Classes
                         var definition = $"[{column["Name"]}] {column["#DataType"]}{required}{defaultValue}{range}";
                         var message = $"Coluna definida na tabela '{table["Name"]}' ";
 
-                        if (Settings.ToBoolean(column["IsAutoIncrement"]) && !Settings.ToBoolean(column["IsPrimarykey"]))
-                            throw new Exception(message + "com 'auto increment' deve ser 'primary key'.");
                         if (Settings.ToBoolean(column["IsListable"]))
                         {
                             if (isListable)
@@ -1026,8 +1158,6 @@ namespace crudex.Classes
                 result.Append($"                                    ,[UpdatedBy] nvarchar(25) NULL\r\n");
                 result.Append($"                                    ,[ClientId] bigint NOT NULL DEFAULT 1\r\n");
                 result.Append($"                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())\r\n");
-                if (primaryColumns.Count == 0)
-                    throw new Exception($"Tabela '{table["Name"]}' deve ter ao menos uma coluna 'primary key'.");
                 result.Append($"ALTER TABLE [dbo].[{table["Name"]}] ADD CONSTRAINT PK_{table["Name"]} PRIMARY KEY CLUSTERED ({string.Join(", ", primaryColumns.Select(row => $"[{row["Name"]}]"))})\r\n");
 
                 var indexRows = indexes.FindAll(index => Settings.ToLong(index["TableId"]) == Settings.ToLong(table["Id"]));
@@ -1037,15 +1167,18 @@ namespace crudex.Classes
                     foreach (var index in indexRows)
                     {
                         var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
+                        if (indexkeyRows.Count == 0)
+                            throw new Exception($"Índice '{index["Name"]}' da tabela '{tableName}' não possui colunas em Indexkeys.");
 
                         if (indexkeyRows.Count > 0)
                         {
                             firstTime = true;
                             foreach (var indexkey in indexkeyRows)
                             {
-                                var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
+                                var column = RequireRow(columns, item => Settings.ToLong(item["Id"]) == Settings.ToLong(indexkey["ColumnId"]),
+                                    $"Indexkeys referencia ColumnId {indexkey["ColumnId"]} inexistente em Columns.");
                                 if (IsVirtualColumn(column))
-                                    continue;
+                                    throw new Exception($"Índice '{index["Name"]}' da tabela '{table["Name"]}' referencia coluna virtual '{column["Name"]}'.");
                                 var definition = $"[{column["Name"]}] {(Settings.ToBoolean(indexkey["IsDescending"]) ? "DESC" : "ASC")}";
 
                                 if (firstTime)
@@ -1058,6 +1191,8 @@ namespace crudex.Classes
                                 else
                                     result.Append($", {definition}");
                             }
+                            if (firstTime)
+                                throw new Exception($"Índice '{index["Name"]}' da tabela '{table["Name"]}' não possui colunas físicas.");
                             result.Append($")\r\n");
                         }
                     }
@@ -1078,9 +1213,16 @@ namespace crudex.Classes
             {
                 foreach (var foreign in foreignColumns)
                 {
-                    var primaryTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(foreign["TableId"]));
-                    var foreignTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(foreign["ReferenceTableId"]));
-                    var foreignKey = columns.First(column => Settings.ToLong(column["TableId"]) == Settings.ToLong(foreignTable["Id"]) && Settings.ToBoolean(column["IsPrimarykey"]));
+                    var primaryTable = RequireRow(tables, item => Settings.ToLong(item["Id"]) == Settings.ToLong(foreign["TableId"]),
+                        $"Columns referencia TableId {foreign["TableId"]} inexistente em Tables.");
+                    var foreignTable = RequireRow(tables, item => Settings.ToLong(item["Id"]) == Settings.ToLong(foreign["ReferenceTableId"]),
+                        $"Columns referencia ReferenceTableId {foreign["ReferenceTableId"]} inexistente em Tables.");
+                    var foreignKeyCandidates = columns.FindAll(column => Settings.ToLong(column["TableId"]) == Settings.ToLong(foreignTable["Id"]) && Settings.ToBoolean(column["IsPrimarykey"]));
+                    if (foreignKeyCandidates.Count == 0)
+                        throw new Exception($"Tabela referenciada '{foreignTable["Name"]}' não possui primary key para FK de '{foreign["Name"]}'.");
+                    if (foreignKeyCandidates.Count > 1)
+                        throw new Exception($"FK '{primaryTable["Name"]}_{foreignTable["Name"]}' não suporta primary key composta na tabela '{foreignTable["Name"]}'.");
+                    var foreignKey = foreignKeyCandidates[0];
                     var foreignName = $"FK_{primaryTable["Name"]}_{foreignTable["Name"]}";
 
                     if (primaryTable["Name"].ToString() != lastTableName)
@@ -1123,65 +1265,63 @@ namespace crudex.Classes
             if (dataRows.Count > 0)
             {
                 var columnRows = GetTableColumnRows(columns, table, physicalOnly: true);
+                RequireNotEmpty(columnRows, $"Tabela '{TableName(table)}' possui dados no Excel, mas não possui colunas físicas em Columns.");
 
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Inserir dados na tabela [dbo].[{table["Name"]}]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
-                if (columnRows.Count > 0)
+                foreach (var data in dataRows)
                 {
-                    foreach (var data in dataRows)
+                    var firstTime = true;
+
+                    foreach (var column in columnRows)
                     {
-                        var firstTime = true;
-
-                        foreach (var column in columnRows)
+                        if (firstTime)
                         {
-                            if (firstTime)
-                            {
-                                result.Append($"INSERT INTO [dbo].[{table["Name"]}] ([{column["Name"]}]\r\n");
-                                firstTime = false;
-                            }
-                            else
-                                result.Append($"                                ,[{column["Name"]}]\r\n");
+                            result.Append($"INSERT INTO [dbo].[{table["Name"]}] ([{column["Name"]}]\r\n");
+                            firstTime = false;
                         }
-                        result.Append($"                                ,[CreatedAt]\r\n");
-                        result.Append($"                                ,[CreatedBy]\r\n");
-                        result.Append($"                                ,[UpdatedAt]\r\n");
-                        result.Append($"                                ,[UpdatedBy])\r\n");
-                        firstTime = true;
-                        foreach (var column in columnRows)
-                        {
-                            var categoryName = Settings.ToString(column["#CategoryName"]);
-                            var columnName = Settings.ToString(column["Name"]);
-                            dynamic? value = data[columnName];
-
-                            if (categoryName == "numeric")
-                                value ??= null;
-                            else if (categoryName == "boolean")
-                                value = Settings.IsNull(value) ? null : value ? 1 : 0;
-                            if ((value = Settings.ToString(value)) == string.Empty)
-                                value = "NULL";
-                            else if (categoryName == "undefined")
-                                value = FormatSqlCast(Settings.ToString(value), Settings.ToString(data["#DataType"]));
-                            else
-                                value = FormatSqlCast(Settings.ToString(value), Settings.ToString(column["#DataType"]));
-                            if (firstTime)
-                            {
-                                result.Append($"                         VALUES ({value}");
-                                firstTime = false;
-                            }
-                            else
-                            {
-                                result.Append("\r\n");
-                                result.Append($"                                ,{value}");
-                            }
-                        }
-                        result.Append($"\r\n");
-                        result.Append($"                                ,GETDATE()\r\n");
-                        result.Append($"                                ,'crudex'\r\n");
-                        result.Append($"                                ,NULL\r\n");
-                        result.Append($"                                ,NULL)\r\n");
-                        result.Append($"GO\r\n");
+                        else
+                            result.Append($"                                ,[{column["Name"]}]\r\n");
                     }
+                    result.Append($"                                ,[CreatedAt]\r\n");
+                    result.Append($"                                ,[CreatedBy]\r\n");
+                    result.Append($"                                ,[UpdatedAt]\r\n");
+                    result.Append($"                                ,[UpdatedBy])\r\n");
+                    firstTime = true;
+                    foreach (var column in columnRows)
+                    {
+                        var categoryName = Settings.ToString(column["#CategoryName"]);
+                        var columnName = Settings.ToString(column["Name"]);
+                        dynamic? value = data[columnName];
+
+                        if (categoryName == "numeric")
+                            value ??= null;
+                        else if (categoryName == "boolean")
+                            value = Settings.IsNull(value) ? null : value ? 1 : 0;
+                        if ((value = Settings.ToString(value)) == string.Empty)
+                            value = "NULL";
+                        else if (categoryName == "undefined")
+                            value = FormatSqlCast(Settings.ToString(value), Settings.ToString(data["#DataType"]));
+                        else
+                            value = FormatSqlCast(Settings.ToString(value), Settings.ToString(column["#DataType"]));
+                        if (firstTime)
+                        {
+                            result.Append($"                         VALUES ({value}");
+                            firstTime = false;
+                        }
+                        else
+                        {
+                            result.Append("\r\n");
+                            result.Append($"                                ,{value}");
+                        }
+                    }
+                    result.Append($"\r\n");
+                    result.Append($"                                ,GETDATE()\r\n");
+                    result.Append($"                                ,'crudex'\r\n");
+                    result.Append($"                                ,NULL\r\n");
+                    result.Append($"                                ,NULL)\r\n");
+                    result.Append($"GO\r\n");
                 }
             }
 
@@ -1203,6 +1343,8 @@ namespace crudex.Classes
             var columnRows = GetTableColumnRows(columns, table);
             var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
             var primaryColumns = GetPrimaryKeyColumnRows(physicalColumnRows);
+            RequireNotEmpty(physicalColumnRows, $"Tabela '{TableName(table)}' não possui colunas físicas em Columns.");
+            RequireNotEmpty(primaryColumns, $"Tabela '{TableName(table)}' deve ter ao menos uma coluna 'primary key'.");
 
             if (physicalColumnRows.Count > 0)
             {
@@ -1232,10 +1374,11 @@ namespace crudex.Classes
                 foreach (var column in primaryColumns)
                     result.Append($"               ,{PkVariableName(column)} {column["#DataType"]}\r\n");
                 result.Append($"\r\n");
-                result.Append($"    IF @Action = 'delete'\r\n");
+                result.Append($"    IF @Action = 'delete' BEGIN\r\n");
                 AppendPrimaryKeyVariableAssignments(result, primaryColumns, "@LastRecord", "        ");
-                result.Append($"    ELSE\r\n");
+                result.Append($"    END ELSE BEGIN\r\n");
                 AppendPrimaryKeyVariableAssignments(result, primaryColumns, "@ActualRecord", "        ");
+                result.Append($"    END\r\n");
                 AppendResolveCreateId(result, table, primaryColumns, systemName, databaseName);
                 result.Append($"    EXEC @TransactionId = [dbo].[{table["Alias"]}Validate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord\r\n");
                 result.Append($"        SELECT @OperationId = [Id]\r\n");
@@ -1272,17 +1415,17 @@ namespace crudex.Classes
                 result.Append($"        END ELSE IF @IsConfirmed IS NOT NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
-                result.Append($"        END ELSE IF @UserName <> @CreatedBy\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        ELSE IF @UserName <> @CreatedBy\r\n");
                 result.Append($"            THROW 51000, 'Erro grave de segurança', 1\r\n");
                 result.Append($"        ELSE IF @ActionAux = 'delete'\r\n");
                 result.Append($"            THROW 51000, 'Registro excluído nesta transação', 1\r\n");
-                result.Append($"        ELSE IF @Action = 'create' BEGIN\r\n");
+                result.Append($"        ELSE IF @Action = 'create'\r\n");
                 result.Append($"            UPDATE [dbo].[Operations]\r\n");
                 result.Append($"                SET [ActualRecord] = @ActualRecord\r\n");
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
                 result.Append($"                WHERE [Id] = @OperationId\r\n");
-                result.Append($"        END\r\n");
                 result.Append($"        ELSE IF @Action = 'update' BEGIN\r\n");
                 result.Append($"            IF @ActionAux = 'create'\r\n");
                 result.Append($"                EXEC [dbo].[{table["Alias"]}Validate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord\r\n");
@@ -1291,13 +1434,14 @@ namespace crudex.Classes
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
                 result.Append($"                WHERE [Id] = @OperationId\r\n");
-                result.Append($"        END ELSE IF @ActionAux = 'create' BEGIN\r\n");
+                result.Append($"        END\r\n");
+                result.Append($"        ELSE IF @ActionAux = 'create'\r\n");
                 result.Append($"            UPDATE [dbo].[Operations] \r\n");
                 result.Append($"                SET [IsConfirmed] = 0\r\n");
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
                 result.Append($"                WHERE [Id] = @OperationId\r\n");
-                result.Append($"        END ELSE BEGIN\r\n");
+                result.Append($"        ELSE\r\n");
                 result.Append($"            UPDATE [dbo].[Operations]\r\n");
                 result.Append($"                SET [Action] = 'delete'\r\n");
                 result.Append($"                   ,[LastRecord] = @LastRecord\r\n");
@@ -1305,7 +1449,6 @@ namespace crudex.Classes
                 result.Append($"                   ,[UpdatedAt] = GETDATE()\r\n");
                 result.Append($"                   ,[UpdatedBy] = @UserName\r\n");
                 result.Append($"                WHERE [Id] = @OperationId\r\n");
-                result.Append($"        END\r\n");
                 result.Append($"\r\n");
                 result.Append($"    RETURN CAST(@OperationId AS BIGINT)\r\n");
                 result.Append($"END\r\n");
@@ -1408,6 +1551,8 @@ namespace crudex.Classes
             var result = new StringBuilder();
             var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
             var primaryColumns = GetPrimaryKeyColumnRows(physicalColumnRows);
+            RequireNotEmpty(physicalColumnRows, $"Tabela '{TableName(table)}' não possui colunas físicas em Columns.");
+            RequireNotEmpty(primaryColumns, $"Tabela '{TableName(table)}' deve ter ao menos uma coluna 'primary key'.");
 
             if (physicalColumnRows.Count > 0)
             {
@@ -1450,6 +1595,8 @@ namespace crudex.Classes
             var result = new StringBuilder();
             var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
             var primaryColumns = GetPrimaryKeyColumnRows(physicalColumnRows);
+            RequireNotEmpty(physicalColumnRows, $"Tabela '{TableName(table)}' não possui colunas físicas em Columns.");
+            RequireNotEmpty(primaryColumns, $"Tabela '{TableName(table)}' deve ter ao menos uma coluna 'primary key'.");
 
             if (physicalColumnRows.Count > 0)
             {
@@ -1482,6 +1629,8 @@ namespace crudex.Classes
             var result = new StringBuilder();
             var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
             var primaryColumns = GetPrimaryKeyColumnRows(physicalColumnRows);
+            RequireNotEmpty(physicalColumnRows, $"Tabela '{TableName(table)}' não possui colunas físicas em Columns.");
+            RequireNotEmpty(primaryColumns, $"Tabela '{TableName(table)}' deve ter ao menos uma coluna 'primary key'.");
 
             if (physicalColumnRows.Count > 0)
             {
@@ -1501,6 +1650,9 @@ namespace crudex.Classes
             var columnRows = GetTableColumnRows(columns, table);
             var physicalColumnRows = GetTableColumnRows(columns, table, physicalOnly: true);
             var primaryColumns = GetPrimaryKeyColumnRows(physicalColumnRows);
+            RequireNotEmpty(columnRows, $"Tabela '{TableName(table)}' não possui colunas cadastradas em Columns.");
+            RequireNotEmpty(physicalColumnRows, $"Tabela '{TableName(table)}' não possui colunas físicas em Columns.");
+            RequireNotEmpty(primaryColumns, $"Tabela '{TableName(table)}' deve ter ao menos uma coluna 'primary key'.");
 
             if (columnRows.Count > 0)
             {
@@ -1547,10 +1699,11 @@ namespace crudex.Classes
                 foreach (var column in primaryColumns)
                     result.Append($"               ,{PkVariableName(column)} {column["#DataType"]}\r\n");
                 result.Append($"\r\n");
-                result.Append($"        IF @Action = 'delete'\r\n");
+                result.Append($"        IF @Action = 'delete' BEGIN\r\n");
                 AppendPrimaryKeyVariableAssignments(result, primaryColumns, "@LastRecord", "            ");
-                result.Append($"        ELSE\r\n");
+                result.Append($"        END ELSE BEGIN\r\n");
                 AppendPrimaryKeyVariableAssignments(result, primaryColumns, "@ActualRecord", "            ");
+                result.Append($"        END\r\n");
                 result.Append($"        SELECT @IsConfirmed = [IsConfirmed]\r\n");
                 result.Append($"              ,@CreatedBy = [CreatedBy]\r\n");
                 result.Append($"            FROM [dbo].[Transactions]\r\n");
@@ -1586,10 +1739,9 @@ namespace crudex.Classes
                 }
                 result.Append($"        IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE ");
                 AppendPrimaryKeyWhereClause(result, primaryColumns, string.Empty, "@W_", firstConditionPrefix: string.Empty);
-                result.Append(") BEGIN\r\n");
-                result.Append($"            IF @Action = 'create'\r\n");
-                result.Append($"                THROW 51000, 'Chave-primária já existe em {table["Name"]}', 1\r\n");
-                result.Append($"        END ELSE IF @Action = 'delete' AND EXISTS(SELECT 1\r\n");
+                result.Append(") AND @Action = 'create'\r\n");
+                result.Append($"            THROW 51000, 'Chave-primária já existe em {table["Name"]}', 1\r\n");
+                result.Append($"        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1\r\n");
                 result.Append($"                                    FROM [dbo].[Operations]\r\n");
                 result.Append($"                                    WHERE [TransactionId] = @TransactionId\r\n");
                 result.Append($"                                          AND [TableName] = '{table["Name"]}'\r\n");
@@ -1597,7 +1749,7 @@ namespace crudex.Classes
                 result.Append($"                                          AND [Action] = 'create'\r\n");
                 result.Append($"                                          AND ");
                 AppendPrimaryKeyJsonMatchClause(result, primaryColumns, "ISNULL([ActualRecord], [LastRecord])", linePrefix: "                                          ");
-                result.Append(")\r\n");
+                result.Append($")\r\n");
                 result.Append($"            SET @IsPendingCreate = 1\r\n");
                 result.Append($"        ELSE IF @Action <> 'create'\r\n");
                 result.Append($"            THROW 51000, 'Chave-primária não existe em {table["Name"]}', 1\r\n");
@@ -1707,7 +1859,8 @@ namespace crudex.Classes
                     }
                     if (!Settings.IsNull(column["ReferenceTableId"]))
                     {
-                        var referenceTable = tables.First(table => Settings.ToLong(table["Id"]) == Settings.ToLong(column["ReferenceTableId"]));
+                        var referenceTable = RequireRow(tables, item => Settings.ToLong(item["Id"]) == Settings.ToLong(column["ReferenceTableId"]),
+                            $"Columns referencia ReferenceTableId {column["ReferenceTableId"]} inexistente em Tables.");
                         var fkVariable = $"@W_{column["Name"]}";
                         var existsPrefix = isRequired ? string.Empty : $"{fkVariable} IS NOT NULL AND ";
 
@@ -1722,17 +1875,21 @@ namespace crudex.Classes
 
                 if (uniqueIndexRows.Count > 0 || uniqueRows.Count > 0)
                 {
+                    var firstUpdateUniqueCheck = true;
                     result.Append($"            IF @Action = 'create' BEGIN\r\n");
                     foreach (var index in uniqueIndexRows)
                     {
                         var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
+                        if (indexkeyRows.Count == 0)
+                            throw new Exception($"Índice único '{index["Name"]}' da tabela '{table["Name"]}' não possui colunas em Indexkeys.");
 
                         firstTime = true;
                         foreach (var indexkey in indexkeyRows)
                         {
-                            var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
+                            var column = RequireRow(columns, item => Settings.ToLong(item["Id"]) == Settings.ToLong(indexkey["ColumnId"]),
+                                $"Indexkeys referencia ColumnId {indexkey["ColumnId"]} inexistente em Columns.");
                             if (IsVirtualColumn(column))
-                                continue;
+                                throw new Exception($"Índice único '{index["Name"]}' da tabela '{table["Name"]}' referencia coluna virtual '{column["Name"]}'.");
 
                             if (firstTime)
                             {
@@ -1742,6 +1899,8 @@ namespace crudex.Classes
                             else
                                 result.Append($" AND [{column["Name"]}] = @W_{column["Name"]}");
                         }
+                        if (firstTime)
+                            throw new Exception($"Índice único '{index["Name"]}' da tabela '{table["Name"]}' não possui colunas físicas.");
                         result.Append($")\r\n");
                         result.Append($"                    THROW 51000, 'Chave única de {index["Name"]} já existe', 1\r\n");
                     }
@@ -1758,43 +1917,58 @@ namespace crudex.Classes
                     foreach (var index in uniqueIndexRows)
                     {
                         var indexkeyRows = indexkeys.FindAll(indexkey => Settings.ToLong(indexkey["IndexId"]) == Settings.ToLong(index["Id"]));
+                        if (indexkeyRows.Count == 0)
+                            throw new Exception($"Índice único '{index["Name"]}' da tabela '{table["Name"]}' não possui colunas em Indexkeys.");
 
                         firstTime = true;
                         foreach (var indexkey in indexkeyRows)
                         {
-                            var column = columns.First(column => Settings.ToLong(column["Id"]) == Settings.ToLong(indexkey["ColumnId"]));
+                            var column = RequireRow(columns, item => Settings.ToLong(item["Id"]) == Settings.ToLong(indexkey["ColumnId"]),
+                                $"Indexkeys referencia ColumnId {indexkey["ColumnId"]} inexistente em Columns.");
                             if (IsVirtualColumn(column))
-                                continue;
+                                throw new Exception($"Índice único '{index["Name"]}' da tabela '{table["Name"]}' referencia coluna virtual '{column["Name"]}'.");
 
                             if (firstTime)
                             {
-                                result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{column["Name"]}] = @W_{column["Name"]}");
+                                if (firstUpdateUniqueCheck)
+                                {
+                                    result.Append($"            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{column["Name"]}] = @W_{column["Name"]}");
+                                    firstUpdateUniqueCheck = false;
+                                }
+                                else
+                                    result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE [{column["Name"]}] = @W_{column["Name"]}");
                                 firstTime = false;
                             }
                             else
                                 result.Append($" AND [{column["Name"]}] = @W_{column["Name"]}");
                         }
+                        if (firstTime)
+                            throw new Exception($"Índice único '{index["Name"]}' da tabela '{table["Name"]}' não possui colunas físicas.");
                         result.Append($" AND ");
                         AppendPrimaryKeyExcludeCurrentRow(result, primaryColumns, string.Empty, "@W_", string.Empty);
-                        result.Append($")\r\n");
+                        result.Append($") \r\n");
                         result.Append($"                THROW 51000, 'Chave única de {index["Name"]} já existe', 1\r\n");
                     }
                     foreach (var unique in uniqueRows)
                     {
-                        result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName1"]}] WHERE [{unique["#ColumnName1"]}] = @W_{unique["#ColumnName2"]}");
+                        if (firstUpdateUniqueCheck)
+                        {
+                            result.Append($"            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName1"]}] WHERE [{unique["#ColumnName1"]}] = @W_{unique["#ColumnName2"]}");
+                            firstUpdateUniqueCheck = false;
+                        }
+                        else
+                            result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName1"]}] WHERE [{unique["#ColumnName1"]}] = @W_{unique["#ColumnName2"]}");
                         AppendPrimaryKeyExcludeCurrentRow(result, primaryColumns, string.Empty, "@W_", string.Empty);
-                        result.Append($")\r\n");
+                        result.Append($") \r\n");
                         result.Append($"                THROW 51000, 'Unicidade cruzada de [{unique["#TableAlias1"]}].[{unique["#ColumnName1"]}] => [{unique["#TableAlias2"]}].[{unique["#ColumnName2"]}] já existe', 1\r\n");
                         if (Settings.ToBoolean(unique["IsBidirectional"]))
                         {
                             result.Append($"            ELSE IF EXISTS(SELECT 1 FROM [dbo].[{unique["#TableName2"]}] WHERE [{unique["#ColumnName2"]}] = @W_{unique["#ColumnName1"]}");
                             AppendPrimaryKeyExcludeCurrentRow(result, primaryColumns, string.Empty, "@W_", string.Empty);
-                            result.Append($")\r\n");
+                            result.Append($") \r\n");
                             result.Append($"                THROW 51000, 'Unicidade cruzada de [{unique["#TableAlias2"]}].[{unique["#ColumnName2"]}] => [{unique["#TableAlias1"]}].[{unique["#ColumnName1"]}] já existe', 1\r\n");
                         }
                     }
-
-                    result.Append($"            END\r\n");
                 }
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
@@ -1860,7 +2034,7 @@ namespace crudex.Classes
             return result;
         }
 
-        private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types)
+        private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDictionary[] comparators, Dictionary<long, List<long>> rulesByCategory)
         {
             var result = new StringBuilder();
             var columnRows = GetTableColumnRows(columns, table);
@@ -1872,6 +2046,9 @@ namespace crudex.Classes
             var primaryKeyIndexColumns = BuildPrimaryKeyIndexColumns(primaryColumns);
             var primaryKeyColumnDefinitions = BuildPrimaryKeyColumnDefinitions(primaryColumns);
             var primaryKeyGridFilter = BuildPrimaryKeyGridFilterClause(primaryColumns);
+            RequireNotEmpty(columnRows, $"Tabela '{TableName(table)}' não possui colunas cadastradas em Columns.");
+            RequireNotEmpty(physicalColumnRows, $"Tabela '{TableName(table)}' não possui colunas físicas em Columns.");
+            RequireNotEmpty(primaryColumns, $"Tabela '{TableName(table)}' deve ter ao menos uma coluna 'primary key'.");
 
             if (columnRows.Count > 0)
             {
@@ -1882,9 +2059,8 @@ namespace crudex.Classes
                 result.Append($"    EXEC('CREATE PROCEDURE [dbo].[{table["Name"]}Read] AS PRINT 1')\r\n");
                 result.Append($"GO\r\n");
                 result.Append($"ALTER PROCEDURE [dbo].[{table["Name"]}Read](@Login NVARCHAR(MAX)\r\n");
-                result.Append($"                                          ,@RecordFilterGrid NVARCHAR(MAX)\r\n");
-                result.Append($"                                          ,@RecordFilterTable NVARCHAR(MAX)\r\n");
-                result.Append($"                                          ,@RecordSearch NVARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@Filter NVARCHAR(MAX)\r\n");
+                result.Append($"                                          ,@Search NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@OrderBy NVARCHAR(MAX)\r\n");
                 result.Append($"                                          ,@PaddingGridLastPage BIT\r\n");
                 result.Append($"                                          ,@IsActionList BIT\r\n");
@@ -1898,16 +2074,14 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"    DECLARE @LoginId BIGINT\r\n");
                 AppendLoginCall(result, "@LoginId");
-                result.Append($"    IF @RecordFilterGrid IS NULL\r\n");
-                result.Append("            SET @RecordFilterGrid = '{}'\r\n");
-                result.Append($"        ELSE IF ISJSON(@RecordFilterGrid) = 0\r\n");
-                result.Append($"            THROW 51000, 'Valor de @RecordFilterGrid não está no formato JSON', 1\r\n");
-                result.Append($"        IF @RecordFilterTable IS NULL\r\n");
-                result.Append("            SET @RecordFilterTable = '{}'\r\n");
-                result.Append($"        ELSE IF ISJSON(@RecordFilterTable) = 0\r\n");
-                result.Append($"            THROW 51000, 'Valor de @RecordFilterTable não está no formato JSON', 1\r\n");
-                result.Append($"        IF @RecordSearch IS NOT NULL AND ISJSON(@RecordSearch) = 0\r\n");
-                result.Append($"            THROW 51000, 'Valor de @RecordSearch não está no formato JSON', 1\r\n");
+                result.Append($"        IF @Filter IS NULL\r\n");
+                result.Append("            SET @Filter = '{}'\r\n");
+                result.Append($"        ELSE IF ISJSON(@Filter) = 0\r\n");
+                result.Append($"            THROW 51000, 'Valor de @Filter não está no formato JSON', 1\r\n");
+                result.Append($"        IF @Search IS NULL\r\n");
+                result.Append("            SET @Search = '{}'\r\n");
+                result.Append($"        ELSE IF ISJSON(@Search) = 0\r\n");
+                result.Append($"            THROW 51000, 'Valor de @Search não está no formato JSON', 1\r\n");
                 result.Append($"        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))\r\n");
                 result.Append($"        IF @OrderBy = ''\r\n");
                 result.Append($"            SET @OrderBy = '{defaultOrderBy}'\r\n");
@@ -1934,15 +2108,6 @@ namespace crudex.Classes
                 result.Append($"                                                         ELSE 'ASC'\r\n");
                 result.Append($"                                                    END, ', ')\r\n");
                 result.Append($"                FROM STRING_SPLIT(@OrderBy, ',')\r\n");
-                if (primaryColumns.Count > 0)
-                {
-                    result.Append($"            IF ");
-                    var orderChecks = primaryColumns.Select(column =>
-                        $"CHARINDEX('[T].[{column["Name"]}]', @OrderBy) = 0");
-                    result.Append(string.Join(" AND ", orderChecks));
-                    result.Append($"\r\n");
-                    result.Append($"                SET @OrderBy = @OrderBy + ', {defaultOrderBy}'\r\n");
-                }
                 result.Append($"        END\r\n");
                 if (listableColumn != null)
                 {
@@ -1978,8 +2143,9 @@ namespace crudex.Classes
 
                 var filterableColumns = physicalColumnRows.FindAll(column => Settings.ToBoolean(column["IsFilterable"]));
 
-                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@RecordFilterGrid, '$._'))\r\n");
+                result.Append($"        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))\r\n");
                 result.Append($"               ,@Where NVARCHAR(MAX) = ''\r\n");
+                result.Append($"               ,@ComparatorPredicate NVARCHAR(MAX)\r\n");
                 result.Append($"               ,@sql NVARCHAR(MAX)\r\n");
                 result.Append($"\r\n");
                 if (filterableColumns.Count > 0)
@@ -1989,11 +2155,11 @@ namespace crudex.Classes
                     {
                         if (firstTime)
                         {
-                            result.Append($"        DECLARE @WT_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterTable, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"        DECLARE @WT_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@Filter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                             firstTime = false;
                         }
                         else
-                            result.Append($"               ,@WT_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@RecordFilterTable, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
+                            result.Append($"               ,@WT_{column["Name"]} {column["#DataType"]} = CAST(JSON_VALUE(@Filter, '$.{column["Name"]}') AS {column["#DataType"]})\r\n");
                     }
                     result.Append($"\r\n");
                     foreach (var column in filterableColumns)
@@ -2002,7 +2168,7 @@ namespace crudex.Classes
                 if (listableColumn != null)
                 {
                     result.Append($"        IF @IsActionList = 1 BEGIN\r\n");
-                    result.Append($"            SET @PickerValue = CAST(JSON_VALUE(@RecordFilterGrid, '$.Picker.Value') AS {listableColumn["#DataType"]})\r\n");
+                    result.Append($"            SET @PickerValue = CAST(JSON_VALUE(@Filter, '$.Picker.Value') AS {listableColumn["#DataType"]})\r\n");
                     result.Append($"            IF @PickerValue IS NULL\r\n");
                     result.Append($"                SET @PickerValue = ''\r\n");
                     result.Append($"            SET @Where = @Where + ' AND [T].[{listableColumn["Name"]}] LIKE ''%'' + @PickerValue + ''%'''\r\n");
@@ -2014,20 +2180,20 @@ namespace crudex.Classes
                 firstTime = true;
                 foreach (var column in filterableColumns)
                 {
-                    AppendReadGridFilterDeclareVars(result, column, isSearch: false, declare: firstTime);
+                    AppendReadGridFilterDeclareVars(result, column, isSearch: false, declare: firstTime, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types));
                     firstTime = false;
                 }
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
                 foreach (var column in filterableColumns)
-                    AppendReadGridFilterAssignVars(result, column, isSearch: false);
+                    AppendReadGridFilterAssignVars(result, column, isSearch: false, comparators, rulesByCategory, domains, types);
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
                 foreach (var column in filterableColumns)
-                    AppendReadFilterColumn(result, column, domains, types, "            ");
+                    AppendReadFilterColumn(result, column, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types), "            ");
                 result.Append($"        END ELSE\r\n");
                 result.Append($"            SET @Where = @Where + ' AND {primaryKeyGridFilter}'\r\n");
-
+                result.Append($"\r\n");
                 result.Append($"        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, {primaryKeyColumnDefinitions})\r\n");
                 result.Append($"        SET @sql = 'INSERT [#tmpTable]([_], [Recno], {BuildPrimaryKeyInsertList(primaryColumns)})\r\n");
                 result.Append($"                        SELECT [_]\r\n");
@@ -2076,8 +2242,8 @@ namespace crudex.Classes
                 if (filterableColumns.Count > 0)
                 {
                     result.Append($"            EXEC sp_executesql @sql\r\n");
-                    AppendReadExecutesqlParams(result, filterableColumns, includeTableFilters: true, includeGridFilters: true, "                               ");
-                    AppendReadExecutesqlAssignments(result, filterableColumns, includeTableFilters: true, includeGridFilters: true, "                               ");
+                    AppendReadExecutesqlParams(result, filterableColumns, includeTableFilters: true, includeGridFilters: true, comparators, rulesByCategory, domains, types, "                               ");
+                    AppendReadExecutesqlAssignments(result, filterableColumns, includeTableFilters: true, includeGridFilters: true, comparators, rulesByCategory, domains, types, "                               ");
                 }
                 else
                     result.Append($"            EXEC sp_executesql @sql\r\n");
@@ -2086,8 +2252,8 @@ namespace crudex.Classes
                 if (filterableColumns.Count > 0)
                 {
                     result.Append($"            EXEC sp_executesql @sql\r\n");
-                    AppendReadExecutesqlParams(result, filterableColumns, includeTableFilters: true, includeGridFilters: false, "                               ");
-                    AppendReadExecutesqlAssignments(result, filterableColumns, includeTableFilters: true, includeGridFilters: false, "                               ");
+                    AppendReadExecutesqlParams(result, filterableColumns, includeTableFilters: true, includeGridFilters: false, comparators, rulesByCategory, domains, types, "                               ");
+                    AppendReadExecutesqlAssignments(result, filterableColumns, includeTableFilters: true, includeGridFilters: false, comparators, rulesByCategory, domains, types, "                               ");
                 }
                 else
                     result.Append($"            EXEC sp_executesql @sql\r\n");
@@ -2106,25 +2272,25 @@ namespace crudex.Classes
                 result.Append($"        END ELSE BEGIN\r\n");
                 result.Append($"            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END\r\n");
                 result.Append($"            DECLARE @SearchRecno BIGINT = NULL\r\n");
-                result.Append($"            IF @RecordSearch IS NOT NULL BEGIN\r\n");
+                result.Append($"            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN\r\n");
 
                 if (filterableColumns.Count > 0)
                 {
                     result.Append($"                DECLARE @Recno BIGINT\r\n");
                     foreach (var column in filterableColumns)
-                        AppendReadGridFilterDeclareVars(result, column, isSearch: true, declare: false);
+                        AppendReadGridFilterDeclareVars(result, column, isSearch: true, declare: false, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types));
                 }
                 else
                     result.Append($"                DECLARE @Recno BIGINT\r\n");
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
                 foreach (var column in filterableColumns)
-                    AppendReadGridFilterAssignVars(result, column, isSearch: true);
+                    AppendReadGridFilterAssignVars(result, column, isSearch: true, comparators, rulesByCategory, domains, types);
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
                 result.Append($"                SET @Where = ''\r\n");
                 foreach (var column in filterableColumns)
-                    AppendReadSearchCondition(result, column, "                ");
+                    AppendReadSearchCondition(result, column, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types), "                ");
                 result.Append($"                IF @Where <> '' BEGIN\r\n");
                 result.Append($"                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]\r\n");
                 result.Append($"                                    FROM [#tmpTable] [#]\r\n");
@@ -2138,22 +2304,30 @@ namespace crudex.Classes
                     {
                         var name = column["Name"];
                         var dataType = column["#DataType"];
+                        var needsBetweenSlots = CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types);
                         if (firstTime)
                         {
                             result.Append($"                    EXEC sp_executesql @sql\r\n");
-                            result.Append($"                                       ,N'@{name} {dataType},@{name}_v1 {dataType},@{name}_v2 {dataType},@{name}_vals NVARCHAR(MAX)");
+                            result.Append($"                                       ,N'@{name} {dataType}");
                             firstTime = false;
                         }
                         else
-                            result.Append($",@{name} {dataType},@{name}_v1 {dataType},@{name}_v2 {dataType},@{name}_vals NVARCHAR(MAX)");
+                            result.Append($",@{name} {dataType}");
+                        if (needsBetweenSlots)
+                            result.Append($",@{name}_v1 {dataType},@{name}_v2 {dataType}");
+                        result.Append($",@{name}_vals NVARCHAR(MAX)");
                     }
                     result.Append($", @r BIGINT OUTPUT'\r\n");
                     foreach (var column in filterableColumns)
                     {
                         var name = column["Name"];
+                        var needsBetweenSlots = CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types);
                         result.Append($"                                       ,@{name} = @S_{name}_v\r\n");
-                        result.Append($"                                       ,@{name}_v1 = @S_{name}_v1\r\n");
-                        result.Append($"                                       ,@{name}_v2 = @S_{name}_v2\r\n");
+                        if (needsBetweenSlots)
+                        {
+                            result.Append($"                                       ,@{name}_v1 = @S_{name}_v1\r\n");
+                            result.Append($"                                       ,@{name}_v2 = @S_{name}_v2\r\n");
+                        }
                         result.Append($"                                       ,@{name}_vals = @S_{name}_vals\r\n");
                     }
                     result.Append($"                                       ,@r = @Recno OUTPUT\r\n");
@@ -2251,6 +2425,162 @@ namespace crudex.Classes
             }
 
             return result;
+        }
+
+        static TDictionary[] BuildComparators(TDataRows rows) =>
+            rows.OrderBy(row => Settings.ToLong(row["Id"])).Select(row =>
+            {
+                var id = Settings.ToLong(row["Id"]);
+                var sqlCode = GetComparatorSqlCode(row);
+                var arity = row.Table.Columns.Contains("Arity") ? row["Arity"] : DBNull.Value;
+                ValidateComparatorSqlCode(sqlCode, arity, id);
+                return new TDictionary
+                {
+                    ["Id"] = id,
+                    ["Symbol"] = Settings.ToString(row["Symbol"]),
+                    ["Description"] = Settings.ToString(row["Description"]),
+                    ["Arity"] = Settings.IsNull(arity) || string.IsNullOrWhiteSpace(Settings.ToString(arity)) ? null : Settings.ToLong(arity),
+                    ["SqlCode"] = sqlCode,
+                };
+            }).ToArray();
+
+        static Dictionary<long, List<long>> BuildRulesByCategory(TDataRows rows) =>
+            rows.GroupBy(row => Settings.ToLong(row["CategoryId"]))
+                .ToDictionary(group => group.Key, group => group.Select(row => Settings.ToLong(row["ComparatorId"])).Distinct().ToList());
+
+        static long GetEqualityComparatorId(TDictionary[] comparators) =>
+            Settings.ToLong(FindComparator(comparators, item => string.Equals(Settings.ToString(item["Symbol"]), "=", StringComparison.Ordinal), "comparador de igualdade (=)")["Id"]);
+
+        static long GetLikeComparatorId(TDictionary[] comparators) =>
+            Settings.ToLong(FindComparator(comparators, item => string.Equals(Settings.ToString(item["Description"]), "LIKE", StringComparison.OrdinalIgnoreCase), "comparador LIKE")["Id"]);
+
+        static TDictionary FindComparator(TDictionary[] comparators, Func<TDictionary, bool> predicate, string description) =>
+            comparators.FirstOrDefault(predicate) ?? throw new Exception($"Comparators: {description} não encontrado no metadado.");
+
+        static long GetDefaultComparatorId(TDictionary[] comparators, Dictionary<long, List<long>> rulesByCategory, DataRow column, TDataRows domains, TDataRows types, bool isSearch)
+        {
+            var columnName = Settings.ToString(column["Name"]);
+            var domain = RequireRow(domains, row => Settings.ToLong(row["Id"]) == Settings.ToLong(column["DomainId"]),
+                $"DomainId {column["DomainId"]} não encontrado para coluna '{columnName}'.");
+            var type = RequireRow(types, row => Settings.ToLong(row["Id"]) == Settings.ToLong(domain["TypeId"]),
+                $"TypeId {domain["TypeId"]} não encontrado para coluna '{columnName}'.");
+            var categoryId = Settings.ToLong(type["CategoryId"]);
+            var equalityId = GetEqualityComparatorId(comparators);
+            var likeId = GetLikeComparatorId(comparators);
+            var preferredId = isSearch && Settings.ToBoolean(type["IsLikeable"]) ? likeId : equalityId;
+
+            if (!rulesByCategory.TryGetValue(categoryId, out var allowed) || allowed.Count == 0)
+                throw new Exception($"Categoria {categoryId} do tipo '{type["Name"]}' (coluna '{columnName}') não possui regras em Rules.");
+
+            if (allowed.Contains(preferredId))
+                return preferredId;
+
+            throw new Exception($"Comparador padrão {preferredId} não permitido para coluna '{columnName}' (categoria {categoryId}). Permitidos: {string.Join(", ", allowed)}.");
+        }
+
+        static string FormatComparatorIds(TDictionary[] comparators, params Func<TDictionary, bool>[] filters) =>
+            string.Join(", ", comparators.Where(item => filters.Any(filter => filter(item))).Select(item => Settings.ToLong(item["Id"])));
+
+        static bool IsNullArity(object? arity) =>
+            Settings.IsNull(arity) || string.IsNullOrWhiteSpace(Settings.ToString(arity));
+
+        static bool IsListComparator(TDictionary comparator) =>
+            IsNullArity(comparator["Arity"]);
+
+        static bool IsBetweenComparator(TDictionary comparator) =>
+            !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) > 2;
+
+        static bool IsBinaryComparator(TDictionary comparator) =>
+            !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) == 2;
+
+        static string GetComparatorSqlCode(DataRow row)
+        {
+            var id = Settings.ToLong(row["Id"]);
+            var sqlCode = string.Empty;
+            if (row.Table.Columns.Contains("SqlCode"))
+                sqlCode = Settings.ToString(row["SqlCode"]);
+            else if (row.Table.Columns.Contains("CodeSQL"))
+                sqlCode = Settings.ToString(row["CodeSQL"]);
+
+            if (string.IsNullOrWhiteSpace(sqlCode))
+                throw new Exception($"Comparators (Id {id}): SqlCode é obrigatório no metadado.");
+
+            return sqlCode.Trim();
+        }
+
+        static void ValidateComparatorSqlCode(string sqlCode, object? arity, long id)
+        {
+            if (!sqlCode.Contains("%1", StringComparison.Ordinal))
+                throw new Exception($"Comparators (Id {id}): SqlCode deve conter %1.");
+
+            if (IsNullArity(arity))
+            {
+                if (!sqlCode.Contains("%2", StringComparison.Ordinal))
+                    throw new Exception($"Comparators (Id {id}): SqlCode deve conter %2.");
+                return;
+            }
+
+            var arityValue = Settings.ToLong(arity);
+            if (arityValue == 3)
+            {
+                if (!sqlCode.Contains("%2", StringComparison.Ordinal) || !sqlCode.Contains("%3", StringComparison.Ordinal))
+                    throw new Exception($"Comparators (Id {id}): SqlCode deve conter %2 e %3.");
+                return;
+            }
+
+            if (arityValue == 2)
+            {
+                if (!sqlCode.Contains("%2", StringComparison.Ordinal))
+                    throw new Exception($"Comparators (Id {id}): SqlCode deve conter %2.");
+                if (sqlCode.Contains("%3", StringComparison.Ordinal))
+                    throw new Exception($"Comparators (Id {id}): SqlCode com Arity 2 não deve conter %3.");
+                return;
+            }
+
+            throw new Exception($"Comparators (Id {id}): Arity '{arityValue}' não suportado.");
+        }
+
+        static string EscapeSqlStringLiteral(string value) =>
+            value.Replace("'", "''");
+
+        static string BuildComparatorPredicateCaseExpression(string columnRef, string parameterName, string dataType, bool needsBetweenSlots)
+        {
+            var betweenBranch = needsBetweenSlots
+                ? $"        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@{parameterName}_v2'), '%2', '@{parameterName}_v1'), '%1', '{EscapeSqlStringLiteral(columnRef)}')\r\n"
+                : string.Empty;
+            return $@"CASE
+        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{parameterName}_vals))'), '%1', '{EscapeSqlStringLiteral(columnRef)}')
+{betweenBranch}        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@{parameterName}'), '%1', '{EscapeSqlStringLiteral(columnRef)}')
+    END";
+        }
+
+        static string BuildComparatorArityReadyCondition(string valueVarPrefix, bool needsBetweenSlots)
+        {
+            var betweenBranch = needsBetweenSlots
+                ? $"               OR ([C].[Arity] > 2 AND {valueVarPrefix}v1 IS NOT NULL AND {valueVarPrefix}v2 IS NOT NULL)\r\n"
+                : string.Empty;
+            return $@"(([C].[Arity] IS NULL AND {valueVarPrefix}vals IS NOT NULL)
+{betweenBranch}               OR ([C].[Arity] = 2 AND {valueVarPrefix}v IS NOT NULL))";
+        }
+
+        static void AppendComparatorPredicateFromMetadata(StringBuilder result, string indent, string opVariable, string columnRef, string dataType, string parameterName, bool isSearch, bool needsBetweenSlots)
+        {
+            var valueVarPrefix = opVariable.Replace("_comparator", "_", StringComparison.Ordinal);
+            var predicateCase = BuildComparatorPredicateCaseExpression(columnRef, parameterName, dataType, needsBetweenSlots);
+            var arityReady = BuildComparatorArityReadyCondition(valueVarPrefix, needsBetweenSlots);
+
+            result.Append($"{indent}IF {opVariable} IS NOT NULL BEGIN\r\n");
+            if (isSearch)
+                result.Append($"{indent}    IF @Where <> '' SET @Where = @Where + ' AND '\r\n");
+            result.Append($"{indent}    SELECT @ComparatorPredicate = {predicateCase}\r\n");
+            result.Append($"{indent}        FROM [dbo].[Comparators] [C]\r\n");
+            result.Append($"{indent}        WHERE [C].[Id] = {opVariable}\r\n");
+            result.Append($"{indent}              AND {arityReady}\r\n");
+            if (isSearch)
+                result.Append($"{indent}    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')\r\n");
+            else
+                result.Append($"{indent}    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate\r\n");
+            result.Append($"{indent}END\r\n");
         }
     }
 }

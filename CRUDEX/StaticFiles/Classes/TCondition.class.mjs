@@ -12,14 +12,14 @@ export default class TCondition {
         return typeof value === "object"
             && value !== null
             && !TCheckbox.isNullMarker(value)
-            && Object.hasOwn(value, "op");
+            && Object.hasOwn(value, "comparator");
     }
 
     static hasActiveValue(value) {
         return TCondition.willApplyFilter(value);
     }
 
-    /** Critério que entra no JSON enviado ao Read (IS NULL usa null explícito). */
+    /** Critério que entra no JSON enviado ao Read (IS NULL usa null explícito no payload). */
     static willApplyFilter(value) {
         if (TCheckbox.isIgnored(value))
             return false;
@@ -28,24 +28,24 @@ export default class TCondition {
         return TCondition.toFilterPayload(value) !== undefined;
     }
 
-    /** Valor persistido em FilterValues — descarta {op} sem value. */
+    /** Valor persistido no recordset — undefined = sem critério; NULL_MARKER = IS NULL. */
     static normalizeStoredFilter(value) {
         if (TCheckbox.isIgnored(value) || TConfig.IsEmpty(value))
-            return null;
+            return undefined;
         if (TCheckbox.isNullMarker(value))
             return value;
         if (TCondition.isCriterion(value)) {
             const sorted = {
-                op: Number(value.op),
+                comparator: Number(value.comparator),
                 value: TCondition.sortBetweenValues(
-                    value.op,
+                    value.comparator,
                     TCondition.normalizeCriterionValue(value.value),
                 ),
             };
-            return TCondition.toFilterPayload(sorted) === undefined ? null : sorted;
+            return TCondition.toFilterPayload(sorted) === undefined ? undefined : sorted;
         }
         if (typeof value === "object" && value !== null)
-            return null;
+            return undefined;
         return value;
     }
 
@@ -58,12 +58,12 @@ export default class TCondition {
 
     static parse(raw, { defaultOp = TCondition.DEFAULT_OP } = {}) {
         if (TCheckbox.isNullMarker(raw))
-            return { op: null, value: raw, isNull: true };
+            return { comparator: null, value: raw, isNull: true };
         if (TCondition.isCriterion(raw))
-            return { op: Number(raw.op), value: raw.value ?? null, isNull: false };
+            return { comparator: Number(raw.comparator), value: raw.value ?? null, isNull: false };
         if (TCheckbox.isIgnored(raw) || TConfig.IsEmpty(raw))
-            return { op: null, value: null, isNull: false };
-        return { op: defaultOp, value: raw, isNull: false };
+            return { comparator: null, value: null, isNull: false };
+        return { comparator: defaultOp, value: raw, isNull: false };
     }
 
     static normalizeCriterionValue(value) {
@@ -90,19 +90,37 @@ export default class TCondition {
         return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
     }
 
-    static sortBetweenValues(op, value) {
+    static sortBetweenValues(comparator, value) {
         if (!Array.isArray(value) || value.length < 2)
             return value;
-        const comparator = TSystem.GetComparator(op);
-        if (comparator?.ValueMode !== "between")
+        const cmp = TSystem.GetComparator(comparator);
+        if (cmp?.ValueMode !== "between")
             return value;
         return [...value].sort(TCondition.#compareRangeValues);
     }
 
-    static pack(op, value) {
+    static isBetweenPartial(comparator, value) {
+        const cmp = typeof comparator === "object" && comparator?.BetweenSlotCount != null
+            ? comparator
+            : TSystem.GetComparator(comparator);
+        const slots = cmp?.BetweenSlotCount;
+        if (slots == null || !Array.isArray(value))
+            return false;
+        return value.length > 0 && value.length < slots;
+    }
+
+    static isBetweenComplete(comparator, value) {
+        const cmp = typeof comparator === "object" && comparator?.BetweenSlotCount != null
+            ? comparator
+            : TSystem.GetComparator(comparator);
+        const slots = cmp?.BetweenSlotCount;
+        return slots != null && Array.isArray(value) && value.length === slots;
+    }
+
+    static pack(comparator, value) {
         if (TCheckbox.isNullMarker(value))
             return value;
-        if (op === null || op === undefined)
+        if (comparator === null || comparator === undefined)
             return null;
         value = TCondition.normalizeCriterionValue(value);
         if (value === null || value === undefined)
@@ -111,8 +129,8 @@ export default class TCondition {
             return null;
         if (typeof value === "string" && TConfig.IsEmpty(value))
             return null;
-        value = TCondition.sortBetweenValues(op, value);
-        return { op: Number(op), value };
+        value = TCondition.sortBetweenValues(comparator, value);
+        return { comparator: Number(comparator), value };
     }
 
     static toFilterPayload(value) {
@@ -122,15 +140,18 @@ export default class TCondition {
             return null;
         if (TCondition.isCriterion(value)) {
             const normalized = {
-                op: Number(value.op),
+                comparator: Number(value.comparator),
                 value: TCondition.sortBetweenValues(
-                    value.op,
+                    value.comparator,
                     TCondition.normalizeCriterionValue(value.value),
                 ),
             };
             if (normalized.value === null || normalized.value === undefined)
                 return undefined;
             if (Array.isArray(normalized.value) && normalized.value.length === 0)
+                return undefined;
+            const cmp = TSystem.GetComparator(normalized.comparator);
+            if (TCondition.isBetweenPartial(cmp, normalized.value))
                 return undefined;
             if (typeof normalized.value === "string" && TConfig.IsEmpty(normalized.value))
                 return undefined;
@@ -150,10 +171,10 @@ export default class TCondition {
             if (TCheckbox.isNullMarker(value.ListItemId))
                 return `${key} IS NULL`;
             if (TCondition.isCriterion(value)) {
-                const op = TSystem.GetComparator(value.op) ?? comparators?.find(c => c.Id === Number(value.op));
-                const symbol = op?.Symbol ?? String(value.op);
+                const cmp = TSystem.GetComparator(value.comparator) ?? comparators?.find(c => c.Id === Number(value.comparator));
+                const symbol = cmp?.Symbol ?? String(value.comparator);
                 let val = TCondition.normalizeCriterionValue(value.value);
-                val = TCondition.sortBetweenValues(value.op, val);
+                val = TCondition.sortBetweenValues(value.comparator, val);
                 if (val === null || val === undefined)
                     return `${key} ${symbol}`;
                 if (Array.isArray(val))

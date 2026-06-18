@@ -19,33 +19,6 @@
     text-align: left;
 }
 
-.tdropdown-multi-input {
-    cursor: pointer;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.tdropdown-selection-tip {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(100% + 0.3dvmin);
-    z-index: 101;
-    padding: 0.5dvmin 0.6dvmin;
-    box-sizing: border-box;
-    background: #ffffe8;
-    border: 0.1dvmin solid #bbb;
-    border-radius: 0.1dvmin;
-    box-shadow: 0 0.4dvmin 0.8dvmin rgba(0, 0, 0, 0.15);
-    white-space: pre-line;
-    font: inherit;
-    line-height: 1.35;
-    max-height: 20dvmin;
-    overflow-y: auto;
-    pointer-events: none;
-}
-
 .tdropdown-input.invalid {
     border-color: #c00;
 }
@@ -61,20 +34,44 @@
     background: #fff;
     text-align: left;
     cursor: pointer;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
 }
 
-.tdropdown-icon {
+.tdropdown-icon,
+.tdropdown-plus {
     position: absolute;
     top: 50%;
-    right: 0.5dvmin;
     transform: translateY(-50%);
     cursor: pointer;
     color: #888;
     user-select: none;
     line-height: 1;
+}
+
+.tdropdown-icon {
+    right: 0.5dvmin;
+}
+
+.tdropdown-addable {
+    --tdropdown-addable-chrome: 5ch;
+}
+
+.tdropdown-addable .tdropdown-input,
+.form .tdropdown-addable .tdropdown-input {
+    padding: 0.5dvmin 5.5ch 0.5dvmin 0.5dvmin;
+}
+
+.tdropdown-addable .tdropdown-input[data-text-align="right"],
+.form .tdropdown-addable .tdropdown-input[data-text-align="right"] {
+    text-align: right;
+}
+
+.tdropdown-addable .tdropdown-icon,
+.tdropdown-addable .tdropdown-plus {
+    font-size: 2dvmin;
+}
+
+.tdropdown-addable .tdropdown-plus {
+    right: 2.6dvmin;
 }
 
 .tdropdown-list {
@@ -102,8 +99,7 @@
     cursor: pointer;
 }
 
-.tdropdown-item:hover,
-.tdropdown-item-focused {
+.tdropdown-item:hover {
     background: #f0f0f0;
 }
 
@@ -118,6 +114,16 @@
 .tdropdown-check {
     flex: 0 0 auto;
     margin: 0;
+}
+
+.tdropdown-del {
+    flex: 0 0 auto;
+    border: none;
+    background: none;
+    color: #c00;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 0.4dvmin;
 }
 
 .tdropdown-pagination {

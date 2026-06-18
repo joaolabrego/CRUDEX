@@ -26,8 +26,7 @@ export default class TDataset {
             TableName: this.#Table.Name,
             Action: TSystem.Actions.READ,
             InParams: {
-                RecordFilterGrid: JSON.stringify(this.#FilterValues),
-                RecordFilterTable: null,
+                Filter: JSON.stringify(this.#FilterValues),
                 OrderBy: this.OrderBy,
                 PaddingGridLastPage: TSystem.PaddingGridLastPage,
             },
@@ -162,8 +161,7 @@ export default class TDataset {
             TableName: tableName,
             Action: TSystem.Actions.READ,
             InParams: {
-                RecordFilterGrid: JSON.stringify(this.Primarykeys),
-                RecordFilterTable: null,
+                Filter: JSON.stringify(this.Primarykeys),
                 OrderBy: null,
                 PaddingGridLastPage: false,
             },

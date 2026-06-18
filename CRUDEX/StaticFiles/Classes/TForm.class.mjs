@@ -441,7 +441,7 @@ export default class TForm {
             return;
         const { grid, linkColumn } = entry;
         if (linkColumn)
-            grid.setParentFilter(linkColumn.Name, parentId);
+            grid.RecordSet.setTableFilter({ [linkColumn.Name]: parentId });
         await grid.Renderize(1);
     }
     #updateDetailAccess() {
@@ -502,19 +502,22 @@ export default class TForm {
         );
     }
     async #confirm() {
-        if (this.#isPersistAction() && !this.#validateForm())
+        const needsValidation = this.#isPersistAction()
+            || this.#Action === TSystem.Actions.FILTER
+            || this.#Action === TSystem.Actions.SEARCH;
+        if (needsValidation && !this.#validateForm())
             return;
         if (this.#Action === TSystem.Actions.FILTER) {
             this.#collectFilterValues();
-            this.#Grid.SaveFilters(this.#actualRecord);
+            this.#Grid.RecordSet.saveFilter(this.#actualRecord);
             await this.#returnToCaller(1);
             return;
         }
         else if (this.#Action === TSystem.Actions.SEARCH) {
             this.#collectFilterValues();
-            this.#Grid.SaveSearchs(this.#actualRecord);
+            this.#Grid.RecordSet.saveSearch(this.#actualRecord);
             await this.#returnToCaller(1);
-            this.#Grid.ClearSearches();
+            this.#Grid.RecordSet.clearSearch();
             return;
         }
         else if (this.#isPersistAction()) {
@@ -619,14 +622,14 @@ export default class TForm {
                     columns.filter(column => column.IsFilterable),
                 );
                 for (const column of columns)
-                    this.#actualRecord[column.Name] = this.#Grid.SearchValues[column.Name];
+                    this.#actualRecord[column.Name] = this.#Grid.RecordSet.Search.get(column.Name);
                 break;
             case TSystem.Actions.FILTER:
                 columns = this.#excludeParentLinkColumn(
                     columns.filter(column => column.IsFilterable),
                 );
                 for (const column of columns)
-                    this.#actualRecord[column.Name] = this.#Grid.FilterValues[column.Name];
+                    this.#actualRecord[column.Name] = this.#Grid.RecordSet.Filter.get(column.Name);
                 break;
             case TSystem.Actions.UPDATE:
                 columns = columns.filter(column => column.IsEditable);
