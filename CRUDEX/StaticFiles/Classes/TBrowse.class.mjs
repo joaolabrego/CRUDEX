@@ -9,7 +9,7 @@ import TConfig from "./TConfig.class.mjs";
 import TRecordSet from "./TRecordset.class.mjs";
 import TScrollBar from "./TScrollBar.class.mjs";
 
-export default class TGrid {
+export default class TBrowse {
     #RowCount = 0;
     #LastPageNumber = 1;
     #PageNumber = 1;
@@ -247,7 +247,7 @@ export default class TGrid {
 
         let style = document.createElement("style");
 
-        style.textContent = TGrid.#Style;
+        style.textContent = TBrowse.#Style;
         this.#HTML.Table.appendChild(style);
 
         this.#HTML.Head = document.createElement("thead");
@@ -483,13 +483,13 @@ export default class TGrid {
                 (column) => {
                     const td = document.createElement("td");
 
-                    td.appendChild(this.#GetControl(column, row.getGridValue(column)));
-                    td.style = `text-align: ${row.getGridAlign(column)}`;
+                    td.appendChild(this.#GetControl(column, row.getBrowseValue(column)));
+                    td.style = `text-align: ${row.getBrowseAlign(column)}`;
                     tr.appendChild(td);
                 }
             );
             this.#HTML.Body.appendChild(tr);
-            this, this.#Rows.push(tr);
+            this.#Rows.push(tr);
             if (this.#RowNumber === index) tr.click();
         });
     }
@@ -531,7 +531,7 @@ export default class TGrid {
 
         this.#HTML.CreateButton = document.createElement("button");
         this.#HTML.CreateButton.type = "button";
-        this.#HTML.CreateButton.style.backgroundImage = TGrid.#Images.Insert;
+        this.#HTML.CreateButton.style.backgroundImage = TBrowse.#Images.Insert;
         this.#HTML.CreateButton.title = "Incluir registro (alt-i)";
         this.#HTML.CreateButton.hidden = this.#readOnlyCud;
         this.#HTML.CreateButton.onmouseenter = () =>
@@ -549,7 +549,7 @@ export default class TGrid {
 
         this.#HTML.UpdateButton = document.createElement("button");
         this.#HTML.UpdateButton.type = "button";
-        this.#HTML.UpdateButton.style.backgroundImage = TGrid.#Images.Edit;
+        this.#HTML.UpdateButton.style.backgroundImage = TBrowse.#Images.Edit;
         this.#HTML.UpdateButton.title = "Alterar registro (alt-a)";
         this.#HTML.UpdateButton.hidden = this.#readOnlyCud || this.#RowCount === 0;
         this.#HTML.UpdateButton.onmouseenter = () =>
@@ -567,7 +567,7 @@ export default class TGrid {
 
         this.#HTML.DeleteButton = document.createElement("button");
         this.#HTML.DeleteButton.type = "button";
-        this.#HTML.DeleteButton.style.backgroundImage = TGrid.#Images.Delete;
+        this.#HTML.DeleteButton.style.backgroundImage = TBrowse.#Images.Delete;
         this.#HTML.DeleteButton.title = "Excluir registro (alt-e)";
         this.#HTML.DeleteButton.hidden = this.#readOnlyCud || this.#RowCount === 0;
         this.#HTML.DeleteButton.onmouseenter = () =>
@@ -585,7 +585,7 @@ export default class TGrid {
 
         this.#HTML.QueryButton = document.createElement("button");
         this.#HTML.QueryButton.type = "button";
-        this.#HTML.QueryButton.style.backgroundImage = TGrid.#Images.Query;
+        this.#HTML.QueryButton.style.backgroundImage = TBrowse.#Images.Query;
         this.#HTML.QueryButton.title = "Ver registro (alt-v)";
         this.#HTML.QueryButton.hidden = this.#RowCount === 0;
         this.#HTML.QueryButton.onmouseenter = () =>
@@ -605,7 +605,7 @@ export default class TGrid {
 
         this.#HTML.SearchButton = document.createElement("button");
         this.#HTML.SearchButton.type = "button";
-        this.#HTML.SearchButton.style.backgroundImage = TGrid.#Images.Search;
+        this.#HTML.SearchButton.style.backgroundImage = TBrowse.#Images.Search;
         this.#HTML.SearchButton.title = "Pesquisar registro (alt-p)";
         this.#HTML.SearchButton.hidden = !canFilterOrSearch;
         this.#HTML.SearchButton.onmouseenter = () =>
@@ -621,7 +621,7 @@ export default class TGrid {
 
         this.#HTML.FilterButton = document.createElement("button");
         this.#HTML.FilterButton.type = "button";
-        this.#HTML.FilterButton.style.backgroundImage = TGrid.#Images.Filter;
+        this.#HTML.FilterButton.style.backgroundImage = TBrowse.#Images.Filter;
         this.#HTML.FilterButton.title = "Filtrar registros (alt-f)";
         this.#HTML.FilterButton.hidden = !canFilterOrSearch;
         this.#HTML.FilterButton.onmouseenter = () =>
@@ -636,7 +636,7 @@ export default class TGrid {
 
         this.#HTML.UnfilterButton = document.createElement("button");
         this.#HTML.UnfilterButton.type = "button";
-        this.#HTML.UnfilterButton.style.backgroundImage = TGrid.#Images.Unfilter;
+        this.#HTML.UnfilterButton.style.backgroundImage = TBrowse.#Images.Unfilter;
         this.#HTML.UnfilterButton.title = `Limpar filtragem de registros (alt-l): ${this.Filter}`;
         this.#HTML.UnfilterButton.hidden = !filtered;
         this.#HTML.UnfilterButton.onmouseenter = () =>
@@ -651,7 +651,7 @@ export default class TGrid {
 
         this.#HTML.UnorderButton = document.createElement("button");
         this.#HTML.UnorderButton.type = "button";
-        this.#HTML.UnorderButton.style.backgroundImage = TGrid.#Images.Unorder;
+        this.#HTML.UnorderButton.style.backgroundImage = TBrowse.#Images.Unorder;
         this.#HTML.UnorderButton.title = `Limpar ordenação de registros (alt-o): ${this.OrderBy}`;
         this.#HTML.UnorderButton.hidden = TConfig.IsEmpty(this.#RecordSet.orderBy);
         this.#HTML.UnorderButton.onmouseenter = () =>
@@ -666,7 +666,7 @@ export default class TGrid {
 
         this.#HTML.ExitButton = document.createElement("button");
         this.#HTML.ExitButton.type = "button";
-        this.#HTML.ExitButton.style.backgroundImage = TGrid.#Images.Exit;
+        this.#HTML.ExitButton.style.backgroundImage = TBrowse.#Images.Exit;
         this.#HTML.ExitButton.title = "Retornar ao menu principal (alt-x)";
         this.#HTML.ExitButton.hidden = this.#embedded;
         this.#HTML.ExitButton.onmouseenter = () =>

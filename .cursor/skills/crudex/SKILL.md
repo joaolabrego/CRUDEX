@@ -126,7 +126,7 @@ Chave mestra: `DATA_ENCRYPTION_KEY` (base64, 32 bytes). Par RSA servidor: `RSA_P
 ### Arquivos-chave
 
 - Backend: `Program.cs`, `Procedure.cs`, `Config.class.cs`, `Scripts.cs`
-- Frontend: `TSystem`, `TGrid`, `TForm`, `TMenu`, `TMask`, `TConfig`
+- Frontend: `TSystem`, `TBrowse`, `TForm`, `TMenu`, `TMask`, `TConfig`
 - SQL: **somente** `StaticFiles/db/SCRIPT-CRUDEX.sql` (ignorar outros `.sql` fragmentados)
 
 ## Workflow
@@ -191,7 +191,7 @@ Metadados documentados nas 34 abas de `CRUDEX_Novissimo.xlsm`. Haverá extensõe
 | Execução | — | `Sch`, `Snp` → `Scr`/`Url` (pipeline `Sequence` único) |
 | **Forms master-detail** | **Não existe** | `Ref.IsParentChild` — formulário pai com filhas |
 
-Prioridade de runtime: **`TRecordSet` + `TRecord`** (agora) → `TGrid`/relatórios → `Config`/procedures Novíssimo → master-detail, `TMask`, `Bhv`, `Mnu`/`Tbl`.
+Prioridade de runtime: **`TRecordSet` + `TRecord`** (agora) → `TBrowse`/relatórios → `Config`/procedures Novíssimo → master-detail, `TMask`, `Bhv`, `Mnu`/`Tbl`.
 
 ## Wordex + CRUDEX (integração 1.0)
 

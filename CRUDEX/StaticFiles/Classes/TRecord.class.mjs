@@ -47,7 +47,7 @@ export default class TRecord {
         return this.#Table;
     }
 
-    getGridValue(column) {
+    getBrowseValue(column) {
         const value = this[column.Name];
         if (TConfig.IsEmpty(column.ReferenceTableId))
             return value;
@@ -70,7 +70,7 @@ export default class TRecord {
         return ref.Id ?? value ?? "";
     }
 
-    getGridAlign(column) {
+    getBrowseAlign(column) {
         if (TConfig.IsEmpty(column.ReferenceTableId))
             return column.Domain.Type.Category.HtmlInputAlign;
 

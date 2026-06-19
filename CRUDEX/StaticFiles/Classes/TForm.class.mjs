@@ -3,7 +3,7 @@
 import TScreen from "./TScreen.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TEditBox from "./TEditBox.class.mjs";
-import TGrid from "./TGrid.class.mjs";
+import TBrowse from "./TBrowse.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TTransaction from "./TTransaction.class.mjs";
 
@@ -59,8 +59,8 @@ export default class TForm {
     #editBoxes = [];
 
     constructor(grid, action, options = {}) {
-        if (!(grid instanceof TGrid))
-            throw new Error("Argumento grid não é do tipo TGrid.");
+        if (!(grid instanceof TBrowse))
+            throw new Error("Argumento grid não é do tipo TBrowse.");
         this.#Grid = grid;
         this.#masterForm = options.masterForm ?? null;
         this.#Action = action;
@@ -391,7 +391,7 @@ export default class TForm {
                 this.#detailParentTable,
                 this.#Grid.Table,
             );
-            const childGrid = new TGrid(childTable.Database.Name, childTable.Name, {
+            const childGrid = new TBrowse(childTable.Database.Name, childTable.Name, {
                 embedded: true,
                 masterForm: this,
                 readOnlyCud: this.#Action === TSystem.Actions.QUERY,

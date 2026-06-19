@@ -116,7 +116,7 @@ export default class TRecordSet {
     static #toPickerItem(table, record) {
         const listable = table.GetListableColumn();
         const label = listable
-            ? record.getGridValue(listable)
+            ? record.getBrowseValue(listable)
             : (record.ListItemValue ?? record.Name ?? record.Id);
         return {
             ListItemId: record.Id,

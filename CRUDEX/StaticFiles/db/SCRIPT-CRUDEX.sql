@@ -92,7 +92,7 @@ Criar tabela [dbo].[Categories]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Categories]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Categories]
-CREATE TABLE [dbo].[Categories]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
+CREATE TABLE [dbo].[Categories]([Id] tinyint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[HtmlInputType] nvarchar(10) NULL
                                     ,[HtmlInputAlign] nvarchar(6) NULL
@@ -116,7 +116,7 @@ Criar tabela [dbo].[Types]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Types]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Types]
-CREATE TABLE [dbo].[Types]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
+CREATE TABLE [dbo].[Types]([Id] tinyint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
                                     ,[CategoryId] tinyint NOT NULL
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[MaxLength] int NULL CHECK ([MaxLength] >= CAST('1' AS int))
@@ -144,7 +144,7 @@ Criar tabela [dbo].[Masks]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Masks]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Masks]
-CREATE TABLE [dbo].[Masks]([Id] bigint NOT NULL
+CREATE TABLE [dbo].[Masks]([Id] bigint IDENTITY(1,1) NOT NULL
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Mask] nvarchar(max) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -160,7 +160,7 @@ Criar tabela [dbo].[Domains]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Domains]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Domains]
-CREATE TABLE [dbo].[Domains]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Domains]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[TypeId] tinyint NOT NULL CHECK ([TypeId] >= CAST('1' AS tinyint))
                                     ,[MaskId] bigint NULL
                                     ,[Name] nvarchar(25) NOT NULL
@@ -184,7 +184,7 @@ Criar tabela [dbo].[Systems]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Systems]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Systems]
-CREATE TABLE [dbo].[Systems]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Systems]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[ClientName] nvarchar(15) NOT NULL
@@ -203,7 +203,7 @@ Criar tabela [dbo].[Menus]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Menus]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Menus]
-CREATE TABLE [dbo].[Menus]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Menus]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SystemId] bigint NOT NULL CHECK ([SystemId] >= CAST('1' AS bigint))
                                     ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
                                     ,[Caption] nvarchar(20) NOT NULL
@@ -223,7 +223,7 @@ Criar tabela [dbo].[Users]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Users]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Users]
-CREATE TABLE [dbo].[Users]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Users]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Password] nvarchar(256) NOT NULL
                                     ,[FullName] nvarchar(50) NOT NULL
@@ -242,7 +242,7 @@ Criar tabela [dbo].[SystemsUsers]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsUsers]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[SystemsUsers]
-CREATE TABLE [dbo].[SystemsUsers]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[SystemsUsers]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SystemId] bigint NOT NULL CHECK ([SystemId] >= CAST('1' AS bigint))
                                     ,[UserId] bigint NOT NULL CHECK ([UserId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
@@ -259,7 +259,7 @@ Criar tabela [dbo].[Connections]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Connections]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Connections]
-CREATE TABLE [dbo].[Connections]([Id] bigint NOT NULL
+CREATE TABLE [dbo].[Connections]([Id] bigint IDENTITY(1,1) NOT NULL
                                     ,[Environment] nvarchar(3) NOT NULL
                                     ,[ConnectionString] nvarchar(256) NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -275,7 +275,7 @@ Criar tabela [dbo].[Databases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Databases]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Databases]
-CREATE TABLE [dbo].[Databases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Databases]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[ConnectionId] bigint NOT NULL CHECK ([ConnectionId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Alias] nvarchar(25) NOT NULL
@@ -296,7 +296,7 @@ Criar tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[SystemsDatabases]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[SystemsDatabases]
-CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[SystemsDatabases]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SystemId] bigint NOT NULL CHECK ([SystemId] >= CAST('1' AS bigint))
                                     ,[DatabaseId] bigint NOT NULL CHECK ([DatabaseId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
@@ -313,7 +313,7 @@ Criar tabela [dbo].[Tables]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Tables]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Tables]
-CREATE TABLE [dbo].[Tables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Tables]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Alias] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
@@ -332,7 +332,7 @@ Criar tabela [dbo].[DatabasesTables]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[DatabasesTables]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[DatabasesTables]
-CREATE TABLE [dbo].[DatabasesTables]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[DatabasesTables]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[DatabaseId] bigint NOT NULL CHECK ([DatabaseId] >= CAST('1' AS bigint))
                                     ,[TableId] bigint NOT NULL CHECK ([TableId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
@@ -349,7 +349,7 @@ Criar tabela [dbo].[Columns]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Columns]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Columns]
-CREATE TABLE [dbo].[Columns]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Columns]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[TableId] bigint NOT NULL CHECK ([TableId] >= CAST('1' AS bigint))
                                     ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
                                     ,[DomainId] bigint NOT NULL CHECK ([DomainId] >= CAST('1' AS bigint))
@@ -385,7 +385,7 @@ Criar tabela [dbo].[Indexes]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Indexes]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Indexes]
-CREATE TABLE [dbo].[Indexes]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Indexes]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[TableId] bigint NOT NULL CHECK ([TableId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
                                     ,[IsUnique] bit NOT NULL
@@ -402,7 +402,7 @@ Criar tabela [dbo].[Indexkeys]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Indexkeys]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Indexkeys]
-CREATE TABLE [dbo].[Indexkeys]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Indexkeys]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[IndexId] bigint NOT NULL CHECK ([IndexId] >= CAST('1' AS bigint))
                                     ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
                                     ,[ColumnId] bigint NOT NULL CHECK ([ColumnId] >= CAST('1' AS bigint))
@@ -420,7 +420,7 @@ Criar tabela [dbo].[Sessions]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Sessions]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Sessions]
-CREATE TABLE [dbo].[Sessions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Sessions]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SystemId] bigint NOT NULL CHECK ([SystemId] >= CAST('1' AS bigint))
                                     ,[UserId] bigint NOT NULL CHECK ([UserId] >= CAST('1' AS bigint))
                                     ,[ClientRsaPublicKey] nvarchar(512) NULL
@@ -439,7 +439,7 @@ Criar tabela [dbo].[Transactions]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Transactions]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Transactions]
-CREATE TABLE [dbo].[Transactions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Transactions]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SessionId] bigint NOT NULL CHECK ([SessionId] >= CAST('1' AS bigint))
                                     ,[IsConfirmed] bit NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -455,7 +455,7 @@ Criar tabela [dbo].[Operations]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Operations]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Operations]
-CREATE TABLE [dbo].[Operations]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Operations]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[TransactionId] bigint NOT NULL CHECK ([TransactionId] >= CAST('1' AS bigint))
                                     ,[TableName] nvarchar(25) NOT NULL
                                     ,[Action] nvarchar(15) NOT NULL
@@ -475,7 +475,7 @@ Criar tabela [dbo].[Unicities]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Unicities]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Unicities]
-CREATE TABLE [dbo].[Unicities]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+CREATE TABLE [dbo].[Unicities]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[ColumnId1] bigint NOT NULL
                                     ,[ColumnId2] bigint NOT NULL
                                     ,[IsBidirectional] bit NOT NULL
@@ -492,11 +492,11 @@ Criar tabela [dbo].[Comparators]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Comparators]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Comparators]
-CREATE TABLE [dbo].[Comparators]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
+CREATE TABLE [dbo].[Comparators]([Id] tinyint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
                                     ,[Symbol] nchar(1) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[Arity] tinyint NULL
-                                    ,[SqlCode] nvarchar(50) NULL
+                                    ,[SqlComparator] nvarchar(15) NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -510,7 +510,7 @@ Criar tabela [dbo].[Rules]
 **********************************************************************************/
 IF (SELECT object_id('[dbo].[Rules]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Rules]
-CREATE TABLE [dbo].[Rules]([Id] tinyint NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
+CREATE TABLE [dbo].[Rules]([Id] tinyint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
                                     ,[CategoryId] tinyint NOT NULL
                                     ,[ComparatorId] tinyint NOT NULL
                                     ,[CreatedAt] datetime NOT NULL
@@ -939,7 +939,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
 		DECLARE @Action VARCHAR(15) = CAST(JSON_VALUE(@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
+				,@SessionId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
 				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
 				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
 				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
@@ -1021,7 +1021,8 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 					SET [Password] = @NewPassword
 					WHERE [Id] = @UserId
 			END
-			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @LoginId OUT
+			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @SessionId OUT
+			SET IDENTITY_INSERT [dbo].[Sessions] ON
 			INSERT [dbo].[Sessions]([Id],
 								  [SystemId],
 								  [UserId],
@@ -1030,7 +1031,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  [IsLogged],
 								  [CreatedAt],
 								  [CreatedBy])
-						  VALUES (ISNULL(@LoginId, 1),
+						  VALUES (ISNULL(@SessionId, 1),
 								  @SystemId,
 								  @UserId,
 								  @PublicKey,
@@ -1038,33 +1039,34 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  1,
 								  GETDATE(),
 								  @UserName)
+			SET IDENTITY_INSERT [dbo].[Sessions] OFF
 			UPDATE [dbo].[Users]
 				SET [RetryLogins] = 0
 				WHERE [Id] = @UserId
 					  AND [RetryLogins] > 0
-			SET @ReturnValue = @LoginId
-		END ELSE IF @LoginId IS NULL
-			THROW 51000, 'Id de login é requerido', 1
+			SET @ReturnValue = @SessionId
+		END ELSE IF @SessionId IS NULL
+			THROW 51000, 'SessionId é requerido', 1
 		ELSE BEGIN
 			SELECT @SystemIdAux = [SystemId],
 				   @UserIdAux = [UserId],
 				   @IsLogged = [IsLogged]
 				FROM [dbo].[Sessions]
-				WHERE [Id] = @LoginId
+				WHERE [Id] = @SessionId
 			IF @SystemIdAux IS NULL
-				THROW 51000, 'Login não cadastrado', 1
+				THROW 51000, 'Sessão não cadastrada', 1
 			IF @SystemId <> @SystemIdAux
-				THROW 51000, 'Sistema é inválido para este login', 1
+				THROW 51000, 'Sistema é inválido para esta sessão', 1
 			IF @UserId <> @UserIdAux
-				THROW 51000, 'Usuário é inválido para este login', 1
+				THROW 51000, 'Usuário é inválido para esta sessão', 1
 			IF @IsLogged = 0
-				THROW 51000, 'Login já encerrado', 1
+				THROW 51000, 'Sessão já encerrada', 1
 			IF @action = 'logout'
 				UPDATE [dbo].[Sessions]
 					SET [IsLogged] = 0,
 						[UpdatedAt] = GETDATE(),
 						[UpdatedBy] = @UserName
-					WHERE [Id] = @LoginId
+					WHERE [Id] = @SessionId
 		END
 
 	RETURN 1
@@ -1076,20 +1078,20 @@ Criar stored procedure [dbo].[GetPublicKey]
 IF(SELECT object_id('[dbo].[GetPublicKey]', 'P')) IS NULL
 	EXEC('CREATE PROCEDURE [dbo].[GetPublicKey] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[GetPublicKey](@LoginId BIGINT
+ALTER PROCEDURE[dbo].[GetPublicKey](@SessionId BIGINT
 								   ,@ReturnValue BIGINT OUT) AS BEGIN
 	SET NOCOUNT ON
 	SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-	IF @LoginId IS NULL
-		THROW 51000, 'Parâmetro @LoginId é requerido', 1
+	IF @SessionId IS NULL
+		THROW 51000, 'Parâmetro @SessionId é requerido', 1
 	SELECT [PublicKey]
 		  ,[ClientRsaPublicKey]
 		FROM [dbo].[Sessions]
-		WHERE [Id] = @LoginId
+		WHERE [Id] = @SessionId
 	IF @@ROWCOUNT = 0
-		THROW 51000, 'Valor @LoginId é inexistente', 1
-	SET @ReturnValue = @LoginId
+		THROW 51000, 'Valor @SessionId é inexistente', 1
+	SET @ReturnValue = @SessionId
 
 	RETURN @ReturnValue
 END
@@ -1798,6 +1800,7 @@ ALTER PROCEDURE[dbo].[TransactionCreate](@SessionId BIGINT
     DECLARE @TransactionId BIGINT
 
     EXEC [dbo].[NewId] 'crudex', 'crudex', 'Transactions', @TransactionId OUT
+    SET IDENTITY_INSERT [dbo].[Transactions] ON
     INSERT [dbo].[Transactions] ([Id]
                                 ,[SessionId]
                                 ,[IsConfirmed]
@@ -1808,6 +1811,7 @@ ALTER PROCEDURE[dbo].[TransactionCreate](@SessionId BIGINT
                                    ,NULL
                                    ,GETDATE()
                                    ,@UserName)
+    SET IDENTITY_INSERT [dbo].[Transactions] OFF
     SET @ReturnValue = @TransactionId
 
     RETURN 0
@@ -1858,7 +1862,7 @@ ALTER PROCEDURE[dbo].[TransactionCommit](@Login NVARCHAR(MAX)
 
 	IF @SessionId IS NULL
 
-		THROW 51000, 'LoginId Ã© requerido', 1
+		THROW 51000, 'SessionId é requerido', 1
 
 	IF @TransactionId IS NULL
 
@@ -1896,9 +1900,9 @@ ALTER PROCEDURE[dbo].[TransactionCommit](@Login NVARCHAR(MAX)
 
 	SET @sql = (SELECT STRING_AGG(
 								  CASE [O].[Action]
-									  WHEN 'create' THEN '[dbo].[' + [T].[Alias] + 'Create] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
-									  WHEN 'update' THEN '[dbo].[' + [T].[Alias] + 'Update] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
-									  WHEN 'delete' THEN '[dbo].[' + [T].[Alias] + 'Delete] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'create' THEN 'EXEC [dbo].[' + [T].[Alias] + 'Create] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'update' THEN 'EXEC [dbo].[' + [T].[Alias] + 'Update] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'delete' THEN 'EXEC [dbo].[' + [T].[Alias] + 'Delete] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
 								  END, '; ')
 
 					FROM [dbo].[Operations] [O]
@@ -2312,6 +2316,7 @@ GO
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Categories]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Categories] ON
 INSERT INTO [dbo].[Categories] ([Id]
                                 ,[Name]
                                 ,[HtmlInputType]
@@ -2622,10 +2627,12 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Categories] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Types]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Types] ON
 INSERT INTO [dbo].[Types] ([Id]
                                 ,[CategoryId]
                                 ,[Name]
@@ -4069,10 +4076,12 @@ INSERT INTO [dbo].[Types] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Types] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Masks]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Masks] ON
 INSERT INTO [dbo].[Masks] ([Id]
                                 ,[Name]
                                 ,[Mask]
@@ -4448,10 +4457,12 @@ INSERT INTO [dbo].[Masks] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Masks] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Domains]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Domains] ON
 INSERT INTO [dbo].[Domains] ([Id]
                                 ,[TypeId]
                                 ,[MaskId]
@@ -5196,10 +5207,12 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Domains] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Systems]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Systems] ON
 INSERT INTO [dbo].[Systems] ([Id]
                                 ,[Name]
                                 ,[Description]
@@ -5221,10 +5234,12 @@ INSERT INTO [dbo].[Systems] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Systems] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Menus]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Menus] ON
 INSERT INTO [dbo].[Menus] ([Id]
                                 ,[SystemId]
                                 ,[Sequence]
@@ -5524,10 +5539,12 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Menus] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Users]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Users] ON
 INSERT INTO [dbo].[Users] ([Id]
                                 ,[Name]
                                 ,[Password]
@@ -5570,10 +5587,12 @@ INSERT INTO [dbo].[Users] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Users] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[SystemsUsers]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[SystemsUsers] ON
 INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,[SystemId]
                                 ,[UserId]
@@ -5608,10 +5627,12 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[SystemsUsers] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Connections]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Connections] ON
 INSERT INTO [dbo].[Connections] ([Id]
                                 ,[Environment]
                                 ,[ConnectionString]
@@ -5627,10 +5648,12 @@ INSERT INTO [dbo].[Connections] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Connections] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Databases]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Databases] ON
 INSERT INTO [dbo].[Databases] ([Id]
                                 ,[ConnectionId]
                                 ,[Name]
@@ -5656,10 +5679,12 @@ INSERT INTO [dbo].[Databases] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Databases] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[SystemsDatabases]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[SystemsDatabases] ON
 INSERT INTO [dbo].[SystemsDatabases] ([Id]
                                 ,[SystemId]
                                 ,[DatabaseId]
@@ -5677,10 +5702,12 @@ INSERT INTO [dbo].[SystemsDatabases] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[SystemsDatabases] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Tables]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Tables] ON
 INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
@@ -5927,7 +5954,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Table' AS nvarchar(25))
                                 ,CAST(N'Tabelas de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
-                                ,CAST('22' AS bigint)
+                                ,CAST('23' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5948,7 +5975,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'DatabaseTable' AS nvarchar(25))
                                 ,CAST(N'Bancos-de-Dados x Tabelas' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
-                                ,CAST('22' AS bigint)
+                                ,CAST('23' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5969,7 +5996,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Column' AS nvarchar(25))
                                 ,CAST(N'Colunas de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
-                                ,CAST('147' AS bigint)
+                                ,CAST('155' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6116,7 +6143,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Comparator' AS nvarchar(25))
                                 ,CAST(N'Comparadores relacionais' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('12' AS bigint)
+                                ,CAST('14' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6137,7 +6164,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Rule' AS nvarchar(25))
                                 ,CAST(N'Regras de comparação/categoria' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('56' AS bigint)
+                                ,CAST('68' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6164,10 +6191,12 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Tables] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[DatabasesTables]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[DatabasesTables] ON
 INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,[DatabaseId]
                                 ,[TableId]
@@ -6559,10 +6588,12 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[DatabasesTables] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Columns]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Columns] ON
 INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
@@ -14513,11 +14544,11 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('145' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('25' AS smallint)
-                                ,CAST('10' AS bigint)
+                                ,CAST('7' AS bigint)
                                 ,NULL
-                                ,CAST(N'SqlCode' AS nvarchar(25))
+                                ,CAST(N'SqlComparator' AS nvarchar(25))
                                 ,NULL
-                                ,CAST(N'SQL do comparador' AS nvarchar(50))
+                                ,CAST(N'Comparador SQL' AS nvarchar(50))
                                 ,CAST(N'SQL' AS nvarchar(25))
                                 ,CAST(N'SQL' AS nvarchar(25))
                                 ,NULL
@@ -15088,6 +15119,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Columns] OFF
 
 
 
@@ -15097,6 +15129,7 @@ GO
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Unicities]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Unicities] ON
 INSERT INTO [dbo].[Unicities] ([Id]
                                 ,[ColumnId1]
                                 ,[ColumnId2]
@@ -15114,15 +15147,17 @@ INSERT INTO [dbo].[Unicities] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+SET IDENTITY_INSERT [dbo].[Unicities] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Comparators]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Comparators] ON
 INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15131,7 +15166,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'<' AS nchar(1))
                                 ,CAST(N'Menor que...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 < %2' AS nvarchar(50))
+                                ,CAST(N'<' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15141,7 +15176,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15150,7 +15185,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'≤' AS nchar(1))
                                 ,CAST(N'Menor que ou igual a...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 <= %2' AS nvarchar(50))
+                                ,CAST(N'<=' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15160,7 +15195,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15169,7 +15204,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'=' AS nchar(1))
                                 ,CAST(N'Igual a...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 = %2' AS nvarchar(50))
+                                ,CAST(N'=' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15179,7 +15214,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15188,7 +15223,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'≠' AS nchar(1))
                                 ,CAST(N'Diferente de...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 <> %2' AS nvarchar(50))
+                                ,CAST(N'<>' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15198,7 +15233,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15207,7 +15242,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'≥' AS nchar(1))
                                 ,CAST(N'Maior que ou igual a...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 >= %2' AS nvarchar(50))
+                                ,CAST(N'>=' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15217,7 +15252,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15226,7 +15261,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'>' AS nchar(1))
                                 ,CAST(N'Maior que...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 > %2' AS nvarchar(50))
+                                ,CAST(N'>' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15236,7 +15271,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15245,7 +15280,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'∈' AS nchar(1))
                                 ,CAST(N'IN' AS nvarchar(50))
                                 ,NULL
-                                ,CAST(N'%1 IN %2' AS nvarchar(50))
+                                ,CAST(N'IN' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15255,7 +15290,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15264,7 +15299,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'∉' AS nchar(1))
                                 ,CAST(N'NOT IN' AS nvarchar(50))
                                 ,NULL
-                                ,CAST(N'%1 NOT IN %2' AS nvarchar(50))
+                                ,CAST(N'NOT IN' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15274,7 +15309,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15283,7 +15318,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'⊃' AS nchar(1))
                                 ,CAST(N'LIKE' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 LIKE %2' AS nvarchar(50))
+                                ,CAST(N'LIKE' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15293,7 +15328,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15302,7 +15337,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'⊅' AS nchar(1))
                                 ,CAST(N'NOT LIKE' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
-                                ,CAST(N'%1 NOT LIKE %2' AS nvarchar(50))
+                                ,CAST(N'NOT LIKE' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15312,7 +15347,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15321,7 +15356,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'∃' AS nchar(1))
                                 ,CAST(N'BETWEEN... AND...' AS nvarchar(50))
                                 ,CAST('3' AS tinyint)
-                                ,CAST(N'%1 BETWEEN %2 AND %3' AS nvarchar(50))
+                                ,CAST(N'BETWEEN' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15331,7 +15366,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Symbol]
                                 ,[Description]
                                 ,[Arity]
-                                ,[SqlCode]
+                                ,[SqlComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -15340,16 +15375,56 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'∄' AS nchar(1))
                                 ,CAST(N'NOT BETWEEN... AND...' AS nvarchar(50))
                                 ,CAST('3' AS tinyint)
-                                ,CAST(N'%1 NOT BETWEEN %2 AND %3' AS nvarchar(50))
+                                ,CAST(N'NOT BETWEEN' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Comparators] ([Id]
+                                ,[Symbol]
+                                ,[Description]
+                                ,[Arity]
+                                ,[SqlComparator]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS tinyint)
+                                ,CAST(N'∅' AS nchar(1))
+                                ,CAST(N'IS NULL' AS nvarchar(50))
+                                ,CAST('1' AS tinyint)
+                                ,CAST(N'IS NULL' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Comparators] ([Id]
+                                ,[Symbol]
+                                ,[Description]
+                                ,[Arity]
+                                ,[SqlComparator]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS tinyint)
+                                ,CAST(N'⊗' AS nchar(1))
+                                ,CAST(N'IS NOT NULL' AS nvarchar(50))
+                                ,CAST('1' AS tinyint)
+                                ,CAST(N'IS NOT NULL' AS nvarchar(15))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+SET IDENTITY_INSERT [dbo].[Comparators] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Rules]
 **********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Rules] ON
 INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CategoryId]
                                 ,[ComparatorId]
@@ -15448,6 +15523,36 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('7' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,CAST('7' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,CAST('8' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS tinyint)
                                 ,CAST('1' AS tinyint)
                                 ,CAST('9' AS tinyint)
                                 ,GETDATE()
@@ -15462,7 +15567,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('8' AS tinyint)
+                         VALUES (CAST('10' AS tinyint)
                                 ,CAST('1' AS tinyint)
                                 ,CAST('10' AS tinyint)
                                 ,GETDATE()
@@ -15477,39 +15582,9 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('9' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,CAST('1' AS tinyint)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Rules] ([Id]
-                                ,[CategoryId]
-                                ,[ComparatorId]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('10' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Rules] ([Id]
-                                ,[CategoryId]
-                                ,[ComparatorId]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
                          VALUES (CAST('11' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,CAST('3' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,CAST('11' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15523,8 +15598,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('12' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,CAST('4' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,CAST('12' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15538,8 +15613,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('13' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,CAST('5' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,CAST('13' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15553,8 +15628,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('14' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,CAST('6' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,CAST('14' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15569,7 +15644,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('15' AS tinyint)
                                 ,CAST('2' AS tinyint)
-                                ,CAST('7' AS tinyint)
+                                ,CAST('1' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15584,7 +15659,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('16' AS tinyint)
                                 ,CAST('2' AS tinyint)
-                                ,CAST('8' AS tinyint)
+                                ,CAST('2' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15599,7 +15674,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('17' AS tinyint)
                                 ,CAST('2' AS tinyint)
-                                ,CAST('11' AS tinyint)
+                                ,CAST('3' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15614,7 +15689,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('18' AS tinyint)
                                 ,CAST('2' AS tinyint)
-                                ,CAST('12' AS tinyint)
+                                ,CAST('4' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15628,8 +15703,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('19' AS tinyint)
-                                ,CAST('3' AS tinyint)
-                                ,CAST('1' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,CAST('5' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15643,8 +15718,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('20' AS tinyint)
-                                ,CAST('3' AS tinyint)
                                 ,CAST('2' AS tinyint)
+                                ,CAST('6' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15658,8 +15733,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('21' AS tinyint)
-                                ,CAST('3' AS tinyint)
-                                ,CAST('3' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,CAST('7' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15673,8 +15748,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('22' AS tinyint)
-                                ,CAST('3' AS tinyint)
-                                ,CAST('4' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,CAST('8' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15688,8 +15763,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('23' AS tinyint)
-                                ,CAST('3' AS tinyint)
-                                ,CAST('5' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,CAST('11' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15703,8 +15778,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('24' AS tinyint)
-                                ,CAST('3' AS tinyint)
-                                ,CAST('6' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,CAST('12' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15718,8 +15793,8 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('25' AS tinyint)
-                                ,CAST('4' AS tinyint)
-                                ,CAST('1' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,CAST('13' AS tinyint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15733,6 +15808,216 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('26' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,CAST('14' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('27' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('28' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('2' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('29' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('30' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('31' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('5' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('32' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('6' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('33' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('7' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('34' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('8' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('35' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('11' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('36' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('12' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('37' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('13' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('38' AS tinyint)
+                                ,CAST('3' AS tinyint)
+                                ,CAST('14' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('39' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,CAST('1' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('40' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,GETDATE()
@@ -15747,7 +16032,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('27' AS tinyint)
+                         VALUES (CAST('41' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('3' AS tinyint)
                                 ,GETDATE()
@@ -15762,7 +16047,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('28' AS tinyint)
+                         VALUES (CAST('42' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,GETDATE()
@@ -15777,7 +16062,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('29' AS tinyint)
+                         VALUES (CAST('43' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,GETDATE()
@@ -15792,7 +16077,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('30' AS tinyint)
+                         VALUES (CAST('44' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,CAST('6' AS tinyint)
                                 ,GETDATE()
@@ -15807,7 +16092,97 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('31' AS tinyint)
+                         VALUES (CAST('45' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,CAST('7' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('46' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,CAST('8' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('47' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,CAST('11' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('48' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,CAST('12' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('49' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,CAST('13' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('50' AS tinyint)
+                                ,CAST('4' AS tinyint)
+                                ,CAST('14' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('51' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,CAST('1' AS tinyint)
                                 ,GETDATE()
@@ -15822,7 +16197,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('32' AS tinyint)
+                         VALUES (CAST('52' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,CAST('2' AS tinyint)
                                 ,GETDATE()
@@ -15837,7 +16212,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('33' AS tinyint)
+                         VALUES (CAST('53' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,CAST('3' AS tinyint)
                                 ,GETDATE()
@@ -15852,7 +16227,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('34' AS tinyint)
+                         VALUES (CAST('54' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,GETDATE()
@@ -15867,7 +16242,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('35' AS tinyint)
+                         VALUES (CAST('55' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,GETDATE()
@@ -15882,7 +16257,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('36' AS tinyint)
+                         VALUES (CAST('56' AS tinyint)
                                 ,CAST('5' AS tinyint)
                                 ,CAST('6' AS tinyint)
                                 ,GETDATE()
@@ -15897,7 +16272,157 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('37' AS tinyint)
+                         VALUES (CAST('57' AS tinyint)
+                                ,CAST('5' AS tinyint)
+                                ,CAST('7' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('58' AS tinyint)
+                                ,CAST('5' AS tinyint)
+                                ,CAST('8' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('59' AS tinyint)
+                                ,CAST('5' AS tinyint)
+                                ,CAST('11' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('60' AS tinyint)
+                                ,CAST('5' AS tinyint)
+                                ,CAST('12' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('61' AS tinyint)
+                                ,CAST('5' AS tinyint)
+                                ,CAST('13' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('62' AS tinyint)
+                                ,CAST('5' AS tinyint)
+                                ,CAST('14' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('63' AS tinyint)
+                                ,CAST('6' AS tinyint)
+                                ,CAST('9' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('64' AS tinyint)
+                                ,CAST('6' AS tinyint)
+                                ,CAST('10' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('65' AS tinyint)
+                                ,CAST('6' AS tinyint)
+                                ,CAST('13' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('66' AS tinyint)
+                                ,CAST('6' AS tinyint)
+                                ,CAST('14' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('67' AS tinyint)
                                 ,CAST('7' AS tinyint)
                                 ,CAST('3' AS tinyint)
                                 ,GETDATE()
@@ -15912,7 +16437,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('38' AS tinyint)
+                         VALUES (CAST('68' AS tinyint)
                                 ,CAST('7' AS tinyint)
                                 ,CAST('4' AS tinyint)
                                 ,GETDATE()
@@ -15927,7 +16452,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('39' AS tinyint)
+                         VALUES (CAST('69' AS tinyint)
                                 ,CAST('7' AS tinyint)
                                 ,CAST('9' AS tinyint)
                                 ,GETDATE()
@@ -15942,7 +16467,7 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('40' AS tinyint)
+                         VALUES (CAST('70' AS tinyint)
                                 ,CAST('7' AS tinyint)
                                 ,CAST('10' AS tinyint)
                                 ,GETDATE()
@@ -15950,6 +16475,37 @@ INSERT INTO [dbo].[Rules] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('71' AS tinyint)
+                                ,CAST('7' AS tinyint)
+                                ,CAST('13' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Rules] ([Id]
+                                ,[CategoryId]
+                                ,[ComparatorId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('72' AS tinyint)
+                                ,CAST('7' AS tinyint)
+                                ,CAST('14' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+SET IDENTITY_INSERT [dbo].[Rules] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[testes]
@@ -16056,7 +16612,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Categories', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -16159,7 +16715,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -16201,6 +16757,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -16219,6 +16776,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -16281,7 +16839,7 @@ ALTER PROCEDURE [dbo].[CategoryCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -16331,6 +16889,7 @@ ALTER PROCEDURE [dbo].[CategoryCreate](@Login NVARCHAR(MAX)
                ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
                ,@W_AskInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.AskInWords') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Categories] ON
         INSERT INTO [dbo].[Categories] ([Id]
                                             ,[Name]
                                             ,[HtmlInputType]
@@ -16357,6 +16916,7 @@ ALTER PROCEDURE [dbo].[CategoryCreate](@Login NVARCHAR(MAX)
                                              ,@W_AskInWords
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Categories] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -16387,7 +16947,7 @@ ALTER PROCEDURE [dbo].[CategoryUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -16437,8 +16997,7 @@ ALTER PROCEDURE [dbo].[CategoryUpdate](@Login NVARCHAR(MAX)
                ,@W_AskMaximum bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMaximum') AS bit)
                ,@W_AskInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.AskInWords') AS bit)
 
-        UPDATE [dbo].[Categories] SET [Id] = @W_Id
-                                          ,[Name] = @W_Name
+        UPDATE [dbo].[Categories] SET [Name] = @W_Name
                                           ,[HtmlInputType] = @W_HtmlInputType
                                           ,[HtmlInputAlign] = @W_HtmlInputAlign
                                           ,[AskEncrypted] = @W_AskEncrypted
@@ -16481,7 +17040,7 @@ ALTER PROCEDURE [dbo].[CategoryDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -16552,13 +17111,13 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -16599,7 +17158,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -16694,27 +17253,43 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_AskEncrypted_comparator TINYINT
                    ,@G_AskEncrypted_v bit
                    ,@G_AskEncrypted_vals NVARCHAR(MAX)
+                   ,@G_AskEncrypted_v1 bit
+                   ,@G_AskEncrypted_v2 bit
                    ,@G_AskMask_comparator TINYINT
                    ,@G_AskMask_v bit
                    ,@G_AskMask_vals NVARCHAR(MAX)
+                   ,@G_AskMask_v1 bit
+                   ,@G_AskMask_v2 bit
                    ,@G_AskListable_comparator TINYINT
                    ,@G_AskListable_v bit
                    ,@G_AskListable_vals NVARCHAR(MAX)
+                   ,@G_AskListable_v1 bit
+                   ,@G_AskListable_v2 bit
                    ,@G_AskDefault_comparator TINYINT
                    ,@G_AskDefault_v bit
                    ,@G_AskDefault_vals NVARCHAR(MAX)
+                   ,@G_AskDefault_v1 bit
+                   ,@G_AskDefault_v2 bit
                    ,@G_AskMinimum_comparator TINYINT
                    ,@G_AskMinimum_v bit
                    ,@G_AskMinimum_vals NVARCHAR(MAX)
+                   ,@G_AskMinimum_v1 bit
+                   ,@G_AskMinimum_v2 bit
                    ,@G_AskMaximum_comparator TINYINT
                    ,@G_AskMaximum_v bit
                    ,@G_AskMaximum_vals NVARCHAR(MAX)
+                   ,@G_AskMaximum_v1 bit
+                   ,@G_AskMaximum_v2 bit
                    ,@G_AskInWords_comparator TINYINT
                    ,@G_AskInWords_v bit
                    ,@G_AskInWords_vals NVARCHAR(MAX)
+                   ,@G_AskInWords_v1 bit
+                   ,@G_AskInWords_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -16742,6 +17317,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_AskEncrypted_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskEncrypted.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskEncrypted') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskEncrypted') IS NULL THEN 3 END
@@ -16754,6 +17331,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskEncrypted.value'),
                 JSON_QUERY(@Filter, '$.AskEncrypted')
             )
+            SELECT @G_AskEncrypted_v1 = TRY_CAST(JSON_VALUE(@G_AskEncrypted_vals, '$[0]') AS bit)
+                  ,@G_AskEncrypted_v2 = TRY_CAST(JSON_VALUE(@G_AskEncrypted_vals, '$[1]') AS bit)
             SELECT @G_AskMask_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskMask.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskMask') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskMask') IS NULL THEN 3 END
@@ -16766,6 +17345,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskMask.value'),
                 JSON_QUERY(@Filter, '$.AskMask')
             )
+            SELECT @G_AskMask_v1 = TRY_CAST(JSON_VALUE(@G_AskMask_vals, '$[0]') AS bit)
+                  ,@G_AskMask_v2 = TRY_CAST(JSON_VALUE(@G_AskMask_vals, '$[1]') AS bit)
             SELECT @G_AskListable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskListable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskListable') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskListable') IS NULL THEN 3 END
@@ -16778,6 +17359,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskListable.value'),
                 JSON_QUERY(@Filter, '$.AskListable')
             )
+            SELECT @G_AskListable_v1 = TRY_CAST(JSON_VALUE(@G_AskListable_vals, '$[0]') AS bit)
+                  ,@G_AskListable_v2 = TRY_CAST(JSON_VALUE(@G_AskListable_vals, '$[1]') AS bit)
             SELECT @G_AskDefault_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskDefault.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskDefault') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskDefault') IS NULL THEN 3 END
@@ -16790,6 +17373,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskDefault.value'),
                 JSON_QUERY(@Filter, '$.AskDefault')
             )
+            SELECT @G_AskDefault_v1 = TRY_CAST(JSON_VALUE(@G_AskDefault_vals, '$[0]') AS bit)
+                  ,@G_AskDefault_v2 = TRY_CAST(JSON_VALUE(@G_AskDefault_vals, '$[1]') AS bit)
             SELECT @G_AskMinimum_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskMinimum.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskMinimum') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskMinimum') IS NULL THEN 3 END
@@ -16802,6 +17387,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskMinimum.value'),
                 JSON_QUERY(@Filter, '$.AskMinimum')
             )
+            SELECT @G_AskMinimum_v1 = TRY_CAST(JSON_VALUE(@G_AskMinimum_vals, '$[0]') AS bit)
+                  ,@G_AskMinimum_v2 = TRY_CAST(JSON_VALUE(@G_AskMinimum_vals, '$[1]') AS bit)
             SELECT @G_AskMaximum_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskMaximum.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskMaximum') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskMaximum') IS NULL THEN 3 END
@@ -16814,6 +17401,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskMaximum.value'),
                 JSON_QUERY(@Filter, '$.AskMaximum')
             )
+            SELECT @G_AskMaximum_v1 = TRY_CAST(JSON_VALUE(@G_AskMaximum_vals, '$[0]') AS bit)
+                  ,@G_AskMaximum_v2 = TRY_CAST(JSON_VALUE(@G_AskMaximum_vals, '$[1]') AS bit)
             SELECT @G_AskInWords_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskInWords.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskInWords') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskInWords') IS NULL THEN 3 END
@@ -16826,18 +17415,22 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskInWords.value'),
                 JSON_QUERY(@Filter, '$.AskInWords')
             )
+            SELECT @G_AskInWords_v1 = TRY_CAST(JSON_VALUE(@G_AskInWords_vals, '$[0]') AS bit)
+                  ,@G_AskInWords_v2 = TRY_CAST(JSON_VALUE(@G_AskInWords_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -16845,13 +17438,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskEncrypted' AND [type] = 0)
@@ -16859,13 +17456,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskEncrypted_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskEncrypted_vals))'), '%1', '[T].[AskEncrypted]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskEncrypted'), '%1', '[T].[AskEncrypted]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskEncrypted] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskEncrypted_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskEncrypted] ' + [C].[SqlComparator] + ' @AskEncrypted_v1 AND @AskEncrypted_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskEncrypted] ' + [C].[SqlComparator]
+        ELSE '[T].[AskEncrypted] ' + [C].[SqlComparator] + ' @AskEncrypted'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskEncrypted_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskEncrypted_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskEncrypted_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskEncrypted_v1 IS NOT NULL AND @G_AskEncrypted_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskEncrypted_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskMask' AND [type] = 0)
@@ -16873,13 +17474,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskMask_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskMask_vals))'), '%1', '[T].[AskMask]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskMask'), '%1', '[T].[AskMask]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskMask] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskMask_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskMask] ' + [C].[SqlComparator] + ' @AskMask_v1 AND @AskMask_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskMask] ' + [C].[SqlComparator]
+        ELSE '[T].[AskMask] ' + [C].[SqlComparator] + ' @AskMask'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskMask_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskMask_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskMask_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskMask_v1 IS NOT NULL AND @G_AskMask_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskMask_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskListable' AND [type] = 0)
@@ -16887,13 +17492,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskListable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskListable_vals))'), '%1', '[T].[AskListable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskListable'), '%1', '[T].[AskListable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskListable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskListable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskListable] ' + [C].[SqlComparator] + ' @AskListable_v1 AND @AskListable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskListable] ' + [C].[SqlComparator]
+        ELSE '[T].[AskListable] ' + [C].[SqlComparator] + ' @AskListable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskListable_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskListable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskListable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskListable_v1 IS NOT NULL AND @G_AskListable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskListable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskDefault' AND [type] = 0)
@@ -16901,13 +17510,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskDefault_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskDefault_vals))'), '%1', '[T].[AskDefault]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskDefault'), '%1', '[T].[AskDefault]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskDefault] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskDefault_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskDefault] ' + [C].[SqlComparator] + ' @AskDefault_v1 AND @AskDefault_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskDefault] ' + [C].[SqlComparator]
+        ELSE '[T].[AskDefault] ' + [C].[SqlComparator] + ' @AskDefault'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskDefault_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskDefault_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskDefault_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskDefault_v1 IS NOT NULL AND @G_AskDefault_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskDefault_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskMinimum' AND [type] = 0)
@@ -16915,13 +17528,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskMinimum_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskMinimum_vals))'), '%1', '[T].[AskMinimum]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskMinimum'), '%1', '[T].[AskMinimum]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskMinimum] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskMinimum_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskMinimum] ' + [C].[SqlComparator] + ' @AskMinimum_v1 AND @AskMinimum_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskMinimum] ' + [C].[SqlComparator]
+        ELSE '[T].[AskMinimum] ' + [C].[SqlComparator] + ' @AskMinimum'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskMinimum_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskMinimum_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskMinimum_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskMinimum_v1 IS NOT NULL AND @G_AskMinimum_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskMinimum_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskMaximum' AND [type] = 0)
@@ -16929,13 +17546,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskMaximum_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskMaximum_vals))'), '%1', '[T].[AskMaximum]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskMaximum'), '%1', '[T].[AskMaximum]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskMaximum] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskMaximum_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskMaximum] ' + [C].[SqlComparator] + ' @AskMaximum_v1 AND @AskMaximum_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskMaximum] ' + [C].[SqlComparator]
+        ELSE '[T].[AskMaximum] ' + [C].[SqlComparator] + ' @AskMaximum'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskMaximum_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskMaximum_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskMaximum_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskMaximum_v1 IS NOT NULL AND @G_AskMaximum_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskMaximum_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskInWords' AND [type] = 0)
@@ -16943,13 +17564,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskInWords_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskInWords_vals))'), '%1', '[T].[AskInWords]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskInWords'), '%1', '[T].[AskInWords]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskInWords] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskInWords_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskInWords] ' + [C].[SqlComparator] + ' @AskInWords_v1 AND @AskInWords_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskInWords] ' + [C].[SqlComparator]
+        ELSE '[T].[AskInWords] ' + [C].[SqlComparator] + ' @AskInWords'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskInWords_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskInWords_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskInWords_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskInWords_v1 IS NOT NULL AND @G_AskInWords_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskInWords_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -16988,7 +17613,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                ,@T_AskInWords = @WT_AskInWords
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskEncrypted bit,@T_AskMask bit,@T_AskListable bit,@T_AskDefault bit,@T_AskMinimum bit,@T_AskMaximum bit,@T_AskInWords bit,@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@AskEncrypted bit,@AskEncrypted_vals NVARCHAR(MAX),@AskMask bit,@AskMask_vals NVARCHAR(MAX),@AskListable bit,@AskListable_vals NVARCHAR(MAX),@AskDefault bit,@AskDefault_vals NVARCHAR(MAX),@AskMinimum bit,@AskMinimum_vals NVARCHAR(MAX),@AskMaximum bit,@AskMaximum_vals NVARCHAR(MAX),@AskInWords bit,@AskInWords_vals NVARCHAR(MAX)'
+                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskEncrypted bit,@T_AskMask bit,@T_AskListable bit,@T_AskDefault bit,@T_AskMinimum bit,@T_AskMaximum bit,@T_AskInWords bit,@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@AskEncrypted bit,@AskEncrypted_v1 bit,@AskEncrypted_v2 bit,@AskEncrypted_vals NVARCHAR(MAX),@AskMask bit,@AskMask_v1 bit,@AskMask_v2 bit,@AskMask_vals NVARCHAR(MAX),@AskListable bit,@AskListable_v1 bit,@AskListable_v2 bit,@AskListable_vals NVARCHAR(MAX),@AskDefault bit,@AskDefault_v1 bit,@AskDefault_v2 bit,@AskDefault_vals NVARCHAR(MAX),@AskMinimum bit,@AskMinimum_v1 bit,@AskMinimum_v2 bit,@AskMinimum_vals NVARCHAR(MAX),@AskMaximum bit,@AskMaximum_v1 bit,@AskMaximum_v2 bit,@AskMaximum_vals NVARCHAR(MAX),@AskInWords bit,@AskInWords_v1 bit,@AskInWords_v2 bit,@AskInWords_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Name = @WT_Name
                                ,@T_AskEncrypted = @WT_AskEncrypted
@@ -17003,20 +17628,36 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@AskEncrypted = @G_AskEncrypted_v
+                               ,@AskEncrypted_v1 = @G_AskEncrypted_v1
+                               ,@AskEncrypted_v2 = @G_AskEncrypted_v2
                                ,@AskEncrypted_vals = @G_AskEncrypted_vals
                                ,@AskMask = @G_AskMask_v
+                               ,@AskMask_v1 = @G_AskMask_v1
+                               ,@AskMask_v2 = @G_AskMask_v2
                                ,@AskMask_vals = @G_AskMask_vals
                                ,@AskListable = @G_AskListable_v
+                               ,@AskListable_v1 = @G_AskListable_v1
+                               ,@AskListable_v2 = @G_AskListable_v2
                                ,@AskListable_vals = @G_AskListable_vals
                                ,@AskDefault = @G_AskDefault_v
+                               ,@AskDefault_v1 = @G_AskDefault_v1
+                               ,@AskDefault_v2 = @G_AskDefault_v2
                                ,@AskDefault_vals = @G_AskDefault_vals
                                ,@AskMinimum = @G_AskMinimum_v
+                               ,@AskMinimum_v1 = @G_AskMinimum_v1
+                               ,@AskMinimum_v2 = @G_AskMinimum_v2
                                ,@AskMinimum_vals = @G_AskMinimum_vals
                                ,@AskMaximum = @G_AskMaximum_v
+                               ,@AskMaximum_v1 = @G_AskMaximum_v1
+                               ,@AskMaximum_v2 = @G_AskMaximum_v2
                                ,@AskMaximum_vals = @G_AskMaximum_vals
                                ,@AskInWords = @G_AskInWords_v
+                               ,@AskInWords_v1 = @G_AskInWords_v1
+                               ,@AskInWords_v2 = @G_AskInWords_v2
                                ,@AskInWords_vals = @G_AskInWords_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -17054,27 +17695,43 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_AskEncrypted_comparator TINYINT
                    ,@S_AskEncrypted_v bit
                    ,@S_AskEncrypted_vals NVARCHAR(MAX)
+                   ,@S_AskEncrypted_v1 bit
+                   ,@S_AskEncrypted_v2 bit
                    ,@S_AskMask_comparator TINYINT
                    ,@S_AskMask_v bit
                    ,@S_AskMask_vals NVARCHAR(MAX)
+                   ,@S_AskMask_v1 bit
+                   ,@S_AskMask_v2 bit
                    ,@S_AskListable_comparator TINYINT
                    ,@S_AskListable_v bit
                    ,@S_AskListable_vals NVARCHAR(MAX)
+                   ,@S_AskListable_v1 bit
+                   ,@S_AskListable_v2 bit
                    ,@S_AskDefault_comparator TINYINT
                    ,@S_AskDefault_v bit
                    ,@S_AskDefault_vals NVARCHAR(MAX)
+                   ,@S_AskDefault_v1 bit
+                   ,@S_AskDefault_v2 bit
                    ,@S_AskMinimum_comparator TINYINT
                    ,@S_AskMinimum_v bit
                    ,@S_AskMinimum_vals NVARCHAR(MAX)
+                   ,@S_AskMinimum_v1 bit
+                   ,@S_AskMinimum_v2 bit
                    ,@S_AskMaximum_comparator TINYINT
                    ,@S_AskMaximum_v bit
                    ,@S_AskMaximum_vals NVARCHAR(MAX)
+                   ,@S_AskMaximum_v1 bit
+                   ,@S_AskMaximum_v2 bit
                    ,@S_AskInWords_comparator TINYINT
                    ,@S_AskInWords_v bit
                    ,@S_AskInWords_vals NVARCHAR(MAX)
+                   ,@S_AskInWords_v1 bit
+                   ,@S_AskInWords_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -17102,6 +17759,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_AskEncrypted_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskEncrypted.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskEncrypted') IS NOT NULL AND JSON_QUERY(@Search, '$.AskEncrypted') IS NULL THEN 3 END
@@ -17114,6 +17773,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskEncrypted.value'),
                     JSON_QUERY(@Search, '$.AskEncrypted')
                 )
+                SELECT @S_AskEncrypted_v1 = TRY_CAST(JSON_VALUE(@S_AskEncrypted_vals, '$[0]') AS bit)
+                      ,@S_AskEncrypted_v2 = TRY_CAST(JSON_VALUE(@S_AskEncrypted_vals, '$[1]') AS bit)
                 SELECT @S_AskMask_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskMask.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskMask') IS NOT NULL AND JSON_QUERY(@Search, '$.AskMask') IS NULL THEN 3 END
@@ -17126,6 +17787,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskMask.value'),
                     JSON_QUERY(@Search, '$.AskMask')
                 )
+                SELECT @S_AskMask_v1 = TRY_CAST(JSON_VALUE(@S_AskMask_vals, '$[0]') AS bit)
+                      ,@S_AskMask_v2 = TRY_CAST(JSON_VALUE(@S_AskMask_vals, '$[1]') AS bit)
                 SELECT @S_AskListable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskListable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskListable') IS NOT NULL AND JSON_QUERY(@Search, '$.AskListable') IS NULL THEN 3 END
@@ -17138,6 +17801,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskListable.value'),
                     JSON_QUERY(@Search, '$.AskListable')
                 )
+                SELECT @S_AskListable_v1 = TRY_CAST(JSON_VALUE(@S_AskListable_vals, '$[0]') AS bit)
+                      ,@S_AskListable_v2 = TRY_CAST(JSON_VALUE(@S_AskListable_vals, '$[1]') AS bit)
                 SELECT @S_AskDefault_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskDefault.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskDefault') IS NOT NULL AND JSON_QUERY(@Search, '$.AskDefault') IS NULL THEN 3 END
@@ -17150,6 +17815,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskDefault.value'),
                     JSON_QUERY(@Search, '$.AskDefault')
                 )
+                SELECT @S_AskDefault_v1 = TRY_CAST(JSON_VALUE(@S_AskDefault_vals, '$[0]') AS bit)
+                      ,@S_AskDefault_v2 = TRY_CAST(JSON_VALUE(@S_AskDefault_vals, '$[1]') AS bit)
                 SELECT @S_AskMinimum_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskMinimum.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskMinimum') IS NOT NULL AND JSON_QUERY(@Search, '$.AskMinimum') IS NULL THEN 3 END
@@ -17162,6 +17829,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskMinimum.value'),
                     JSON_QUERY(@Search, '$.AskMinimum')
                 )
+                SELECT @S_AskMinimum_v1 = TRY_CAST(JSON_VALUE(@S_AskMinimum_vals, '$[0]') AS bit)
+                      ,@S_AskMinimum_v2 = TRY_CAST(JSON_VALUE(@S_AskMinimum_vals, '$[1]') AS bit)
                 SELECT @S_AskMaximum_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskMaximum.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskMaximum') IS NOT NULL AND JSON_QUERY(@Search, '$.AskMaximum') IS NULL THEN 3 END
@@ -17174,6 +17843,8 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskMaximum.value'),
                     JSON_QUERY(@Search, '$.AskMaximum')
                 )
+                SELECT @S_AskMaximum_v1 = TRY_CAST(JSON_VALUE(@S_AskMaximum_vals, '$[0]') AS bit)
+                      ,@S_AskMaximum_v2 = TRY_CAST(JSON_VALUE(@S_AskMaximum_vals, '$[1]') AS bit)
                 SELECT @S_AskInWords_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskInWords.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskInWords') IS NOT NULL AND JSON_QUERY(@Search, '$.AskInWords') IS NULL THEN 3 END
@@ -17186,20 +17857,24 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskInWords.value'),
                     JSON_QUERY(@Search, '$.AskInWords')
                 )
+                SELECT @S_AskInWords_v1 = TRY_CAST(JSON_VALUE(@S_AskInWords_vals, '$[0]') AS bit)
+                      ,@S_AskInWords_v2 = TRY_CAST(JSON_VALUE(@S_AskInWords_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -17209,13 +17884,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskEncrypted' AND [type] = 0) BEGIN
@@ -17225,13 +17904,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_AskEncrypted_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskEncrypted_vals))'), '%1', 'COALESCE([D].[AskEncrypted], [O].[AskEncrypted])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskEncrypted'), '%1', 'COALESCE([D].[AskEncrypted], [O].[AskEncrypted])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskEncrypted], [O].[AskEncrypted]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskEncrypted_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskEncrypted], [O].[AskEncrypted]) ' + [C].[SqlComparator] + ' @AskEncrypted_v1 AND @AskEncrypted_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskEncrypted], [O].[AskEncrypted]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskEncrypted], [O].[AskEncrypted]) ' + [C].[SqlComparator] + ' @AskEncrypted'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskEncrypted_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskEncrypted_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskEncrypted_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskEncrypted_v1 IS NOT NULL AND @S_AskEncrypted_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskEncrypted_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskMask' AND [type] = 0) BEGIN
@@ -17241,13 +17924,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_AskMask_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskMask_vals))'), '%1', 'COALESCE([D].[AskMask], [O].[AskMask])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskMask'), '%1', 'COALESCE([D].[AskMask], [O].[AskMask])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskMask], [O].[AskMask]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskMask_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskMask], [O].[AskMask]) ' + [C].[SqlComparator] + ' @AskMask_v1 AND @AskMask_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskMask], [O].[AskMask]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskMask], [O].[AskMask]) ' + [C].[SqlComparator] + ' @AskMask'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskMask_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskMask_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskMask_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskMask_v1 IS NOT NULL AND @S_AskMask_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskMask_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskListable' AND [type] = 0) BEGIN
@@ -17257,13 +17944,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_AskListable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskListable_vals))'), '%1', 'COALESCE([D].[AskListable], [O].[AskListable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskListable'), '%1', 'COALESCE([D].[AskListable], [O].[AskListable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskListable], [O].[AskListable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskListable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskListable], [O].[AskListable]) ' + [C].[SqlComparator] + ' @AskListable_v1 AND @AskListable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskListable], [O].[AskListable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskListable], [O].[AskListable]) ' + [C].[SqlComparator] + ' @AskListable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskListable_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskListable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskListable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskListable_v1 IS NOT NULL AND @S_AskListable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskListable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskDefault' AND [type] = 0) BEGIN
@@ -17273,13 +17964,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_AskDefault_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskDefault_vals))'), '%1', 'COALESCE([D].[AskDefault], [O].[AskDefault])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskDefault'), '%1', 'COALESCE([D].[AskDefault], [O].[AskDefault])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskDefault], [O].[AskDefault]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskDefault_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskDefault], [O].[AskDefault]) ' + [C].[SqlComparator] + ' @AskDefault_v1 AND @AskDefault_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskDefault], [O].[AskDefault]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskDefault], [O].[AskDefault]) ' + [C].[SqlComparator] + ' @AskDefault'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskDefault_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskDefault_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskDefault_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskDefault_v1 IS NOT NULL AND @S_AskDefault_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskDefault_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskMinimum' AND [type] = 0) BEGIN
@@ -17289,13 +17984,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_AskMinimum_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskMinimum_vals))'), '%1', 'COALESCE([D].[AskMinimum], [O].[AskMinimum])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskMinimum'), '%1', 'COALESCE([D].[AskMinimum], [O].[AskMinimum])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskMinimum], [O].[AskMinimum]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskMinimum_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskMinimum], [O].[AskMinimum]) ' + [C].[SqlComparator] + ' @AskMinimum_v1 AND @AskMinimum_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskMinimum], [O].[AskMinimum]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskMinimum], [O].[AskMinimum]) ' + [C].[SqlComparator] + ' @AskMinimum'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskMinimum_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskMinimum_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskMinimum_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskMinimum_v1 IS NOT NULL AND @S_AskMinimum_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskMinimum_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskMaximum' AND [type] = 0) BEGIN
@@ -17305,13 +18004,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_AskMaximum_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskMaximum_vals))'), '%1', 'COALESCE([D].[AskMaximum], [O].[AskMaximum])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskMaximum'), '%1', 'COALESCE([D].[AskMaximum], [O].[AskMaximum])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskMaximum], [O].[AskMaximum]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskMaximum_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskMaximum], [O].[AskMaximum]) ' + [C].[SqlComparator] + ' @AskMaximum_v1 AND @AskMaximum_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskMaximum], [O].[AskMaximum]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskMaximum], [O].[AskMaximum]) ' + [C].[SqlComparator] + ' @AskMaximum'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskMaximum_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskMaximum_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskMaximum_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskMaximum_v1 IS NOT NULL AND @S_AskMaximum_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskMaximum_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskInWords' AND [type] = 0) BEGIN
@@ -17321,13 +18024,17 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                 IF @S_AskInWords_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskInWords_vals))'), '%1', 'COALESCE([D].[AskInWords], [O].[AskInWords])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskInWords'), '%1', 'COALESCE([D].[AskInWords], [O].[AskInWords])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskInWords], [O].[AskInWords]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskInWords_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskInWords], [O].[AskInWords]) ' + [C].[SqlComparator] + ' @AskInWords_v1 AND @AskInWords_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskInWords], [O].[AskInWords]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskInWords], [O].[AskInWords]) ' + [C].[SqlComparator] + ' @AskInWords'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskInWords_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskInWords_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskInWords_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskInWords_v1 IS NOT NULL AND @S_AskInWords_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskInWords_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -17337,26 +18044,42 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@AskEncrypted bit,@AskEncrypted_vals NVARCHAR(MAX),@AskMask bit,@AskMask_vals NVARCHAR(MAX),@AskListable bit,@AskListable_vals NVARCHAR(MAX),@AskDefault bit,@AskDefault_vals NVARCHAR(MAX),@AskMinimum bit,@AskMinimum_vals NVARCHAR(MAX),@AskMaximum bit,@AskMaximum_vals NVARCHAR(MAX),@AskInWords bit,@AskInWords_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@AskEncrypted bit,@AskEncrypted_v1 bit,@AskEncrypted_v2 bit,@AskEncrypted_vals NVARCHAR(MAX),@AskMask bit,@AskMask_v1 bit,@AskMask_v2 bit,@AskMask_vals NVARCHAR(MAX),@AskListable bit,@AskListable_v1 bit,@AskListable_v2 bit,@AskListable_vals NVARCHAR(MAX),@AskDefault bit,@AskDefault_v1 bit,@AskDefault_v2 bit,@AskDefault_vals NVARCHAR(MAX),@AskMinimum bit,@AskMinimum_v1 bit,@AskMinimum_v2 bit,@AskMinimum_vals NVARCHAR(MAX),@AskMaximum bit,@AskMaximum_v1 bit,@AskMaximum_v2 bit,@AskMaximum_vals NVARCHAR(MAX),@AskInWords bit,@AskInWords_v1 bit,@AskInWords_v2 bit,@AskInWords_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@AskEncrypted = @S_AskEncrypted_v
+                                       ,@AskEncrypted_v1 = @S_AskEncrypted_v1
+                                       ,@AskEncrypted_v2 = @S_AskEncrypted_v2
                                        ,@AskEncrypted_vals = @S_AskEncrypted_vals
                                        ,@AskMask = @S_AskMask_v
+                                       ,@AskMask_v1 = @S_AskMask_v1
+                                       ,@AskMask_v2 = @S_AskMask_v2
                                        ,@AskMask_vals = @S_AskMask_vals
                                        ,@AskListable = @S_AskListable_v
+                                       ,@AskListable_v1 = @S_AskListable_v1
+                                       ,@AskListable_v2 = @S_AskListable_v2
                                        ,@AskListable_vals = @S_AskListable_vals
                                        ,@AskDefault = @S_AskDefault_v
+                                       ,@AskDefault_v1 = @S_AskDefault_v1
+                                       ,@AskDefault_v2 = @S_AskDefault_v2
                                        ,@AskDefault_vals = @S_AskDefault_vals
                                        ,@AskMinimum = @S_AskMinimum_v
+                                       ,@AskMinimum_v1 = @S_AskMinimum_v1
+                                       ,@AskMinimum_v2 = @S_AskMinimum_v2
                                        ,@AskMinimum_vals = @S_AskMinimum_vals
                                        ,@AskMaximum = @S_AskMaximum_v
+                                       ,@AskMaximum_v1 = @S_AskMaximum_v1
+                                       ,@AskMaximum_v2 = @S_AskMaximum_v2
                                        ,@AskMaximum_vals = @S_AskMaximum_vals
                                        ,@AskInWords = @S_AskInWords_v
+                                       ,@AskInWords_v1 = @S_AskInWords_v1
+                                       ,@AskInWords_v2 = @S_AskInWords_v2
                                        ,@AskInWords_vals = @S_AskInWords_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -17521,7 +18244,7 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Types', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -17644,7 +18367,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -17686,6 +18409,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -17704,6 +18428,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -17766,7 +18491,7 @@ ALTER PROCEDURE [dbo].[TypeCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -17820,6 +18545,7 @@ ALTER PROCEDURE [dbo].[TypeCreate](@Login NVARCHAR(MAX)
                ,@W_IsLikeable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLikeable') AS bit)
                ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Types] ON
         INSERT INTO [dbo].[Types] ([Id]
                                             ,[CategoryId]
                                             ,[Name]
@@ -17854,6 +18580,7 @@ ALTER PROCEDURE [dbo].[TypeCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsActive
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Types] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -17884,7 +18611,7 @@ ALTER PROCEDURE [dbo].[TypeUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -17938,8 +18665,7 @@ ALTER PROCEDURE [dbo].[TypeUpdate](@Login NVARCHAR(MAX)
                ,@W_IsLikeable bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLikeable') AS bit)
                ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
-        UPDATE [dbo].[Types] SET [Id] = @W_Id
-                                          ,[CategoryId] = @W_CategoryId
+        UPDATE [dbo].[Types] SET [CategoryId] = @W_CategoryId
                                           ,[Name] = @W_Name
                                           ,[MaxLength] = @W_MaxLength
                                           ,[Minimum] = @W_Minimum
@@ -17986,7 +18712,7 @@ ALTER PROCEDURE [dbo].[TypeDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -18057,13 +18783,13 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -18104,7 +18830,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -18215,33 +18941,53 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_AskLength_comparator TINYINT
                    ,@G_AskLength_v bit
                    ,@G_AskLength_vals NVARCHAR(MAX)
+                   ,@G_AskLength_v1 bit
+                   ,@G_AskLength_v2 bit
                    ,@G_AskDecimals_comparator TINYINT
                    ,@G_AskDecimals_v bit
                    ,@G_AskDecimals_vals NVARCHAR(MAX)
+                   ,@G_AskDecimals_v1 bit
+                   ,@G_AskDecimals_v2 bit
                    ,@G_AskPrimarykey_comparator TINYINT
                    ,@G_AskPrimarykey_v bit
                    ,@G_AskPrimarykey_vals NVARCHAR(MAX)
+                   ,@G_AskPrimarykey_v1 bit
+                   ,@G_AskPrimarykey_v2 bit
                    ,@G_AskAutoincrement_comparator TINYINT
                    ,@G_AskAutoincrement_v bit
                    ,@G_AskAutoincrement_vals NVARCHAR(MAX)
+                   ,@G_AskAutoincrement_v1 bit
+                   ,@G_AskAutoincrement_v2 bit
                    ,@G_AskFilterable_comparator TINYINT
                    ,@G_AskFilterable_v bit
                    ,@G_AskFilterable_vals NVARCHAR(MAX)
+                   ,@G_AskFilterable_v1 bit
+                   ,@G_AskFilterable_v2 bit
                    ,@G_AskGridable_comparator TINYINT
                    ,@G_AskGridable_v bit
                    ,@G_AskGridable_vals NVARCHAR(MAX)
+                   ,@G_AskGridable_v1 bit
+                   ,@G_AskGridable_v2 bit
                    ,@G_AskCodification_comparator TINYINT
                    ,@G_AskCodification_v bit
                    ,@G_AskCodification_vals NVARCHAR(MAX)
+                   ,@G_AskCodification_v1 bit
+                   ,@G_AskCodification_v2 bit
                    ,@G_IsLikeable_comparator TINYINT
                    ,@G_IsLikeable_v bit
                    ,@G_IsLikeable_vals NVARCHAR(MAX)
+                   ,@G_IsLikeable_v1 bit
+                   ,@G_IsLikeable_v2 bit
                    ,@G_IsActive_comparator TINYINT
                    ,@G_IsActive_v bit
                    ,@G_IsActive_vals NVARCHAR(MAX)
+                   ,@G_IsActive_v1 bit
+                   ,@G_IsActive_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -18269,6 +19015,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_AskLength_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskLength.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskLength') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskLength') IS NULL THEN 3 END
@@ -18281,6 +19029,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskLength.value'),
                 JSON_QUERY(@Filter, '$.AskLength')
             )
+            SELECT @G_AskLength_v1 = TRY_CAST(JSON_VALUE(@G_AskLength_vals, '$[0]') AS bit)
+                  ,@G_AskLength_v2 = TRY_CAST(JSON_VALUE(@G_AskLength_vals, '$[1]') AS bit)
             SELECT @G_AskDecimals_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskDecimals.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskDecimals') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskDecimals') IS NULL THEN 3 END
@@ -18293,6 +19043,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskDecimals.value'),
                 JSON_QUERY(@Filter, '$.AskDecimals')
             )
+            SELECT @G_AskDecimals_v1 = TRY_CAST(JSON_VALUE(@G_AskDecimals_vals, '$[0]') AS bit)
+                  ,@G_AskDecimals_v2 = TRY_CAST(JSON_VALUE(@G_AskDecimals_vals, '$[1]') AS bit)
             SELECT @G_AskPrimarykey_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskPrimarykey.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskPrimarykey') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskPrimarykey') IS NULL THEN 3 END
@@ -18305,6 +19057,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskPrimarykey.value'),
                 JSON_QUERY(@Filter, '$.AskPrimarykey')
             )
+            SELECT @G_AskPrimarykey_v1 = TRY_CAST(JSON_VALUE(@G_AskPrimarykey_vals, '$[0]') AS bit)
+                  ,@G_AskPrimarykey_v2 = TRY_CAST(JSON_VALUE(@G_AskPrimarykey_vals, '$[1]') AS bit)
             SELECT @G_AskAutoincrement_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskAutoincrement.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskAutoincrement') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskAutoincrement') IS NULL THEN 3 END
@@ -18317,6 +19071,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskAutoincrement.value'),
                 JSON_QUERY(@Filter, '$.AskAutoincrement')
             )
+            SELECT @G_AskAutoincrement_v1 = TRY_CAST(JSON_VALUE(@G_AskAutoincrement_vals, '$[0]') AS bit)
+                  ,@G_AskAutoincrement_v2 = TRY_CAST(JSON_VALUE(@G_AskAutoincrement_vals, '$[1]') AS bit)
             SELECT @G_AskFilterable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskFilterable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskFilterable') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskFilterable') IS NULL THEN 3 END
@@ -18329,6 +19085,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskFilterable.value'),
                 JSON_QUERY(@Filter, '$.AskFilterable')
             )
+            SELECT @G_AskFilterable_v1 = TRY_CAST(JSON_VALUE(@G_AskFilterable_vals, '$[0]') AS bit)
+                  ,@G_AskFilterable_v2 = TRY_CAST(JSON_VALUE(@G_AskFilterable_vals, '$[1]') AS bit)
             SELECT @G_AskGridable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskGridable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskGridable') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskGridable') IS NULL THEN 3 END
@@ -18341,6 +19099,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskGridable.value'),
                 JSON_QUERY(@Filter, '$.AskGridable')
             )
+            SELECT @G_AskGridable_v1 = TRY_CAST(JSON_VALUE(@G_AskGridable_vals, '$[0]') AS bit)
+                  ,@G_AskGridable_v2 = TRY_CAST(JSON_VALUE(@G_AskGridable_vals, '$[1]') AS bit)
             SELECT @G_AskCodification_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.AskCodification.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.AskCodification') IS NOT NULL AND JSON_QUERY(@Filter, '$.AskCodification') IS NULL THEN 3 END
@@ -18353,6 +19113,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.AskCodification.value'),
                 JSON_QUERY(@Filter, '$.AskCodification')
             )
+            SELECT @G_AskCodification_v1 = TRY_CAST(JSON_VALUE(@G_AskCodification_vals, '$[0]') AS bit)
+                  ,@G_AskCodification_v2 = TRY_CAST(JSON_VALUE(@G_AskCodification_vals, '$[1]') AS bit)
             SELECT @G_IsLikeable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsLikeable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsLikeable') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsLikeable') IS NULL THEN 3 END
@@ -18365,6 +19127,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsLikeable.value'),
                 JSON_QUERY(@Filter, '$.IsLikeable')
             )
+            SELECT @G_IsLikeable_v1 = TRY_CAST(JSON_VALUE(@G_IsLikeable_vals, '$[0]') AS bit)
+                  ,@G_IsLikeable_v2 = TRY_CAST(JSON_VALUE(@G_IsLikeable_vals, '$[1]') AS bit)
             SELECT @G_IsActive_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsActive.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsActive') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsActive') IS NULL THEN 3 END
@@ -18377,18 +19141,22 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsActive.value'),
                 JSON_QUERY(@Filter, '$.IsActive')
             )
+            SELECT @G_IsActive_v1 = TRY_CAST(JSON_VALUE(@G_IsActive_vals, '$[0]') AS bit)
+                  ,@G_IsActive_v2 = TRY_CAST(JSON_VALUE(@G_IsActive_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -18396,13 +19164,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskLength' AND [type] = 0)
@@ -18410,13 +19182,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskLength_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskLength_vals))'), '%1', '[T].[AskLength]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskLength'), '%1', '[T].[AskLength]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskLength] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskLength_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskLength] ' + [C].[SqlComparator] + ' @AskLength_v1 AND @AskLength_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskLength] ' + [C].[SqlComparator]
+        ELSE '[T].[AskLength] ' + [C].[SqlComparator] + ' @AskLength'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskLength_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskLength_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskLength_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskLength_v1 IS NOT NULL AND @G_AskLength_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskLength_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskDecimals' AND [type] = 0)
@@ -18424,13 +19200,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskDecimals_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskDecimals_vals))'), '%1', '[T].[AskDecimals]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskDecimals'), '%1', '[T].[AskDecimals]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskDecimals] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskDecimals_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskDecimals] ' + [C].[SqlComparator] + ' @AskDecimals_v1 AND @AskDecimals_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskDecimals] ' + [C].[SqlComparator]
+        ELSE '[T].[AskDecimals] ' + [C].[SqlComparator] + ' @AskDecimals'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskDecimals_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskDecimals_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskDecimals_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskDecimals_v1 IS NOT NULL AND @G_AskDecimals_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskDecimals_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskPrimarykey' AND [type] = 0)
@@ -18438,13 +19218,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskPrimarykey_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskPrimarykey_vals))'), '%1', '[T].[AskPrimarykey]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskPrimarykey'), '%1', '[T].[AskPrimarykey]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskPrimarykey] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskPrimarykey_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskPrimarykey] ' + [C].[SqlComparator] + ' @AskPrimarykey_v1 AND @AskPrimarykey_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskPrimarykey] ' + [C].[SqlComparator]
+        ELSE '[T].[AskPrimarykey] ' + [C].[SqlComparator] + ' @AskPrimarykey'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskPrimarykey_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskPrimarykey_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskPrimarykey_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskPrimarykey_v1 IS NOT NULL AND @G_AskPrimarykey_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskPrimarykey_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskAutoincrement' AND [type] = 0)
@@ -18452,13 +19236,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskAutoincrement_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskAutoincrement_vals))'), '%1', '[T].[AskAutoincrement]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskAutoincrement'), '%1', '[T].[AskAutoincrement]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskAutoincrement] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskAutoincrement_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskAutoincrement] ' + [C].[SqlComparator] + ' @AskAutoincrement_v1 AND @AskAutoincrement_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskAutoincrement] ' + [C].[SqlComparator]
+        ELSE '[T].[AskAutoincrement] ' + [C].[SqlComparator] + ' @AskAutoincrement'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskAutoincrement_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskAutoincrement_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskAutoincrement_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskAutoincrement_v1 IS NOT NULL AND @G_AskAutoincrement_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskAutoincrement_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskFilterable' AND [type] = 0)
@@ -18466,13 +19254,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskFilterable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskFilterable_vals))'), '%1', '[T].[AskFilterable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskFilterable'), '%1', '[T].[AskFilterable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskFilterable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskFilterable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskFilterable] ' + [C].[SqlComparator] + ' @AskFilterable_v1 AND @AskFilterable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskFilterable] ' + [C].[SqlComparator]
+        ELSE '[T].[AskFilterable] ' + [C].[SqlComparator] + ' @AskFilterable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskFilterable_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskFilterable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskFilterable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskFilterable_v1 IS NOT NULL AND @G_AskFilterable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskFilterable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskGridable' AND [type] = 0)
@@ -18480,13 +19272,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskGridable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskGridable_vals))'), '%1', '[T].[AskGridable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskGridable'), '%1', '[T].[AskGridable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskGridable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskGridable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskGridable] ' + [C].[SqlComparator] + ' @AskGridable_v1 AND @AskGridable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskGridable] ' + [C].[SqlComparator]
+        ELSE '[T].[AskGridable] ' + [C].[SqlComparator] + ' @AskGridable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskGridable_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskGridable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskGridable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskGridable_v1 IS NOT NULL AND @G_AskGridable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskGridable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'AskCodification' AND [type] = 0)
@@ -18494,13 +19290,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_AskCodification_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskCodification_vals))'), '%1', '[T].[AskCodification]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskCodification'), '%1', '[T].[AskCodification]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[AskCodification] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskCodification_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[AskCodification] ' + [C].[SqlComparator] + ' @AskCodification_v1 AND @AskCodification_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[AskCodification] ' + [C].[SqlComparator]
+        ELSE '[T].[AskCodification] ' + [C].[SqlComparator] + ' @AskCodification'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_AskCodification_comparator
                           AND (([C].[Arity] IS NULL AND @G_AskCodification_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_AskCodification_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_AskCodification_v1 IS NOT NULL AND @G_AskCodification_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_AskCodification_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsLikeable' AND [type] = 0)
@@ -18508,13 +19308,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsLikeable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsLikeable_vals))'), '%1', '[T].[IsLikeable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsLikeable'), '%1', '[T].[IsLikeable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsLikeable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsLikeable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsLikeable] ' + [C].[SqlComparator] + ' @IsLikeable_v1 AND @IsLikeable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsLikeable] ' + [C].[SqlComparator]
+        ELSE '[T].[IsLikeable] ' + [C].[SqlComparator] + ' @IsLikeable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsLikeable_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsLikeable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsLikeable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsLikeable_v1 IS NOT NULL AND @G_IsLikeable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsLikeable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsActive' AND [type] = 0)
@@ -18522,13 +19326,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsActive_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'), '%1', '[T].[IsActive]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsActive'), '%1', '[T].[IsActive]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsActive] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsActive] ' + [C].[SqlComparator] + ' @IsActive_v1 AND @IsActive_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsActive] ' + [C].[SqlComparator]
+        ELSE '[T].[IsActive] ' + [C].[SqlComparator] + ' @IsActive'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsActive_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsActive_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsActive_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsActive_v1 IS NOT NULL AND @G_IsActive_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsActive_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -18569,7 +19377,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                ,@T_IsActive = @WT_IsActive
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskLength bit,@T_AskDecimals bit,@T_AskPrimarykey bit,@T_AskAutoincrement bit,@T_AskFilterable bit,@T_AskGridable bit,@T_AskCodification bit,@T_IsLikeable bit,@T_IsActive bit,@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@AskLength bit,@AskLength_vals NVARCHAR(MAX),@AskDecimals bit,@AskDecimals_vals NVARCHAR(MAX),@AskPrimarykey bit,@AskPrimarykey_vals NVARCHAR(MAX),@AskAutoincrement bit,@AskAutoincrement_vals NVARCHAR(MAX),@AskFilterable bit,@AskFilterable_vals NVARCHAR(MAX),@AskGridable bit,@AskGridable_vals NVARCHAR(MAX),@AskCodification bit,@AskCodification_vals NVARCHAR(MAX),@IsLikeable bit,@IsLikeable_vals NVARCHAR(MAX),@IsActive bit,@IsActive_vals NVARCHAR(MAX)'
+                               ,N'@T_Id tinyint,@T_Name nvarchar(25),@T_AskLength bit,@T_AskDecimals bit,@T_AskPrimarykey bit,@T_AskAutoincrement bit,@T_AskFilterable bit,@T_AskGridable bit,@T_AskCodification bit,@T_IsLikeable bit,@T_IsActive bit,@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@AskLength bit,@AskLength_v1 bit,@AskLength_v2 bit,@AskLength_vals NVARCHAR(MAX),@AskDecimals bit,@AskDecimals_v1 bit,@AskDecimals_v2 bit,@AskDecimals_vals NVARCHAR(MAX),@AskPrimarykey bit,@AskPrimarykey_v1 bit,@AskPrimarykey_v2 bit,@AskPrimarykey_vals NVARCHAR(MAX),@AskAutoincrement bit,@AskAutoincrement_v1 bit,@AskAutoincrement_v2 bit,@AskAutoincrement_vals NVARCHAR(MAX),@AskFilterable bit,@AskFilterable_v1 bit,@AskFilterable_v2 bit,@AskFilterable_vals NVARCHAR(MAX),@AskGridable bit,@AskGridable_v1 bit,@AskGridable_v2 bit,@AskGridable_vals NVARCHAR(MAX),@AskCodification bit,@AskCodification_v1 bit,@AskCodification_v2 bit,@AskCodification_vals NVARCHAR(MAX),@IsLikeable bit,@IsLikeable_v1 bit,@IsLikeable_v2 bit,@IsLikeable_vals NVARCHAR(MAX),@IsActive bit,@IsActive_v1 bit,@IsActive_v2 bit,@IsActive_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Name = @WT_Name
                                ,@T_AskLength = @WT_AskLength
@@ -18586,24 +19394,44 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@AskLength = @G_AskLength_v
+                               ,@AskLength_v1 = @G_AskLength_v1
+                               ,@AskLength_v2 = @G_AskLength_v2
                                ,@AskLength_vals = @G_AskLength_vals
                                ,@AskDecimals = @G_AskDecimals_v
+                               ,@AskDecimals_v1 = @G_AskDecimals_v1
+                               ,@AskDecimals_v2 = @G_AskDecimals_v2
                                ,@AskDecimals_vals = @G_AskDecimals_vals
                                ,@AskPrimarykey = @G_AskPrimarykey_v
+                               ,@AskPrimarykey_v1 = @G_AskPrimarykey_v1
+                               ,@AskPrimarykey_v2 = @G_AskPrimarykey_v2
                                ,@AskPrimarykey_vals = @G_AskPrimarykey_vals
                                ,@AskAutoincrement = @G_AskAutoincrement_v
+                               ,@AskAutoincrement_v1 = @G_AskAutoincrement_v1
+                               ,@AskAutoincrement_v2 = @G_AskAutoincrement_v2
                                ,@AskAutoincrement_vals = @G_AskAutoincrement_vals
                                ,@AskFilterable = @G_AskFilterable_v
+                               ,@AskFilterable_v1 = @G_AskFilterable_v1
+                               ,@AskFilterable_v2 = @G_AskFilterable_v2
                                ,@AskFilterable_vals = @G_AskFilterable_vals
                                ,@AskGridable = @G_AskGridable_v
+                               ,@AskGridable_v1 = @G_AskGridable_v1
+                               ,@AskGridable_v2 = @G_AskGridable_v2
                                ,@AskGridable_vals = @G_AskGridable_vals
                                ,@AskCodification = @G_AskCodification_v
+                               ,@AskCodification_v1 = @G_AskCodification_v1
+                               ,@AskCodification_v2 = @G_AskCodification_v2
                                ,@AskCodification_vals = @G_AskCodification_vals
                                ,@IsLikeable = @G_IsLikeable_v
+                               ,@IsLikeable_v1 = @G_IsLikeable_v1
+                               ,@IsLikeable_v2 = @G_IsLikeable_v2
                                ,@IsLikeable_vals = @G_IsLikeable_vals
                                ,@IsActive = @G_IsActive_v
+                               ,@IsActive_v1 = @G_IsActive_v1
+                               ,@IsActive_v2 = @G_IsActive_v2
                                ,@IsActive_vals = @G_IsActive_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -18643,33 +19471,53 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_AskLength_comparator TINYINT
                    ,@S_AskLength_v bit
                    ,@S_AskLength_vals NVARCHAR(MAX)
+                   ,@S_AskLength_v1 bit
+                   ,@S_AskLength_v2 bit
                    ,@S_AskDecimals_comparator TINYINT
                    ,@S_AskDecimals_v bit
                    ,@S_AskDecimals_vals NVARCHAR(MAX)
+                   ,@S_AskDecimals_v1 bit
+                   ,@S_AskDecimals_v2 bit
                    ,@S_AskPrimarykey_comparator TINYINT
                    ,@S_AskPrimarykey_v bit
                    ,@S_AskPrimarykey_vals NVARCHAR(MAX)
+                   ,@S_AskPrimarykey_v1 bit
+                   ,@S_AskPrimarykey_v2 bit
                    ,@S_AskAutoincrement_comparator TINYINT
                    ,@S_AskAutoincrement_v bit
                    ,@S_AskAutoincrement_vals NVARCHAR(MAX)
+                   ,@S_AskAutoincrement_v1 bit
+                   ,@S_AskAutoincrement_v2 bit
                    ,@S_AskFilterable_comparator TINYINT
                    ,@S_AskFilterable_v bit
                    ,@S_AskFilterable_vals NVARCHAR(MAX)
+                   ,@S_AskFilterable_v1 bit
+                   ,@S_AskFilterable_v2 bit
                    ,@S_AskGridable_comparator TINYINT
                    ,@S_AskGridable_v bit
                    ,@S_AskGridable_vals NVARCHAR(MAX)
+                   ,@S_AskGridable_v1 bit
+                   ,@S_AskGridable_v2 bit
                    ,@S_AskCodification_comparator TINYINT
                    ,@S_AskCodification_v bit
                    ,@S_AskCodification_vals NVARCHAR(MAX)
+                   ,@S_AskCodification_v1 bit
+                   ,@S_AskCodification_v2 bit
                    ,@S_IsLikeable_comparator TINYINT
                    ,@S_IsLikeable_v bit
                    ,@S_IsLikeable_vals NVARCHAR(MAX)
+                   ,@S_IsLikeable_v1 bit
+                   ,@S_IsLikeable_v2 bit
                    ,@S_IsActive_comparator TINYINT
                    ,@S_IsActive_v bit
                    ,@S_IsActive_vals NVARCHAR(MAX)
+                   ,@S_IsActive_v1 bit
+                   ,@S_IsActive_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -18697,6 +19545,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_AskLength_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskLength.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskLength') IS NOT NULL AND JSON_QUERY(@Search, '$.AskLength') IS NULL THEN 3 END
@@ -18709,6 +19559,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskLength.value'),
                     JSON_QUERY(@Search, '$.AskLength')
                 )
+                SELECT @S_AskLength_v1 = TRY_CAST(JSON_VALUE(@S_AskLength_vals, '$[0]') AS bit)
+                      ,@S_AskLength_v2 = TRY_CAST(JSON_VALUE(@S_AskLength_vals, '$[1]') AS bit)
                 SELECT @S_AskDecimals_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskDecimals.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskDecimals') IS NOT NULL AND JSON_QUERY(@Search, '$.AskDecimals') IS NULL THEN 3 END
@@ -18721,6 +19573,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskDecimals.value'),
                     JSON_QUERY(@Search, '$.AskDecimals')
                 )
+                SELECT @S_AskDecimals_v1 = TRY_CAST(JSON_VALUE(@S_AskDecimals_vals, '$[0]') AS bit)
+                      ,@S_AskDecimals_v2 = TRY_CAST(JSON_VALUE(@S_AskDecimals_vals, '$[1]') AS bit)
                 SELECT @S_AskPrimarykey_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskPrimarykey.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskPrimarykey') IS NOT NULL AND JSON_QUERY(@Search, '$.AskPrimarykey') IS NULL THEN 3 END
@@ -18733,6 +19587,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskPrimarykey.value'),
                     JSON_QUERY(@Search, '$.AskPrimarykey')
                 )
+                SELECT @S_AskPrimarykey_v1 = TRY_CAST(JSON_VALUE(@S_AskPrimarykey_vals, '$[0]') AS bit)
+                      ,@S_AskPrimarykey_v2 = TRY_CAST(JSON_VALUE(@S_AskPrimarykey_vals, '$[1]') AS bit)
                 SELECT @S_AskAutoincrement_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskAutoincrement.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskAutoincrement') IS NOT NULL AND JSON_QUERY(@Search, '$.AskAutoincrement') IS NULL THEN 3 END
@@ -18745,6 +19601,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskAutoincrement.value'),
                     JSON_QUERY(@Search, '$.AskAutoincrement')
                 )
+                SELECT @S_AskAutoincrement_v1 = TRY_CAST(JSON_VALUE(@S_AskAutoincrement_vals, '$[0]') AS bit)
+                      ,@S_AskAutoincrement_v2 = TRY_CAST(JSON_VALUE(@S_AskAutoincrement_vals, '$[1]') AS bit)
                 SELECT @S_AskFilterable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskFilterable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskFilterable') IS NOT NULL AND JSON_QUERY(@Search, '$.AskFilterable') IS NULL THEN 3 END
@@ -18757,6 +19615,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskFilterable.value'),
                     JSON_QUERY(@Search, '$.AskFilterable')
                 )
+                SELECT @S_AskFilterable_v1 = TRY_CAST(JSON_VALUE(@S_AskFilterable_vals, '$[0]') AS bit)
+                      ,@S_AskFilterable_v2 = TRY_CAST(JSON_VALUE(@S_AskFilterable_vals, '$[1]') AS bit)
                 SELECT @S_AskGridable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskGridable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskGridable') IS NOT NULL AND JSON_QUERY(@Search, '$.AskGridable') IS NULL THEN 3 END
@@ -18769,6 +19629,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskGridable.value'),
                     JSON_QUERY(@Search, '$.AskGridable')
                 )
+                SELECT @S_AskGridable_v1 = TRY_CAST(JSON_VALUE(@S_AskGridable_vals, '$[0]') AS bit)
+                      ,@S_AskGridable_v2 = TRY_CAST(JSON_VALUE(@S_AskGridable_vals, '$[1]') AS bit)
                 SELECT @S_AskCodification_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.AskCodification.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.AskCodification') IS NOT NULL AND JSON_QUERY(@Search, '$.AskCodification') IS NULL THEN 3 END
@@ -18781,6 +19643,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.AskCodification.value'),
                     JSON_QUERY(@Search, '$.AskCodification')
                 )
+                SELECT @S_AskCodification_v1 = TRY_CAST(JSON_VALUE(@S_AskCodification_vals, '$[0]') AS bit)
+                      ,@S_AskCodification_v2 = TRY_CAST(JSON_VALUE(@S_AskCodification_vals, '$[1]') AS bit)
                 SELECT @S_IsLikeable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsLikeable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsLikeable') IS NOT NULL AND JSON_QUERY(@Search, '$.IsLikeable') IS NULL THEN 3 END
@@ -18793,6 +19657,8 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsLikeable.value'),
                     JSON_QUERY(@Search, '$.IsLikeable')
                 )
+                SELECT @S_IsLikeable_v1 = TRY_CAST(JSON_VALUE(@S_IsLikeable_vals, '$[0]') AS bit)
+                      ,@S_IsLikeable_v2 = TRY_CAST(JSON_VALUE(@S_IsLikeable_vals, '$[1]') AS bit)
                 SELECT @S_IsActive_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsActive.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsActive') IS NOT NULL AND JSON_QUERY(@Search, '$.IsActive') IS NULL THEN 3 END
@@ -18805,20 +19671,24 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsActive.value'),
                     JSON_QUERY(@Search, '$.IsActive')
                 )
+                SELECT @S_IsActive_v1 = TRY_CAST(JSON_VALUE(@S_IsActive_vals, '$[0]') AS bit)
+                      ,@S_IsActive_v2 = TRY_CAST(JSON_VALUE(@S_IsActive_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -18828,13 +19698,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskLength' AND [type] = 0) BEGIN
@@ -18844,13 +19718,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_AskLength_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskLength_vals))'), '%1', 'COALESCE([D].[AskLength], [O].[AskLength])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskLength'), '%1', 'COALESCE([D].[AskLength], [O].[AskLength])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskLength], [O].[AskLength]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskLength_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskLength], [O].[AskLength]) ' + [C].[SqlComparator] + ' @AskLength_v1 AND @AskLength_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskLength], [O].[AskLength]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskLength], [O].[AskLength]) ' + [C].[SqlComparator] + ' @AskLength'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskLength_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskLength_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskLength_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskLength_v1 IS NOT NULL AND @S_AskLength_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskLength_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskDecimals' AND [type] = 0) BEGIN
@@ -18860,13 +19738,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_AskDecimals_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskDecimals_vals))'), '%1', 'COALESCE([D].[AskDecimals], [O].[AskDecimals])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskDecimals'), '%1', 'COALESCE([D].[AskDecimals], [O].[AskDecimals])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskDecimals], [O].[AskDecimals]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskDecimals_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskDecimals], [O].[AskDecimals]) ' + [C].[SqlComparator] + ' @AskDecimals_v1 AND @AskDecimals_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskDecimals], [O].[AskDecimals]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskDecimals], [O].[AskDecimals]) ' + [C].[SqlComparator] + ' @AskDecimals'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskDecimals_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskDecimals_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskDecimals_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskDecimals_v1 IS NOT NULL AND @S_AskDecimals_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskDecimals_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskPrimarykey' AND [type] = 0) BEGIN
@@ -18876,13 +19758,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_AskPrimarykey_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskPrimarykey_vals))'), '%1', 'COALESCE([D].[AskPrimarykey], [O].[AskPrimarykey])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskPrimarykey'), '%1', 'COALESCE([D].[AskPrimarykey], [O].[AskPrimarykey])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskPrimarykey], [O].[AskPrimarykey]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskPrimarykey_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskPrimarykey], [O].[AskPrimarykey]) ' + [C].[SqlComparator] + ' @AskPrimarykey_v1 AND @AskPrimarykey_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskPrimarykey], [O].[AskPrimarykey]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskPrimarykey], [O].[AskPrimarykey]) ' + [C].[SqlComparator] + ' @AskPrimarykey'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskPrimarykey_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskPrimarykey_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskPrimarykey_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskPrimarykey_v1 IS NOT NULL AND @S_AskPrimarykey_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskPrimarykey_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskAutoincrement' AND [type] = 0) BEGIN
@@ -18892,13 +19778,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_AskAutoincrement_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskAutoincrement_vals))'), '%1', 'COALESCE([D].[AskAutoincrement], [O].[AskAutoincrement])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskAutoincrement'), '%1', 'COALESCE([D].[AskAutoincrement], [O].[AskAutoincrement])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskAutoincrement], [O].[AskAutoincrement]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskAutoincrement_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskAutoincrement], [O].[AskAutoincrement]) ' + [C].[SqlComparator] + ' @AskAutoincrement_v1 AND @AskAutoincrement_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskAutoincrement], [O].[AskAutoincrement]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskAutoincrement], [O].[AskAutoincrement]) ' + [C].[SqlComparator] + ' @AskAutoincrement'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskAutoincrement_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskAutoincrement_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskAutoincrement_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskAutoincrement_v1 IS NOT NULL AND @S_AskAutoincrement_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskAutoincrement_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskFilterable' AND [type] = 0) BEGIN
@@ -18908,13 +19798,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_AskFilterable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskFilterable_vals))'), '%1', 'COALESCE([D].[AskFilterable], [O].[AskFilterable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskFilterable'), '%1', 'COALESCE([D].[AskFilterable], [O].[AskFilterable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskFilterable], [O].[AskFilterable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskFilterable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskFilterable], [O].[AskFilterable]) ' + [C].[SqlComparator] + ' @AskFilterable_v1 AND @AskFilterable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskFilterable], [O].[AskFilterable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskFilterable], [O].[AskFilterable]) ' + [C].[SqlComparator] + ' @AskFilterable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskFilterable_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskFilterable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskFilterable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskFilterable_v1 IS NOT NULL AND @S_AskFilterable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskFilterable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskGridable' AND [type] = 0) BEGIN
@@ -18924,13 +19818,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_AskGridable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskGridable_vals))'), '%1', 'COALESCE([D].[AskGridable], [O].[AskGridable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskGridable'), '%1', 'COALESCE([D].[AskGridable], [O].[AskGridable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskGridable], [O].[AskGridable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskGridable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskGridable], [O].[AskGridable]) ' + [C].[SqlComparator] + ' @AskGridable_v1 AND @AskGridable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskGridable], [O].[AskGridable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskGridable], [O].[AskGridable]) ' + [C].[SqlComparator] + ' @AskGridable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskGridable_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskGridable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskGridable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskGridable_v1 IS NOT NULL AND @S_AskGridable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskGridable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'AskCodification' AND [type] = 0) BEGIN
@@ -18940,13 +19838,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_AskCodification_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@AskCodification_vals))'), '%1', 'COALESCE([D].[AskCodification], [O].[AskCodification])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@AskCodification'), '%1', 'COALESCE([D].[AskCodification], [O].[AskCodification])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[AskCodification], [O].[AskCodification]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@AskCodification_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[AskCodification], [O].[AskCodification]) ' + [C].[SqlComparator] + ' @AskCodification_v1 AND @AskCodification_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[AskCodification], [O].[AskCodification]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[AskCodification], [O].[AskCodification]) ' + [C].[SqlComparator] + ' @AskCodification'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_AskCodification_comparator
                               AND (([C].[Arity] IS NULL AND @S_AskCodification_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_AskCodification_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_AskCodification_v1 IS NOT NULL AND @S_AskCodification_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_AskCodification_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsLikeable' AND [type] = 0) BEGIN
@@ -18956,13 +19858,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_IsLikeable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsLikeable_vals))'), '%1', 'COALESCE([D].[IsLikeable], [O].[IsLikeable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsLikeable'), '%1', 'COALESCE([D].[IsLikeable], [O].[IsLikeable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsLikeable], [O].[IsLikeable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsLikeable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsLikeable], [O].[IsLikeable]) ' + [C].[SqlComparator] + ' @IsLikeable_v1 AND @IsLikeable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsLikeable], [O].[IsLikeable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsLikeable], [O].[IsLikeable]) ' + [C].[SqlComparator] + ' @IsLikeable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsLikeable_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsLikeable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsLikeable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsLikeable_v1 IS NOT NULL AND @S_IsLikeable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsLikeable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsActive' AND [type] = 0) BEGIN
@@ -18972,13 +19878,17 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                 IF @S_IsActive_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'), '%1', 'COALESCE([D].[IsActive], [O].[IsActive])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsActive'), '%1', 'COALESCE([D].[IsActive], [O].[IsActive])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' @IsActive_v1 AND @IsActive_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' @IsActive'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsActive_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsActive_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsActive_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsActive_v1 IS NOT NULL AND @S_IsActive_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsActive_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -18988,30 +19898,50 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@AskLength bit,@AskLength_vals NVARCHAR(MAX),@AskDecimals bit,@AskDecimals_vals NVARCHAR(MAX),@AskPrimarykey bit,@AskPrimarykey_vals NVARCHAR(MAX),@AskAutoincrement bit,@AskAutoincrement_vals NVARCHAR(MAX),@AskFilterable bit,@AskFilterable_vals NVARCHAR(MAX),@AskGridable bit,@AskGridable_vals NVARCHAR(MAX),@AskCodification bit,@AskCodification_vals NVARCHAR(MAX),@IsLikeable bit,@IsLikeable_vals NVARCHAR(MAX),@IsActive bit,@IsActive_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@AskLength bit,@AskLength_v1 bit,@AskLength_v2 bit,@AskLength_vals NVARCHAR(MAX),@AskDecimals bit,@AskDecimals_v1 bit,@AskDecimals_v2 bit,@AskDecimals_vals NVARCHAR(MAX),@AskPrimarykey bit,@AskPrimarykey_v1 bit,@AskPrimarykey_v2 bit,@AskPrimarykey_vals NVARCHAR(MAX),@AskAutoincrement bit,@AskAutoincrement_v1 bit,@AskAutoincrement_v2 bit,@AskAutoincrement_vals NVARCHAR(MAX),@AskFilterable bit,@AskFilterable_v1 bit,@AskFilterable_v2 bit,@AskFilterable_vals NVARCHAR(MAX),@AskGridable bit,@AskGridable_v1 bit,@AskGridable_v2 bit,@AskGridable_vals NVARCHAR(MAX),@AskCodification bit,@AskCodification_v1 bit,@AskCodification_v2 bit,@AskCodification_vals NVARCHAR(MAX),@IsLikeable bit,@IsLikeable_v1 bit,@IsLikeable_v2 bit,@IsLikeable_vals NVARCHAR(MAX),@IsActive bit,@IsActive_v1 bit,@IsActive_v2 bit,@IsActive_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@AskLength = @S_AskLength_v
+                                       ,@AskLength_v1 = @S_AskLength_v1
+                                       ,@AskLength_v2 = @S_AskLength_v2
                                        ,@AskLength_vals = @S_AskLength_vals
                                        ,@AskDecimals = @S_AskDecimals_v
+                                       ,@AskDecimals_v1 = @S_AskDecimals_v1
+                                       ,@AskDecimals_v2 = @S_AskDecimals_v2
                                        ,@AskDecimals_vals = @S_AskDecimals_vals
                                        ,@AskPrimarykey = @S_AskPrimarykey_v
+                                       ,@AskPrimarykey_v1 = @S_AskPrimarykey_v1
+                                       ,@AskPrimarykey_v2 = @S_AskPrimarykey_v2
                                        ,@AskPrimarykey_vals = @S_AskPrimarykey_vals
                                        ,@AskAutoincrement = @S_AskAutoincrement_v
+                                       ,@AskAutoincrement_v1 = @S_AskAutoincrement_v1
+                                       ,@AskAutoincrement_v2 = @S_AskAutoincrement_v2
                                        ,@AskAutoincrement_vals = @S_AskAutoincrement_vals
                                        ,@AskFilterable = @S_AskFilterable_v
+                                       ,@AskFilterable_v1 = @S_AskFilterable_v1
+                                       ,@AskFilterable_v2 = @S_AskFilterable_v2
                                        ,@AskFilterable_vals = @S_AskFilterable_vals
                                        ,@AskGridable = @S_AskGridable_v
+                                       ,@AskGridable_v1 = @S_AskGridable_v1
+                                       ,@AskGridable_v2 = @S_AskGridable_v2
                                        ,@AskGridable_vals = @S_AskGridable_vals
                                        ,@AskCodification = @S_AskCodification_v
+                                       ,@AskCodification_v1 = @S_AskCodification_v1
+                                       ,@AskCodification_v2 = @S_AskCodification_v2
                                        ,@AskCodification_vals = @S_AskCodification_vals
                                        ,@IsLikeable = @S_IsLikeable_v
+                                       ,@IsLikeable_v1 = @S_IsLikeable_v1
+                                       ,@IsLikeable_v2 = @S_IsLikeable_v2
                                        ,@IsLikeable_vals = @S_IsLikeable_vals
                                        ,@IsActive = @S_IsActive_v
+                                       ,@IsActive_v1 = @S_IsActive_v1
+                                       ,@IsActive_v2 = @S_IsActive_v2
                                        ,@IsActive_vals = @S_IsActive_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -19208,7 +20138,7 @@ ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Masks', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -19273,7 +20203,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -19315,6 +20245,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -19333,6 +20264,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -19395,7 +20327,7 @@ ALTER PROCEDURE [dbo].[MaskCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -19437,6 +20369,7 @@ ALTER PROCEDURE [dbo].[MaskCreate](@Login NVARCHAR(MAX)
         DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
 
+        SET IDENTITY_INSERT [dbo].[Masks] ON
         INSERT INTO [dbo].[Masks] ([Id]
                                             ,[Name]
                                             ,[Mask]
@@ -19447,6 +20380,7 @@ ALTER PROCEDURE [dbo].[MaskCreate](@Login NVARCHAR(MAX)
                                              ,@W_Mask
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Masks] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -19477,7 +20411,7 @@ ALTER PROCEDURE [dbo].[MaskUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -19519,8 +20453,7 @@ ALTER PROCEDURE [dbo].[MaskUpdate](@Login NVARCHAR(MAX)
         DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                ,@W_Mask nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Mask') AS nvarchar(max))
 
-        UPDATE [dbo].[Masks] SET [Id] = @W_Id
-                                          ,[Name] = @W_Name
+        UPDATE [dbo].[Masks] SET [Name] = @W_Name
                                           ,[Mask] = @W_Mask
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
@@ -19555,7 +20488,7 @@ ALTER PROCEDURE [dbo].[MaskDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -19626,13 +20559,13 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -19670,7 +20603,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -19710,6 +20643,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -19737,18 +20672,22 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -19756,13 +20695,17 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -19788,7 +20731,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_Name nvarchar(25),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Name = @WT_Name
                                ,@Id = @G_Id_v
@@ -19796,6 +20739,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -19826,6 +20771,8 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -19853,20 +20800,24 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -19876,13 +20827,17 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -19892,12 +20847,14 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -20029,7 +20986,7 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Domains', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -20128,7 +21085,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -20170,6 +21127,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -20188,6 +21146,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -20250,7 +21209,7 @@ ALTER PROCEDURE [dbo].[DomainCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -20300,6 +21259,7 @@ ALTER PROCEDURE [dbo].[DomainCreate](@Login NVARCHAR(MAX)
                ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
                ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS nvarchar(5))
 
+        SET IDENTITY_INSERT [dbo].[Domains] ON
         INSERT INTO [dbo].[Domains] ([Id]
                                             ,[TypeId]
                                             ,[MaskId]
@@ -20326,6 +21286,7 @@ ALTER PROCEDURE [dbo].[DomainCreate](@Login NVARCHAR(MAX)
                                              ,@W_Codification
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Domains] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -20356,7 +21317,7 @@ ALTER PROCEDURE [dbo].[DomainUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -20406,8 +21367,7 @@ ALTER PROCEDURE [dbo].[DomainUpdate](@Login NVARCHAR(MAX)
                ,@W_Maximum nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Maximum') AS nvarchar(max))
                ,@W_Codification nvarchar(5) = CAST(JSON_VALUE(@ActualRecord, '$.Codification') AS nvarchar(5))
 
-        UPDATE [dbo].[Domains] SET [Id] = @W_Id
-                                          ,[TypeId] = @W_TypeId
+        UPDATE [dbo].[Domains] SET [TypeId] = @W_TypeId
                                           ,[MaskId] = @W_MaskId
                                           ,[Name] = @W_Name
                                           ,[Length] = @W_Length
@@ -20450,7 +21410,7 @@ ALTER PROCEDURE [dbo].[DomainDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -20521,13 +21481,13 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -20568,7 +21528,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -20655,12 +21615,16 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_ValidValues_comparator TINYINT
                    ,@G_ValidValues_v nvarchar(max)
                    ,@G_ValidValues_vals NVARCHAR(MAX)
                    ,@G_Codification_comparator TINYINT
                    ,@G_Codification_v nvarchar(5)
                    ,@G_Codification_vals NVARCHAR(MAX)
+                   ,@G_Codification_v1 nvarchar(5)
+                   ,@G_Codification_v2 nvarchar(5)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -20716,6 +21680,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_ValidValues_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.ValidValues.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.ValidValues') IS NOT NULL AND JSON_QUERY(@Filter, '$.ValidValues') IS NULL THEN 3 END
@@ -20740,18 +21706,22 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Codification.value'),
                 JSON_QUERY(@Filter, '$.Codification')
             )
+            SELECT @G_Codification_v1 = TRY_CAST(JSON_VALUE(@G_Codification_vals, '$[0]') AS nvarchar(5))
+                  ,@G_Codification_v2 = TRY_CAST(JSON_VALUE(@G_Codification_vals, '$[1]') AS nvarchar(5))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'TypeId' AND [type] = 0)
@@ -20759,15 +21729,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_TypeId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@TypeId_vals))'), '%1', '[T].[TypeId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TypeId_v2'), '%2', '@TypeId_v1'), '%1', '[T].[TypeId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TypeId'), '%1', '[T].[TypeId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[TypeId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@TypeId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[TypeId] ' + [C].[SqlComparator] + ' @TypeId_v1 AND @TypeId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[TypeId] ' + [C].[SqlComparator]
+        ELSE '[T].[TypeId] ' + [C].[SqlComparator] + ' @TypeId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_TypeId_comparator
                           AND (([C].[Arity] IS NULL AND @G_TypeId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_TypeId_v1 IS NOT NULL AND @G_TypeId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_TypeId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_TypeId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'MaskId' AND [type] = 0)
@@ -20775,15 +21747,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_MaskId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@MaskId_vals))'), '%1', '[T].[MaskId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@MaskId_v2'), '%2', '@MaskId_v1'), '%1', '[T].[MaskId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@MaskId'), '%1', '[T].[MaskId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[MaskId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@MaskId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[MaskId] ' + [C].[SqlComparator] + ' @MaskId_v1 AND @MaskId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[MaskId] ' + [C].[SqlComparator]
+        ELSE '[T].[MaskId] ' + [C].[SqlComparator] + ' @MaskId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_MaskId_comparator
                           AND (([C].[Arity] IS NULL AND @G_MaskId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_MaskId_v1 IS NOT NULL AND @G_MaskId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_MaskId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_MaskId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -20791,13 +21765,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ValidValues' AND [type] = 0)
@@ -20805,13 +21783,15 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ValidValues_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@ValidValues_vals))'), '%1', '[T].[ValidValues]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ValidValues'), '%1', '[T].[ValidValues]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ValidValues] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@ValidValues_vals))'
+        WHEN [C].[Arity] = 1 THEN '[T].[ValidValues] ' + [C].[SqlComparator]
+        ELSE '[T].[ValidValues] ' + [C].[SqlComparator] + ' @ValidValues'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ValidValues_comparator
                           AND (([C].[Arity] IS NULL AND @G_ValidValues_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ValidValues_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_ValidValues_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Codification' AND [type] = 0)
@@ -20819,13 +21799,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Codification_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(5)) FROM OPENJSON(@Codification_vals))'), '%1', '[T].[Codification]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Codification'), '%1', '[T].[Codification]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Codification] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(5)) FROM OPENJSON(@Codification_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Codification] ' + [C].[SqlComparator] + ' @Codification_v1 AND @Codification_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Codification] ' + [C].[SqlComparator]
+        ELSE '[T].[Codification] ' + [C].[SqlComparator] + ' @Codification'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Codification_comparator
                           AND (([C].[Arity] IS NULL AND @G_Codification_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Codification_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Codification_v1 IS NOT NULL AND @G_Codification_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Codification_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -20861,7 +21845,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                ,@T_Codification = @WT_Codification
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_TypeId tinyint,@T_MaskId bigint,@T_Name nvarchar(25),@T_ValidValues nvarchar(max),@T_Codification nvarchar(5),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TypeId tinyint,@TypeId_v1 tinyint,@TypeId_v2 tinyint,@TypeId_vals NVARCHAR(MAX),@MaskId bigint,@MaskId_v1 bigint,@MaskId_v2 bigint,@MaskId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@ValidValues nvarchar(max),@ValidValues_vals NVARCHAR(MAX),@Codification nvarchar(5),@Codification_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_TypeId tinyint,@T_MaskId bigint,@T_Name nvarchar(25),@T_ValidValues nvarchar(max),@T_Codification nvarchar(5),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TypeId tinyint,@TypeId_v1 tinyint,@TypeId_v2 tinyint,@TypeId_vals NVARCHAR(MAX),@MaskId bigint,@MaskId_v1 bigint,@MaskId_v2 bigint,@MaskId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@ValidValues nvarchar(max),@ValidValues_vals NVARCHAR(MAX),@Codification nvarchar(5),@Codification_v1 nvarchar(5),@Codification_v2 nvarchar(5),@Codification_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_TypeId = @WT_TypeId
                                ,@T_MaskId = @WT_MaskId
@@ -20881,10 +21865,14 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                ,@MaskId_v2 = @G_MaskId_v2
                                ,@MaskId_vals = @G_MaskId_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@ValidValues = @G_ValidValues_v
                                ,@ValidValues_vals = @G_ValidValues_vals
                                ,@Codification = @G_Codification_v
+                               ,@Codification_v1 = @G_Codification_v1
+                               ,@Codification_v2 = @G_Codification_v2
                                ,@Codification_vals = @G_Codification_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -20929,12 +21917,16 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_ValidValues_comparator TINYINT
                    ,@S_ValidValues_v nvarchar(max)
                    ,@S_ValidValues_vals NVARCHAR(MAX)
                    ,@S_Codification_comparator TINYINT
                    ,@S_Codification_v nvarchar(5)
                    ,@S_Codification_vals NVARCHAR(MAX)
+                   ,@S_Codification_v1 nvarchar(5)
+                   ,@S_Codification_v2 nvarchar(5)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -20990,6 +21982,8 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_ValidValues_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.ValidValues.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.ValidValues') IS NOT NULL AND JSON_QUERY(@Search, '$.ValidValues') IS NULL THEN 9 END
@@ -21014,20 +22008,24 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Codification.value'),
                     JSON_QUERY(@Search, '$.Codification')
                 )
+                SELECT @S_Codification_v1 = TRY_CAST(JSON_VALUE(@S_Codification_vals, '$[0]') AS nvarchar(5))
+                      ,@S_Codification_v2 = TRY_CAST(JSON_VALUE(@S_Codification_vals, '$[1]') AS nvarchar(5))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'TypeId' AND [type] = 0) BEGIN
@@ -21037,15 +22035,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 IF @S_TypeId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@TypeId_vals))'), '%1', 'COALESCE([D].[TypeId], [O].[TypeId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TypeId_v2'), '%2', '@TypeId_v1'), '%1', 'COALESCE([D].[TypeId], [O].[TypeId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TypeId'), '%1', 'COALESCE([D].[TypeId], [O].[TypeId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[TypeId], [O].[TypeId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@TypeId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[TypeId], [O].[TypeId]) ' + [C].[SqlComparator] + ' @TypeId_v1 AND @TypeId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[TypeId], [O].[TypeId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[TypeId], [O].[TypeId]) ' + [C].[SqlComparator] + ' @TypeId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_TypeId_comparator
                               AND (([C].[Arity] IS NULL AND @S_TypeId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_TypeId_v1 IS NOT NULL AND @S_TypeId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_TypeId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_TypeId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'MaskId' AND [type] = 0) BEGIN
@@ -21055,15 +22055,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 IF @S_MaskId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@MaskId_vals))'), '%1', 'COALESCE([D].[MaskId], [O].[MaskId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@MaskId_v2'), '%2', '@MaskId_v1'), '%1', 'COALESCE([D].[MaskId], [O].[MaskId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@MaskId'), '%1', 'COALESCE([D].[MaskId], [O].[MaskId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[MaskId], [O].[MaskId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@MaskId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[MaskId], [O].[MaskId]) ' + [C].[SqlComparator] + ' @MaskId_v1 AND @MaskId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[MaskId], [O].[MaskId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[MaskId], [O].[MaskId]) ' + [C].[SqlComparator] + ' @MaskId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_MaskId_comparator
                               AND (([C].[Arity] IS NULL AND @S_MaskId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_MaskId_v1 IS NOT NULL AND @S_MaskId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_MaskId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_MaskId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -21073,13 +22075,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ValidValues' AND [type] = 0) BEGIN
@@ -21089,13 +22095,15 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 IF @S_ValidValues_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@ValidValues_vals))'), '%1', 'COALESCE([D].[ValidValues], [O].[ValidValues])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ValidValues'), '%1', 'COALESCE([D].[ValidValues], [O].[ValidValues])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ValidValues], [O].[ValidValues]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@ValidValues_vals))'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ValidValues], [O].[ValidValues]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ValidValues], [O].[ValidValues]) ' + [C].[SqlComparator] + ' @ValidValues'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ValidValues_comparator
                               AND (([C].[Arity] IS NULL AND @S_ValidValues_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ValidValues_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_ValidValues_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Codification' AND [type] = 0) BEGIN
@@ -21105,13 +22113,17 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 IF @S_Codification_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(5)) FROM OPENJSON(@Codification_vals))'), '%1', 'COALESCE([D].[Codification], [O].[Codification])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Codification'), '%1', 'COALESCE([D].[Codification], [O].[Codification])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Codification], [O].[Codification]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(5)) FROM OPENJSON(@Codification_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Codification], [O].[Codification]) ' + [C].[SqlComparator] + ' @Codification_v1 AND @Codification_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Codification], [O].[Codification]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Codification], [O].[Codification]) ' + [C].[SqlComparator] + ' @Codification'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Codification_comparator
                               AND (([C].[Arity] IS NULL AND @S_Codification_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Codification_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Codification_v1 IS NOT NULL AND @S_Codification_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Codification_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -21121,7 +22133,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TypeId tinyint,@TypeId_v1 tinyint,@TypeId_v2 tinyint,@TypeId_vals NVARCHAR(MAX),@MaskId bigint,@MaskId_v1 bigint,@MaskId_v2 bigint,@MaskId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@ValidValues nvarchar(max),@ValidValues_vals NVARCHAR(MAX),@Codification nvarchar(5),@Codification_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TypeId tinyint,@TypeId_v1 tinyint,@TypeId_v2 tinyint,@TypeId_vals NVARCHAR(MAX),@MaskId bigint,@MaskId_v1 bigint,@MaskId_v2 bigint,@MaskId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@ValidValues nvarchar(max),@ValidValues_vals NVARCHAR(MAX),@Codification nvarchar(5),@Codification_v1 nvarchar(5),@Codification_v2 nvarchar(5),@Codification_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -21135,10 +22147,14 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                        ,@MaskId_v2 = @S_MaskId_v2
                                        ,@MaskId_vals = @S_MaskId_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@ValidValues = @S_ValidValues_v
                                        ,@ValidValues_vals = @S_ValidValues_vals
                                        ,@Codification = @S_Codification_v
+                                       ,@Codification_v1 = @S_Codification_v1
+                                       ,@Codification_v2 = @S_Codification_v2
                                        ,@Codification_vals = @S_Codification_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -21353,7 +22369,7 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Systems', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -21441,7 +22457,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -21483,6 +22499,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -21501,6 +22518,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -21563,7 +22581,7 @@ ALTER PROCEDURE [dbo].[SystemCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -21608,6 +22626,7 @@ ALTER PROCEDURE [dbo].[SystemCreate](@Login NVARCHAR(MAX)
                ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
                ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Systems] ON
         INSERT INTO [dbo].[Systems] ([Id]
                                             ,[Name]
                                             ,[Description]
@@ -21624,6 +22643,7 @@ ALTER PROCEDURE [dbo].[SystemCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsOffAir
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Systems] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -21654,7 +22674,7 @@ ALTER PROCEDURE [dbo].[SystemUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -21699,8 +22719,7 @@ ALTER PROCEDURE [dbo].[SystemUpdate](@Login NVARCHAR(MAX)
                ,@W_MaxRetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.MaxRetryLogins') AS tinyint)
                ,@W_IsOffAir bit = CAST(JSON_VALUE(@ActualRecord, '$.IsOffAir') AS bit)
 
-        UPDATE [dbo].[Systems] SET [Id] = @W_Id
-                                          ,[Name] = @W_Name
+        UPDATE [dbo].[Systems] SET [Name] = @W_Name
                                           ,[Description] = @W_Description
                                           ,[ClientName] = @W_ClientName
                                           ,[MaxRetryLogins] = @W_MaxRetryLogins
@@ -21738,7 +22757,7 @@ ALTER PROCEDURE [dbo].[SystemDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -21809,13 +22828,13 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -21856,7 +22875,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -21910,9 +22929,13 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_ClientName_comparator TINYINT
                    ,@G_ClientName_v nvarchar(15)
                    ,@G_ClientName_vals NVARCHAR(MAX)
+                   ,@G_ClientName_v1 nvarchar(15)
+                   ,@G_ClientName_v2 nvarchar(15)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -21940,6 +22963,8 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_ClientName_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.ClientName.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.ClientName') IS NOT NULL AND JSON_QUERY(@Filter, '$.ClientName') IS NULL THEN 3 END
@@ -21952,18 +22977,22 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.ClientName.value'),
                 JSON_QUERY(@Filter, '$.ClientName')
             )
+            SELECT @G_ClientName_v1 = TRY_CAST(JSON_VALUE(@G_ClientName_vals, '$[0]') AS nvarchar(15))
+                  ,@G_ClientName_v2 = TRY_CAST(JSON_VALUE(@G_ClientName_vals, '$[1]') AS nvarchar(15))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -21971,13 +23000,17 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ClientName' AND [type] = 0)
@@ -21985,13 +23018,17 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ClientName_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@ClientName_vals))'), '%1', '[T].[ClientName]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ClientName'), '%1', '[T].[ClientName]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ClientName] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@ClientName_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ClientName] ' + [C].[SqlComparator] + ' @ClientName_v1 AND @ClientName_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ClientName] ' + [C].[SqlComparator]
+        ELSE '[T].[ClientName] ' + [C].[SqlComparator] + ' @ClientName'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ClientName_comparator
                           AND (([C].[Arity] IS NULL AND @G_ClientName_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ClientName_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_ClientName_v1 IS NOT NULL AND @G_ClientName_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_ClientName_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -22024,7 +23061,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                ,@T_ClientName = @WT_ClientName
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_ClientName nvarchar(15),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@ClientName nvarchar(15),@ClientName_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_ClientName nvarchar(15),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@ClientName nvarchar(15),@ClientName_v1 nvarchar(15),@ClientName_v2 nvarchar(15),@ClientName_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Name = @WT_Name
                                ,@T_ClientName = @WT_ClientName
@@ -22033,8 +23070,12 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@ClientName = @G_ClientName_v
+                               ,@ClientName_v1 = @G_ClientName_v1
+                               ,@ClientName_v2 = @G_ClientName_v2
                                ,@ClientName_vals = @G_ClientName_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -22066,9 +23107,13 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_ClientName_comparator TINYINT
                    ,@S_ClientName_v nvarchar(15)
                    ,@S_ClientName_vals NVARCHAR(MAX)
+                   ,@S_ClientName_v1 nvarchar(15)
+                   ,@S_ClientName_v2 nvarchar(15)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -22096,6 +23141,8 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_ClientName_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.ClientName.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.ClientName') IS NOT NULL AND JSON_QUERY(@Search, '$.ClientName') IS NULL THEN 9 END
@@ -22108,20 +23155,24 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.ClientName.value'),
                     JSON_QUERY(@Search, '$.ClientName')
                 )
+                SELECT @S_ClientName_v1 = TRY_CAST(JSON_VALUE(@S_ClientName_vals, '$[0]') AS nvarchar(15))
+                      ,@S_ClientName_v2 = TRY_CAST(JSON_VALUE(@S_ClientName_vals, '$[1]') AS nvarchar(15))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -22131,13 +23182,17 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ClientName' AND [type] = 0) BEGIN
@@ -22147,13 +23202,17 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                 IF @S_ClientName_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@ClientName_vals))'), '%1', 'COALESCE([D].[ClientName], [O].[ClientName])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ClientName'), '%1', 'COALESCE([D].[ClientName], [O].[ClientName])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ClientName], [O].[ClientName]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@ClientName_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ClientName], [O].[ClientName]) ' + [C].[SqlComparator] + ' @ClientName_v1 AND @ClientName_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ClientName], [O].[ClientName]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ClientName], [O].[ClientName]) ' + [C].[SqlComparator] + ' @ClientName'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ClientName_comparator
                               AND (([C].[Arity] IS NULL AND @S_ClientName_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ClientName_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_ClientName_v1 IS NOT NULL AND @S_ClientName_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_ClientName_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -22163,14 +23222,18 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@ClientName nvarchar(15),@ClientName_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@ClientName nvarchar(15),@ClientName_v1 nvarchar(15),@ClientName_v2 nvarchar(15),@ClientName_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@ClientName = @S_ClientName_v
+                                       ,@ClientName_v1 = @S_ClientName_v1
+                                       ,@ClientName_v2 = @S_ClientName_v2
                                        ,@ClientName_vals = @S_ClientName_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -22315,7 +23378,7 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Menus', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -22406,7 +23469,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -22448,6 +23511,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -22466,6 +23530,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -22528,7 +23593,7 @@ ALTER PROCEDURE [dbo].[MenuCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -22574,6 +23639,7 @@ ALTER PROCEDURE [dbo].[MenuCreate](@Login NVARCHAR(MAX)
                ,@W_Action nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(50))
                ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
 
+        SET IDENTITY_INSERT [dbo].[Menus] ON
         INSERT INTO [dbo].[Menus] ([Id]
                                             ,[SystemId]
                                             ,[Sequence]
@@ -22592,6 +23658,7 @@ ALTER PROCEDURE [dbo].[MenuCreate](@Login NVARCHAR(MAX)
                                              ,@W_ParentMenuId
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Menus] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -22622,7 +23689,7 @@ ALTER PROCEDURE [dbo].[MenuUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -22668,8 +23735,7 @@ ALTER PROCEDURE [dbo].[MenuUpdate](@Login NVARCHAR(MAX)
                ,@W_Action nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(50))
                ,@W_ParentMenuId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentMenuId') AS bigint)
 
-        UPDATE [dbo].[Menus] SET [Id] = @W_Id
-                                          ,[SystemId] = @W_SystemId
+        UPDATE [dbo].[Menus] SET [SystemId] = @W_SystemId
                                           ,[Sequence] = @W_Sequence
                                           ,[Caption] = @W_Caption
                                           ,[Message] = @W_Message
@@ -22708,7 +23774,7 @@ ALTER PROCEDURE [dbo].[MenuDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -22779,13 +23845,13 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -22826,7 +23892,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Caption] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(20) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -22886,6 +23952,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                    ,@G_Caption_comparator TINYINT
                    ,@G_Caption_v nvarchar(20)
                    ,@G_Caption_vals NVARCHAR(MAX)
+                   ,@G_Caption_v1 nvarchar(20)
+                   ,@G_Caption_v2 nvarchar(20)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -22927,18 +23995,22 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Caption.value'),
                 JSON_QUERY(@Filter, '$.Caption')
             )
+            SELECT @G_Caption_v1 = TRY_CAST(JSON_VALUE(@G_Caption_vals, '$[0]') AS nvarchar(20))
+                  ,@G_Caption_v2 = TRY_CAST(JSON_VALUE(@G_Caption_vals, '$[1]') AS nvarchar(20))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SystemId' AND [type] = 0)
@@ -22946,15 +24018,17 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_SystemId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', '[T].[SystemId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', '[T].[SystemId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', '[T].[SystemId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[SystemId] ' + [C].[SqlComparator]
+        ELSE '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_SystemId_comparator
                           AND (([C].[Arity] IS NULL AND @G_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_SystemId_v1 IS NOT NULL AND @G_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Caption' AND [type] = 0)
@@ -22962,13 +24036,17 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Caption_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@Caption_vals))'), '%1', '[T].[Caption]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Caption'), '%1', '[T].[Caption]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Caption] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@Caption_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Caption] ' + [C].[SqlComparator] + ' @Caption_v1 AND @Caption_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Caption] ' + [C].[SqlComparator]
+        ELSE '[T].[Caption] ' + [C].[SqlComparator] + ' @Caption'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Caption_comparator
                           AND (([C].[Arity] IS NULL AND @G_Caption_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Caption_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Caption_v1 IS NOT NULL AND @G_Caption_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Caption_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -23001,7 +24079,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                ,@T_Caption = @WT_Caption
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_SystemId bigint,@T_Caption nvarchar(20),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@Caption nvarchar(20),@Caption_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_Caption nvarchar(20),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@Caption nvarchar(20),@Caption_v1 nvarchar(20),@Caption_v2 nvarchar(20),@Caption_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_SystemId = @WT_SystemId
                                ,@T_Caption = @WT_Caption
@@ -23014,6 +24092,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                ,@SystemId_v2 = @G_SystemId_v2
                                ,@SystemId_vals = @G_SystemId_vals
                                ,@Caption = @G_Caption_v
+                               ,@Caption_v1 = @G_Caption_v1
+                               ,@Caption_v2 = @G_Caption_v2
                                ,@Caption_vals = @G_Caption_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -23050,6 +24130,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                    ,@S_Caption_comparator TINYINT
                    ,@S_Caption_v nvarchar(20)
                    ,@S_Caption_vals NVARCHAR(MAX)
+                   ,@S_Caption_v1 nvarchar(20)
+                   ,@S_Caption_v2 nvarchar(20)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -23091,20 +24173,24 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Caption.value'),
                     JSON_QUERY(@Search, '$.Caption')
                 )
+                SELECT @S_Caption_v1 = TRY_CAST(JSON_VALUE(@S_Caption_vals, '$[0]') AS nvarchar(20))
+                      ,@S_Caption_v2 = TRY_CAST(JSON_VALUE(@S_Caption_vals, '$[1]') AS nvarchar(20))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'SystemId' AND [type] = 0) BEGIN
@@ -23114,15 +24200,17 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                 IF @S_SystemId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_SystemId_comparator
                               AND (([C].[Arity] IS NULL AND @S_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_SystemId_v1 IS NOT NULL AND @S_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Caption' AND [type] = 0) BEGIN
@@ -23132,13 +24220,17 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                 IF @S_Caption_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@Caption_vals))'), '%1', 'COALESCE([D].[Caption], [O].[Caption])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Caption'), '%1', 'COALESCE([D].[Caption], [O].[Caption])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Caption], [O].[Caption]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@Caption_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Caption], [O].[Caption]) ' + [C].[SqlComparator] + ' @Caption_v1 AND @Caption_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Caption], [O].[Caption]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Caption], [O].[Caption]) ' + [C].[SqlComparator] + ' @Caption'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Caption_comparator
                               AND (([C].[Arity] IS NULL AND @S_Caption_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Caption_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Caption_v1 IS NOT NULL AND @S_Caption_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Caption_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -23148,7 +24240,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@Caption nvarchar(20),@Caption_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@Caption nvarchar(20),@Caption_v1 nvarchar(20),@Caption_v2 nvarchar(20),@Caption_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -23158,6 +24250,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                        ,@SystemId_v2 = @S_SystemId_v2
                                        ,@SystemId_vals = @S_SystemId_vals
                                        ,@Caption = @S_Caption_v
+                                       ,@Caption_v1 = @S_Caption_v1
+                                       ,@Caption_v2 = @S_Caption_v2
                                        ,@Caption_vals = @S_Caption_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -23333,7 +24427,7 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Users', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -23417,7 +24511,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -23459,6 +24553,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -23477,6 +24572,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -23539,7 +24635,7 @@ ALTER PROCEDURE [dbo].[UserCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -23584,6 +24680,7 @@ ALTER PROCEDURE [dbo].[UserCreate](@Login NVARCHAR(MAX)
                ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
                ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Users] ON
         INSERT INTO [dbo].[Users] ([Id]
                                             ,[Name]
                                             ,[Password]
@@ -23600,6 +24697,7 @@ ALTER PROCEDURE [dbo].[UserCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsActive
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Users] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -23630,7 +24728,7 @@ ALTER PROCEDURE [dbo].[UserUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -23675,8 +24773,7 @@ ALTER PROCEDURE [dbo].[UserUpdate](@Login NVARCHAR(MAX)
                ,@W_RetryLogins tinyint = CAST(JSON_VALUE(@ActualRecord, '$.RetryLogins') AS tinyint)
                ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
 
-        UPDATE [dbo].[Users] SET [Id] = @W_Id
-                                          ,[Name] = @W_Name
+        UPDATE [dbo].[Users] SET [Name] = @W_Name
                                           ,[Password] = @W_Password
                                           ,[FullName] = @W_FullName
                                           ,[RetryLogins] = @W_RetryLogins
@@ -23714,7 +24811,7 @@ ALTER PROCEDURE [dbo].[UserDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -23785,13 +24882,13 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -23832,7 +24929,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -23892,12 +24989,18 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_FullName_comparator TINYINT
                    ,@G_FullName_v nvarchar(50)
                    ,@G_FullName_vals NVARCHAR(MAX)
+                   ,@G_FullName_v1 nvarchar(50)
+                   ,@G_FullName_v2 nvarchar(50)
                    ,@G_IsActive_comparator TINYINT
                    ,@G_IsActive_v bit
                    ,@G_IsActive_vals NVARCHAR(MAX)
+                   ,@G_IsActive_v1 bit
+                   ,@G_IsActive_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -23925,6 +25028,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_FullName_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.FullName.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.FullName') IS NOT NULL AND JSON_QUERY(@Filter, '$.FullName') IS NULL THEN 3 END
@@ -23937,6 +25042,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.FullName.value'),
                 JSON_QUERY(@Filter, '$.FullName')
             )
+            SELECT @G_FullName_v1 = TRY_CAST(JSON_VALUE(@G_FullName_vals, '$[0]') AS nvarchar(50))
+                  ,@G_FullName_v2 = TRY_CAST(JSON_VALUE(@G_FullName_vals, '$[1]') AS nvarchar(50))
             SELECT @G_IsActive_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsActive.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsActive') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsActive') IS NULL THEN 3 END
@@ -23949,18 +25056,22 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsActive.value'),
                 JSON_QUERY(@Filter, '$.IsActive')
             )
+            SELECT @G_IsActive_v1 = TRY_CAST(JSON_VALUE(@G_IsActive_vals, '$[0]') AS bit)
+                  ,@G_IsActive_v2 = TRY_CAST(JSON_VALUE(@G_IsActive_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -23968,13 +25079,17 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'FullName' AND [type] = 0)
@@ -23982,13 +25097,17 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_FullName_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@FullName_vals))'), '%1', '[T].[FullName]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@FullName'), '%1', '[T].[FullName]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[FullName] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@FullName_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[FullName] ' + [C].[SqlComparator] + ' @FullName_v1 AND @FullName_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[FullName] ' + [C].[SqlComparator]
+        ELSE '[T].[FullName] ' + [C].[SqlComparator] + ' @FullName'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_FullName_comparator
                           AND (([C].[Arity] IS NULL AND @G_FullName_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_FullName_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_FullName_v1 IS NOT NULL AND @G_FullName_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_FullName_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsActive' AND [type] = 0)
@@ -23996,13 +25115,17 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsActive_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'), '%1', '[T].[IsActive]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsActive'), '%1', '[T].[IsActive]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsActive] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsActive] ' + [C].[SqlComparator] + ' @IsActive_v1 AND @IsActive_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsActive] ' + [C].[SqlComparator]
+        ELSE '[T].[IsActive] ' + [C].[SqlComparator] + ' @IsActive'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsActive_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsActive_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsActive_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsActive_v1 IS NOT NULL AND @G_IsActive_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsActive_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -24036,7 +25159,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                ,@T_IsActive = @WT_IsActive
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_FullName nvarchar(50),@T_IsActive bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@FullName nvarchar(50),@FullName_vals NVARCHAR(MAX),@IsActive bit,@IsActive_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_FullName nvarchar(50),@T_IsActive bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@FullName nvarchar(50),@FullName_v1 nvarchar(50),@FullName_v2 nvarchar(50),@FullName_vals NVARCHAR(MAX),@IsActive bit,@IsActive_v1 bit,@IsActive_v2 bit,@IsActive_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Name = @WT_Name
                                ,@T_FullName = @WT_FullName
@@ -24046,10 +25169,16 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@FullName = @G_FullName_v
+                               ,@FullName_v1 = @G_FullName_v1
+                               ,@FullName_v2 = @G_FullName_v2
                                ,@FullName_vals = @G_FullName_vals
                                ,@IsActive = @G_IsActive_v
+                               ,@IsActive_v1 = @G_IsActive_v1
+                               ,@IsActive_v2 = @G_IsActive_v2
                                ,@IsActive_vals = @G_IsActive_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -24082,12 +25211,18 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_FullName_comparator TINYINT
                    ,@S_FullName_v nvarchar(50)
                    ,@S_FullName_vals NVARCHAR(MAX)
+                   ,@S_FullName_v1 nvarchar(50)
+                   ,@S_FullName_v2 nvarchar(50)
                    ,@S_IsActive_comparator TINYINT
                    ,@S_IsActive_v bit
                    ,@S_IsActive_vals NVARCHAR(MAX)
+                   ,@S_IsActive_v1 bit
+                   ,@S_IsActive_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -24115,6 +25250,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_FullName_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.FullName.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.FullName') IS NOT NULL AND JSON_QUERY(@Search, '$.FullName') IS NULL THEN 9 END
@@ -24127,6 +25264,8 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.FullName.value'),
                     JSON_QUERY(@Search, '$.FullName')
                 )
+                SELECT @S_FullName_v1 = TRY_CAST(JSON_VALUE(@S_FullName_vals, '$[0]') AS nvarchar(50))
+                      ,@S_FullName_v2 = TRY_CAST(JSON_VALUE(@S_FullName_vals, '$[1]') AS nvarchar(50))
                 SELECT @S_IsActive_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsActive.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsActive') IS NOT NULL AND JSON_QUERY(@Search, '$.IsActive') IS NULL THEN 3 END
@@ -24139,20 +25278,24 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsActive.value'),
                     JSON_QUERY(@Search, '$.IsActive')
                 )
+                SELECT @S_IsActive_v1 = TRY_CAST(JSON_VALUE(@S_IsActive_vals, '$[0]') AS bit)
+                      ,@S_IsActive_v2 = TRY_CAST(JSON_VALUE(@S_IsActive_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -24162,13 +25305,17 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'FullName' AND [type] = 0) BEGIN
@@ -24178,13 +25325,17 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                 IF @S_FullName_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@FullName_vals))'), '%1', 'COALESCE([D].[FullName], [O].[FullName])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@FullName'), '%1', 'COALESCE([D].[FullName], [O].[FullName])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[FullName], [O].[FullName]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@FullName_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[FullName], [O].[FullName]) ' + [C].[SqlComparator] + ' @FullName_v1 AND @FullName_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[FullName], [O].[FullName]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[FullName], [O].[FullName]) ' + [C].[SqlComparator] + ' @FullName'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_FullName_comparator
                               AND (([C].[Arity] IS NULL AND @S_FullName_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_FullName_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_FullName_v1 IS NOT NULL AND @S_FullName_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_FullName_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsActive' AND [type] = 0) BEGIN
@@ -24194,13 +25345,17 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                 IF @S_IsActive_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'), '%1', 'COALESCE([D].[IsActive], [O].[IsActive])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsActive'), '%1', 'COALESCE([D].[IsActive], [O].[IsActive])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' @IsActive_v1 AND @IsActive_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' @IsActive'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsActive_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsActive_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsActive_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsActive_v1 IS NOT NULL AND @S_IsActive_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsActive_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -24210,16 +25365,22 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@FullName nvarchar(50),@FullName_vals NVARCHAR(MAX),@IsActive bit,@IsActive_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@FullName nvarchar(50),@FullName_v1 nvarchar(50),@FullName_v2 nvarchar(50),@FullName_vals NVARCHAR(MAX),@IsActive bit,@IsActive_v1 bit,@IsActive_v2 bit,@IsActive_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@FullName = @S_FullName_v
+                                       ,@FullName_v1 = @S_FullName_v1
+                                       ,@FullName_v2 = @S_FullName_v2
                                        ,@FullName_vals = @S_FullName_vals
                                        ,@IsActive = @S_IsActive_v
+                                       ,@IsActive_v1 = @S_IsActive_v1
+                                       ,@IsActive_v2 = @S_IsActive_v2
                                        ,@IsActive_vals = @S_IsActive_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -24364,7 +25525,7 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em SystemsUsers', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -24438,7 +25599,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -24480,6 +25641,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -24498,6 +25660,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -24560,7 +25723,7 @@ ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -24603,6 +25766,7 @@ ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
                ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
+        SET IDENTITY_INSERT [dbo].[SystemsUsers] ON
         INSERT INTO [dbo].[SystemsUsers] ([Id]
                                             ,[SystemId]
                                             ,[UserId]
@@ -24615,6 +25779,7 @@ ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
                                              ,@W_Name
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[SystemsUsers] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -24645,7 +25810,7 @@ ALTER PROCEDURE [dbo].[SystemUserUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -24688,8 +25853,7 @@ ALTER PROCEDURE [dbo].[SystemUserUpdate](@Login NVARCHAR(MAX)
                ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-        UPDATE [dbo].[SystemsUsers] SET [Id] = @W_Id
-                                          ,[SystemId] = @W_SystemId
+        UPDATE [dbo].[SystemsUsers] SET [SystemId] = @W_SystemId
                                           ,[UserId] = @W_UserId
                                           ,[Name] = @W_Name
                                           ,[UpdatedAt] = GETDATE()
@@ -24725,7 +25889,7 @@ ALTER PROCEDURE [dbo].[SystemUserDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -24796,13 +25960,13 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -24843,7 +26007,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -24911,6 +26075,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(50)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(50)
+                   ,@G_Name_v2 nvarchar(50)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -24966,18 +26132,22 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(50))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(50))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SystemId' AND [type] = 0)
@@ -24985,15 +26155,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_SystemId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', '[T].[SystemId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', '[T].[SystemId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', '[T].[SystemId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[SystemId] ' + [C].[SqlComparator]
+        ELSE '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_SystemId_comparator
                           AND (([C].[Arity] IS NULL AND @G_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_SystemId_v1 IS NOT NULL AND @G_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'UserId' AND [type] = 0)
@@ -25001,15 +26173,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_UserId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'), '%1', '[T].[UserId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@UserId_v2'), '%2', '@UserId_v1'), '%1', '[T].[UserId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@UserId'), '%1', '[T].[UserId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[UserId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[UserId] ' + [C].[SqlComparator] + ' @UserId_v1 AND @UserId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[UserId] ' + [C].[SqlComparator]
+        ELSE '[T].[UserId] ' + [C].[SqlComparator] + ' @UserId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_UserId_comparator
                           AND (([C].[Arity] IS NULL AND @G_UserId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_UserId_v1 IS NOT NULL AND @G_UserId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_UserId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_UserId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -25017,13 +26191,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -25057,7 +26235,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                ,@T_Name = @WT_Name
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_Name nvarchar(50),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_Name nvarchar(50),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_SystemId = @WT_SystemId
                                ,@T_UserId = @WT_UserId
@@ -25075,6 +26253,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                ,@UserId_v2 = @G_UserId_v2
                                ,@UserId_vals = @G_UserId_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -25117,6 +26297,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(50)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(50)
+                   ,@S_Name_v2 nvarchar(50)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -25172,20 +26354,24 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(50))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(50))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'SystemId' AND [type] = 0) BEGIN
@@ -25195,15 +26381,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                 IF @S_SystemId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_SystemId_comparator
                               AND (([C].[Arity] IS NULL AND @S_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_SystemId_v1 IS NOT NULL AND @S_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'UserId' AND [type] = 0) BEGIN
@@ -25213,15 +26401,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                 IF @S_UserId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'), '%1', 'COALESCE([D].[UserId], [O].[UserId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@UserId_v2'), '%2', '@UserId_v1'), '%1', 'COALESCE([D].[UserId], [O].[UserId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@UserId'), '%1', 'COALESCE([D].[UserId], [O].[UserId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator] + ' @UserId_v1 AND @UserId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator] + ' @UserId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_UserId_comparator
                               AND (([C].[Arity] IS NULL AND @S_UserId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_UserId_v1 IS NOT NULL AND @S_UserId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_UserId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_UserId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -25231,13 +26421,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -25247,7 +26441,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -25261,6 +26455,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                        ,@UserId_v2 = @S_UserId_v2
                                        ,@UserId_vals = @S_UserId_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -25421,7 +26617,7 @@ ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Connections', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -25486,7 +26682,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -25528,6 +26724,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -25546,6 +26743,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -25608,7 +26806,7 @@ ALTER PROCEDURE [dbo].[ConnectionCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -25650,6 +26848,7 @@ ALTER PROCEDURE [dbo].[ConnectionCreate](@Login NVARCHAR(MAX)
         DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
                ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
 
+        SET IDENTITY_INSERT [dbo].[Connections] ON
         INSERT INTO [dbo].[Connections] ([Id]
                                             ,[Environment]
                                             ,[ConnectionString]
@@ -25660,6 +26859,7 @@ ALTER PROCEDURE [dbo].[ConnectionCreate](@Login NVARCHAR(MAX)
                                              ,@W_ConnectionString
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Connections] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -25690,7 +26890,7 @@ ALTER PROCEDURE [dbo].[ConnectionUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -25732,8 +26932,7 @@ ALTER PROCEDURE [dbo].[ConnectionUpdate](@Login NVARCHAR(MAX)
         DECLARE @W_Environment nvarchar(3) = CAST(JSON_VALUE(@ActualRecord, '$.Environment') AS nvarchar(3))
                ,@W_ConnectionString nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.ConnectionString') AS nvarchar(256))
 
-        UPDATE [dbo].[Connections] SET [Id] = @W_Id
-                                          ,[Environment] = @W_Environment
+        UPDATE [dbo].[Connections] SET [Environment] = @W_Environment
                                           ,[ConnectionString] = @W_ConnectionString
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
@@ -25768,7 +26967,7 @@ ALTER PROCEDURE [dbo].[ConnectionDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -25839,13 +27038,13 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -25883,7 +27082,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -25929,9 +27128,13 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                    ,@G_Environment_comparator TINYINT
                    ,@G_Environment_v nvarchar(3)
                    ,@G_Environment_vals NVARCHAR(MAX)
+                   ,@G_Environment_v1 nvarchar(3)
+                   ,@G_Environment_v2 nvarchar(3)
                    ,@G_ConnectionString_comparator TINYINT
                    ,@G_ConnectionString_v nvarchar(256)
                    ,@G_ConnectionString_vals NVARCHAR(MAX)
+                   ,@G_ConnectionString_v1 nvarchar(256)
+                   ,@G_ConnectionString_v2 nvarchar(256)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -25959,6 +27162,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Environment.value'),
                 JSON_QUERY(@Filter, '$.Environment')
             )
+            SELECT @G_Environment_v1 = TRY_CAST(JSON_VALUE(@G_Environment_vals, '$[0]') AS nvarchar(3))
+                  ,@G_Environment_v2 = TRY_CAST(JSON_VALUE(@G_Environment_vals, '$[1]') AS nvarchar(3))
             SELECT @G_ConnectionString_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.ConnectionString.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.ConnectionString') IS NOT NULL AND JSON_QUERY(@Filter, '$.ConnectionString') IS NULL THEN 3 END
@@ -25971,18 +27176,22 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.ConnectionString.value'),
                 JSON_QUERY(@Filter, '$.ConnectionString')
             )
+            SELECT @G_ConnectionString_v1 = TRY_CAST(JSON_VALUE(@G_ConnectionString_vals, '$[0]') AS nvarchar(256))
+                  ,@G_ConnectionString_v2 = TRY_CAST(JSON_VALUE(@G_ConnectionString_vals, '$[1]') AS nvarchar(256))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Environment' AND [type] = 0)
@@ -25990,13 +27199,17 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Environment_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(3)) FROM OPENJSON(@Environment_vals))'), '%1', '[T].[Environment]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Environment'), '%1', '[T].[Environment]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Environment] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(3)) FROM OPENJSON(@Environment_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Environment] ' + [C].[SqlComparator] + ' @Environment_v1 AND @Environment_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Environment] ' + [C].[SqlComparator]
+        ELSE '[T].[Environment] ' + [C].[SqlComparator] + ' @Environment'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Environment_comparator
                           AND (([C].[Arity] IS NULL AND @G_Environment_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Environment_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Environment_v1 IS NOT NULL AND @G_Environment_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Environment_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ConnectionString' AND [type] = 0)
@@ -26004,13 +27217,17 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ConnectionString_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(256)) FROM OPENJSON(@ConnectionString_vals))'), '%1', '[T].[ConnectionString]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ConnectionString'), '%1', '[T].[ConnectionString]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ConnectionString] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(256)) FROM OPENJSON(@ConnectionString_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ConnectionString] ' + [C].[SqlComparator] + ' @ConnectionString_v1 AND @ConnectionString_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ConnectionString] ' + [C].[SqlComparator]
+        ELSE '[T].[ConnectionString] ' + [C].[SqlComparator] + ' @ConnectionString'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ConnectionString_comparator
                           AND (([C].[Arity] IS NULL AND @G_ConnectionString_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ConnectionString_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_ConnectionString_v1 IS NOT NULL AND @G_ConnectionString_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_ConnectionString_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -26036,7 +27253,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_Environment nvarchar(3),@T_ConnectionString nvarchar(256),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Environment nvarchar(3),@Environment_vals NVARCHAR(MAX),@ConnectionString nvarchar(256),@ConnectionString_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_Environment nvarchar(3),@T_ConnectionString nvarchar(256),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Environment nvarchar(3),@Environment_v1 nvarchar(3),@Environment_v2 nvarchar(3),@Environment_vals NVARCHAR(MAX),@ConnectionString nvarchar(256),@ConnectionString_v1 nvarchar(256),@ConnectionString_v2 nvarchar(256),@ConnectionString_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Environment = @WT_Environment
                                ,@T_ConnectionString = @WT_ConnectionString
@@ -26045,8 +27262,12 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Environment = @G_Environment_v
+                               ,@Environment_v1 = @G_Environment_v1
+                               ,@Environment_v2 = @G_Environment_v2
                                ,@Environment_vals = @G_Environment_vals
                                ,@ConnectionString = @G_ConnectionString_v
+                               ,@ConnectionString_v1 = @G_ConnectionString_v1
+                               ,@ConnectionString_v2 = @G_ConnectionString_v2
                                ,@ConnectionString_vals = @G_ConnectionString_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -26078,9 +27299,13 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                    ,@S_Environment_comparator TINYINT
                    ,@S_Environment_v nvarchar(3)
                    ,@S_Environment_vals NVARCHAR(MAX)
+                   ,@S_Environment_v1 nvarchar(3)
+                   ,@S_Environment_v2 nvarchar(3)
                    ,@S_ConnectionString_comparator TINYINT
                    ,@S_ConnectionString_v nvarchar(256)
                    ,@S_ConnectionString_vals NVARCHAR(MAX)
+                   ,@S_ConnectionString_v1 nvarchar(256)
+                   ,@S_ConnectionString_v2 nvarchar(256)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -26108,6 +27333,8 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Environment.value'),
                     JSON_QUERY(@Search, '$.Environment')
                 )
+                SELECT @S_Environment_v1 = TRY_CAST(JSON_VALUE(@S_Environment_vals, '$[0]') AS nvarchar(3))
+                      ,@S_Environment_v2 = TRY_CAST(JSON_VALUE(@S_Environment_vals, '$[1]') AS nvarchar(3))
                 SELECT @S_ConnectionString_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.ConnectionString.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.ConnectionString') IS NOT NULL AND JSON_QUERY(@Search, '$.ConnectionString') IS NULL THEN 9 END
@@ -26120,20 +27347,24 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.ConnectionString.value'),
                     JSON_QUERY(@Search, '$.ConnectionString')
                 )
+                SELECT @S_ConnectionString_v1 = TRY_CAST(JSON_VALUE(@S_ConnectionString_vals, '$[0]') AS nvarchar(256))
+                      ,@S_ConnectionString_v2 = TRY_CAST(JSON_VALUE(@S_ConnectionString_vals, '$[1]') AS nvarchar(256))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Environment' AND [type] = 0) BEGIN
@@ -26143,13 +27374,17 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                 IF @S_Environment_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(3)) FROM OPENJSON(@Environment_vals))'), '%1', 'COALESCE([D].[Environment], [O].[Environment])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Environment'), '%1', 'COALESCE([D].[Environment], [O].[Environment])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Environment], [O].[Environment]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(3)) FROM OPENJSON(@Environment_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Environment], [O].[Environment]) ' + [C].[SqlComparator] + ' @Environment_v1 AND @Environment_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Environment], [O].[Environment]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Environment], [O].[Environment]) ' + [C].[SqlComparator] + ' @Environment'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Environment_comparator
                               AND (([C].[Arity] IS NULL AND @S_Environment_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Environment_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Environment_v1 IS NOT NULL AND @S_Environment_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Environment_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ConnectionString' AND [type] = 0) BEGIN
@@ -26159,13 +27394,17 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                 IF @S_ConnectionString_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(256)) FROM OPENJSON(@ConnectionString_vals))'), '%1', 'COALESCE([D].[ConnectionString], [O].[ConnectionString])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ConnectionString'), '%1', 'COALESCE([D].[ConnectionString], [O].[ConnectionString])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ConnectionString], [O].[ConnectionString]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(256)) FROM OPENJSON(@ConnectionString_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ConnectionString], [O].[ConnectionString]) ' + [C].[SqlComparator] + ' @ConnectionString_v1 AND @ConnectionString_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ConnectionString], [O].[ConnectionString]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ConnectionString], [O].[ConnectionString]) ' + [C].[SqlComparator] + ' @ConnectionString'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ConnectionString_comparator
                               AND (([C].[Arity] IS NULL AND @S_ConnectionString_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ConnectionString_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_ConnectionString_v1 IS NOT NULL AND @S_ConnectionString_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_ConnectionString_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -26175,14 +27414,18 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Environment nvarchar(3),@Environment_vals NVARCHAR(MAX),@ConnectionString nvarchar(256),@ConnectionString_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Environment nvarchar(3),@Environment_v1 nvarchar(3),@Environment_v2 nvarchar(3),@Environment_vals NVARCHAR(MAX),@ConnectionString nvarchar(256),@ConnectionString_v1 nvarchar(256),@ConnectionString_v2 nvarchar(256),@ConnectionString_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Environment = @S_Environment_v
+                                       ,@Environment_v1 = @S_Environment_v1
+                                       ,@Environment_v2 = @S_Environment_v2
                                        ,@Environment_vals = @S_Environment_vals
                                        ,@ConnectionString = @S_ConnectionString_v
+                                       ,@ConnectionString_v1 = @S_ConnectionString_v1
+                                       ,@ConnectionString_v2 = @S_ConnectionString_v2
                                        ,@ConnectionString_vals = @S_ConnectionString_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -26314,7 +27557,7 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Databases', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -26410,7 +27653,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -26452,6 +27695,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -26470,6 +27714,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -26532,7 +27777,7 @@ ALTER PROCEDURE [dbo].[DatabaseCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -26579,6 +27824,7 @@ ALTER PROCEDURE [dbo].[DatabaseCreate](@Login NVARCHAR(MAX)
                ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
                ,@W_CurrentOperationId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentOperationId') AS bigint)
 
+        SET IDENTITY_INSERT [dbo].[Databases] ON
         INSERT INTO [dbo].[Databases] ([Id]
                                             ,[ConnectionId]
                                             ,[Name]
@@ -26599,6 +27845,7 @@ ALTER PROCEDURE [dbo].[DatabaseCreate](@Login NVARCHAR(MAX)
                                              ,@W_CurrentOperationId
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Databases] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -26629,7 +27876,7 @@ ALTER PROCEDURE [dbo].[DatabaseUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -26676,8 +27923,7 @@ ALTER PROCEDURE [dbo].[DatabaseUpdate](@Login NVARCHAR(MAX)
                ,@W_IsLegacy bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLegacy') AS bit)
                ,@W_CurrentOperationId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentOperationId') AS bigint)
 
-        UPDATE [dbo].[Databases] SET [Id] = @W_Id
-                                          ,[ConnectionId] = @W_ConnectionId
+        UPDATE [dbo].[Databases] SET [ConnectionId] = @W_ConnectionId
                                           ,[Name] = @W_Name
                                           ,[Alias] = @W_Alias
                                           ,[Description] = @W_Description
@@ -26717,7 +27963,7 @@ ALTER PROCEDURE [dbo].[DatabaseDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -26788,13 +28034,13 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -26835,7 +28081,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -26902,9 +28148,13 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_Alias_comparator TINYINT
                    ,@G_Alias_v nvarchar(25)
                    ,@G_Alias_vals NVARCHAR(MAX)
+                   ,@G_Alias_v1 nvarchar(25)
+                   ,@G_Alias_v2 nvarchar(25)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -26946,6 +28196,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_Alias_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Alias.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.Alias') IS NOT NULL AND JSON_QUERY(@Filter, '$.Alias') IS NULL THEN 3 END
@@ -26958,18 +28210,22 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Alias.value'),
                 JSON_QUERY(@Filter, '$.Alias')
             )
+            SELECT @G_Alias_v1 = TRY_CAST(JSON_VALUE(@G_Alias_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Alias_v2 = TRY_CAST(JSON_VALUE(@G_Alias_vals, '$[1]') AS nvarchar(25))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ConnectionId' AND [type] = 0)
@@ -26977,15 +28233,17 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ConnectionId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ConnectionId_vals))'), '%1', '[T].[ConnectionId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ConnectionId_v2'), '%2', '@ConnectionId_v1'), '%1', '[T].[ConnectionId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ConnectionId'), '%1', '[T].[ConnectionId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ConnectionId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ConnectionId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ConnectionId] ' + [C].[SqlComparator] + ' @ConnectionId_v1 AND @ConnectionId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ConnectionId] ' + [C].[SqlComparator]
+        ELSE '[T].[ConnectionId] ' + [C].[SqlComparator] + ' @ConnectionId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ConnectionId_comparator
                           AND (([C].[Arity] IS NULL AND @G_ConnectionId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_ConnectionId_v1 IS NOT NULL AND @G_ConnectionId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ConnectionId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_ConnectionId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -26993,13 +28251,17 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Alias' AND [type] = 0)
@@ -27007,13 +28269,17 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Alias_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'), '%1', '[T].[Alias]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Alias'), '%1', '[T].[Alias]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Alias] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Alias] ' + [C].[SqlComparator] + ' @Alias_v1 AND @Alias_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Alias] ' + [C].[SqlComparator]
+        ELSE '[T].[Alias] ' + [C].[SqlComparator] + ' @Alias'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Alias_comparator
                           AND (([C].[Arity] IS NULL AND @G_Alias_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Alias_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Alias_v1 IS NOT NULL AND @G_Alias_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Alias_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -27047,7 +28313,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                ,@T_Alias = @WT_Alias
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_ConnectionId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ConnectionId bigint,@ConnectionId_v1 bigint,@ConnectionId_v2 bigint,@ConnectionId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_ConnectionId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ConnectionId bigint,@ConnectionId_v1 bigint,@ConnectionId_v2 bigint,@ConnectionId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_ConnectionId = @WT_ConnectionId
                                ,@T_Name = @WT_Name
@@ -27061,8 +28327,12 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                ,@ConnectionId_v2 = @G_ConnectionId_v2
                                ,@ConnectionId_vals = @G_ConnectionId_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@Alias = @G_Alias_v
+                               ,@Alias_v1 = @G_Alias_v1
+                               ,@Alias_v2 = @G_Alias_v2
                                ,@Alias_vals = @G_Alias_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -27100,9 +28370,13 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_Alias_comparator TINYINT
                    ,@S_Alias_v nvarchar(25)
                    ,@S_Alias_vals NVARCHAR(MAX)
+                   ,@S_Alias_v1 nvarchar(25)
+                   ,@S_Alias_v2 nvarchar(25)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -27144,6 +28418,8 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_Alias_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Alias.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.Alias') IS NOT NULL AND JSON_QUERY(@Search, '$.Alias') IS NULL THEN 9 END
@@ -27156,20 +28432,24 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Alias.value'),
                     JSON_QUERY(@Search, '$.Alias')
                 )
+                SELECT @S_Alias_v1 = TRY_CAST(JSON_VALUE(@S_Alias_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Alias_v2 = TRY_CAST(JSON_VALUE(@S_Alias_vals, '$[1]') AS nvarchar(25))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ConnectionId' AND [type] = 0) BEGIN
@@ -27179,15 +28459,17 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                 IF @S_ConnectionId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ConnectionId_vals))'), '%1', 'COALESCE([D].[ConnectionId], [O].[ConnectionId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ConnectionId_v2'), '%2', '@ConnectionId_v1'), '%1', 'COALESCE([D].[ConnectionId], [O].[ConnectionId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ConnectionId'), '%1', 'COALESCE([D].[ConnectionId], [O].[ConnectionId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ConnectionId], [O].[ConnectionId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ConnectionId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ConnectionId], [O].[ConnectionId]) ' + [C].[SqlComparator] + ' @ConnectionId_v1 AND @ConnectionId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ConnectionId], [O].[ConnectionId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ConnectionId], [O].[ConnectionId]) ' + [C].[SqlComparator] + ' @ConnectionId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ConnectionId_comparator
                               AND (([C].[Arity] IS NULL AND @S_ConnectionId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_ConnectionId_v1 IS NOT NULL AND @S_ConnectionId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ConnectionId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_ConnectionId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -27197,13 +28479,17 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Alias' AND [type] = 0) BEGIN
@@ -27213,13 +28499,17 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                 IF @S_Alias_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'), '%1', 'COALESCE([D].[Alias], [O].[Alias])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Alias'), '%1', 'COALESCE([D].[Alias], [O].[Alias])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' @Alias_v1 AND @Alias_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' @Alias'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Alias_comparator
                               AND (([C].[Arity] IS NULL AND @S_Alias_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Alias_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Alias_v1 IS NOT NULL AND @S_Alias_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Alias_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -27229,7 +28519,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ConnectionId bigint,@ConnectionId_v1 bigint,@ConnectionId_v2 bigint,@ConnectionId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ConnectionId bigint,@ConnectionId_v1 bigint,@ConnectionId_v2 bigint,@ConnectionId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -27239,8 +28529,12 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                        ,@ConnectionId_v2 = @S_ConnectionId_v2
                                        ,@ConnectionId_vals = @S_ConnectionId_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@Alias = @S_Alias_v
+                                       ,@Alias_v1 = @S_Alias_v1
+                                       ,@Alias_v2 = @S_Alias_v2
                                        ,@Alias_vals = @S_Alias_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -27403,7 +28697,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em SystemsDatabases', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -27477,7 +28771,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -27519,6 +28813,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -27537,6 +28832,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -27599,7 +28895,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -27642,6 +28938,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCreate](@Login NVARCHAR(MAX)
                ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
+        SET IDENTITY_INSERT [dbo].[SystemsDatabases] ON
         INSERT INTO [dbo].[SystemsDatabases] ([Id]
                                             ,[SystemId]
                                             ,[DatabaseId]
@@ -27654,6 +28951,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCreate](@Login NVARCHAR(MAX)
                                              ,@W_Name
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[SystemsDatabases] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -27684,7 +28982,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -27727,8 +29025,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseUpdate](@Login NVARCHAR(MAX)
                ,@W_DatabaseId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DatabaseId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-        UPDATE [dbo].[SystemsDatabases] SET [Id] = @W_Id
-                                          ,[SystemId] = @W_SystemId
+        UPDATE [dbo].[SystemsDatabases] SET [SystemId] = @W_SystemId
                                           ,[DatabaseId] = @W_DatabaseId
                                           ,[Name] = @W_Name
                                           ,[UpdatedAt] = GETDATE()
@@ -27764,7 +29061,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -27835,13 +29132,13 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -27882,7 +29179,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -27950,6 +29247,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(50)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(50)
+                   ,@G_Name_v2 nvarchar(50)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -28005,18 +29304,22 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(50))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(50))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SystemId' AND [type] = 0)
@@ -28024,15 +29327,17 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_SystemId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', '[T].[SystemId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', '[T].[SystemId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', '[T].[SystemId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[SystemId] ' + [C].[SqlComparator]
+        ELSE '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_SystemId_comparator
                           AND (([C].[Arity] IS NULL AND @G_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_SystemId_v1 IS NOT NULL AND @G_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'DatabaseId' AND [type] = 0)
@@ -28040,15 +29345,17 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_DatabaseId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'), '%1', '[T].[DatabaseId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@DatabaseId_v2'), '%2', '@DatabaseId_v1'), '%1', '[T].[DatabaseId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@DatabaseId'), '%1', '[T].[DatabaseId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[DatabaseId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[DatabaseId] ' + [C].[SqlComparator] + ' @DatabaseId_v1 AND @DatabaseId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[DatabaseId] ' + [C].[SqlComparator]
+        ELSE '[T].[DatabaseId] ' + [C].[SqlComparator] + ' @DatabaseId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_DatabaseId_comparator
                           AND (([C].[Arity] IS NULL AND @G_DatabaseId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_DatabaseId_v1 IS NOT NULL AND @G_DatabaseId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_DatabaseId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_DatabaseId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -28056,13 +29363,17 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -28096,7 +29407,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                ,@T_Name = @WT_Name
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_SystemId bigint,@T_DatabaseId bigint,@T_Name nvarchar(50),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_DatabaseId bigint,@T_Name nvarchar(50),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_SystemId = @WT_SystemId
                                ,@T_DatabaseId = @WT_DatabaseId
@@ -28114,6 +29425,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                ,@DatabaseId_v2 = @G_DatabaseId_v2
                                ,@DatabaseId_vals = @G_DatabaseId_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -28156,6 +29469,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(50)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(50)
+                   ,@S_Name_v2 nvarchar(50)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -28211,20 +29526,24 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(50))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(50))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'SystemId' AND [type] = 0) BEGIN
@@ -28234,15 +29553,17 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                 IF @S_SystemId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_SystemId_comparator
                               AND (([C].[Arity] IS NULL AND @S_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_SystemId_v1 IS NOT NULL AND @S_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'DatabaseId' AND [type] = 0) BEGIN
@@ -28252,15 +29573,17 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                 IF @S_DatabaseId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'), '%1', 'COALESCE([D].[DatabaseId], [O].[DatabaseId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@DatabaseId_v2'), '%2', '@DatabaseId_v1'), '%1', 'COALESCE([D].[DatabaseId], [O].[DatabaseId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@DatabaseId'), '%1', 'COALESCE([D].[DatabaseId], [O].[DatabaseId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator] + ' @DatabaseId_v1 AND @DatabaseId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator] + ' @DatabaseId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_DatabaseId_comparator
                               AND (([C].[Arity] IS NULL AND @S_DatabaseId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_DatabaseId_v1 IS NOT NULL AND @S_DatabaseId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_DatabaseId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_DatabaseId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -28270,13 +29593,17 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -28286,7 +29613,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -28300,6 +29627,8 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                        ,@DatabaseId_v2 = @S_DatabaseId_v2
                                        ,@DatabaseId_vals = @S_DatabaseId_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -28474,7 +29803,7 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Tables', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -28566,7 +29895,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -28608,6 +29937,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -28626,6 +29956,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -28688,7 +30019,7 @@ ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -28733,6 +30064,7 @@ ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
                ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
                ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
+        SET IDENTITY_INSERT [dbo].[Tables] ON
         INSERT INTO [dbo].[Tables] ([Id]
                                             ,[Name]
                                             ,[Alias]
@@ -28749,6 +30081,7 @@ ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
                                              ,@W_CurrentId
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Tables] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -28779,7 +30112,7 @@ ALTER PROCEDURE [dbo].[TableUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -28824,8 +30157,7 @@ ALTER PROCEDURE [dbo].[TableUpdate](@Login NVARCHAR(MAX)
                ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
                ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
-        UPDATE [dbo].[Tables] SET [Id] = @W_Id
-                                          ,[Name] = @W_Name
+        UPDATE [dbo].[Tables] SET [Name] = @W_Name
                                           ,[Alias] = @W_Alias
                                           ,[Description] = @W_Description
                                           ,[ParentTableId] = @W_ParentTableId
@@ -28863,7 +30195,7 @@ ALTER PROCEDURE [dbo].[TableDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -28934,13 +30266,13 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -28981,7 +30313,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(25) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -29035,9 +30367,13 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_Alias_comparator TINYINT
                    ,@G_Alias_v nvarchar(25)
                    ,@G_Alias_vals NVARCHAR(MAX)
+                   ,@G_Alias_v1 nvarchar(25)
+                   ,@G_Alias_v2 nvarchar(25)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -29065,6 +30401,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_Alias_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Alias.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.Alias') IS NOT NULL AND JSON_QUERY(@Filter, '$.Alias') IS NULL THEN 3 END
@@ -29077,18 +30415,22 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Alias.value'),
                 JSON_QUERY(@Filter, '$.Alias')
             )
+            SELECT @G_Alias_v1 = TRY_CAST(JSON_VALUE(@G_Alias_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Alias_v2 = TRY_CAST(JSON_VALUE(@G_Alias_vals, '$[1]') AS nvarchar(25))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -29096,13 +30438,17 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Alias' AND [type] = 0)
@@ -29110,13 +30456,17 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Alias_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'), '%1', '[T].[Alias]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Alias'), '%1', '[T].[Alias]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Alias] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Alias] ' + [C].[SqlComparator] + ' @Alias_v1 AND @Alias_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Alias] ' + [C].[SqlComparator]
+        ELSE '[T].[Alias] ' + [C].[SqlComparator] + ' @Alias'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Alias_comparator
                           AND (([C].[Arity] IS NULL AND @G_Alias_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Alias_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Alias_v1 IS NOT NULL AND @G_Alias_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Alias_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -29149,7 +30499,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                ,@T_Alias = @WT_Alias
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Name = @WT_Name
                                ,@T_Alias = @WT_Alias
@@ -29158,8 +30508,12 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@Alias = @G_Alias_v
+                               ,@Alias_v1 = @G_Alias_v1
+                               ,@Alias_v2 = @G_Alias_v2
                                ,@Alias_vals = @G_Alias_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -29191,9 +30545,13 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_Alias_comparator TINYINT
                    ,@S_Alias_v nvarchar(25)
                    ,@S_Alias_vals NVARCHAR(MAX)
+                   ,@S_Alias_v1 nvarchar(25)
+                   ,@S_Alias_v2 nvarchar(25)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -29221,6 +30579,8 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_Alias_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Alias.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.Alias') IS NOT NULL AND JSON_QUERY(@Search, '$.Alias') IS NULL THEN 9 END
@@ -29233,20 +30593,24 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Alias.value'),
                     JSON_QUERY(@Search, '$.Alias')
                 )
+                SELECT @S_Alias_v1 = TRY_CAST(JSON_VALUE(@S_Alias_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Alias_v2 = TRY_CAST(JSON_VALUE(@S_Alias_vals, '$[1]') AS nvarchar(25))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -29256,13 +30620,17 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Alias' AND [type] = 0) BEGIN
@@ -29272,13 +30640,17 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                 IF @S_Alias_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'), '%1', 'COALESCE([D].[Alias], [O].[Alias])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Alias'), '%1', 'COALESCE([D].[Alias], [O].[Alias])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' @Alias_v1 AND @Alias_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' @Alias'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Alias_comparator
                               AND (([C].[Arity] IS NULL AND @S_Alias_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Alias_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Alias_v1 IS NOT NULL AND @S_Alias_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Alias_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -29288,14 +30660,18 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@Alias = @S_Alias_v
+                                       ,@Alias_v1 = @S_Alias_v1
+                                       ,@Alias_v2 = @S_Alias_v2
                                        ,@Alias_vals = @S_Alias_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -29453,7 +30829,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em DatabasesTables', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -29536,7 +30912,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -29578,6 +30954,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -29596,6 +30973,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -29658,7 +31036,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -29701,6 +31079,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCreate](@Login NVARCHAR(MAX)
                ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
+        SET IDENTITY_INSERT [dbo].[DatabasesTables] ON
         INSERT INTO [dbo].[DatabasesTables] ([Id]
                                             ,[DatabaseId]
                                             ,[TableId]
@@ -29713,6 +31092,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCreate](@Login NVARCHAR(MAX)
                                              ,@W_Name
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[DatabasesTables] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -29743,7 +31123,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -29786,8 +31166,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableUpdate](@Login NVARCHAR(MAX)
                ,@W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-        UPDATE [dbo].[DatabasesTables] SET [Id] = @W_Id
-                                          ,[DatabaseId] = @W_DatabaseId
+        UPDATE [dbo].[DatabasesTables] SET [DatabaseId] = @W_DatabaseId
                                           ,[TableId] = @W_TableId
                                           ,[Name] = @W_Name
                                           ,[UpdatedAt] = GETDATE()
@@ -29823,7 +31202,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -29894,13 +31273,13 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -29941,7 +31320,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -30009,6 +31388,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(50)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(50)
+                   ,@G_Name_v2 nvarchar(50)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -30064,18 +31445,22 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(50))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(50))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'DatabaseId' AND [type] = 0)
@@ -30083,15 +31468,17 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_DatabaseId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'), '%1', '[T].[DatabaseId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@DatabaseId_v2'), '%2', '@DatabaseId_v1'), '%1', '[T].[DatabaseId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@DatabaseId'), '%1', '[T].[DatabaseId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[DatabaseId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[DatabaseId] ' + [C].[SqlComparator] + ' @DatabaseId_v1 AND @DatabaseId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[DatabaseId] ' + [C].[SqlComparator]
+        ELSE '[T].[DatabaseId] ' + [C].[SqlComparator] + ' @DatabaseId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_DatabaseId_comparator
                           AND (([C].[Arity] IS NULL AND @G_DatabaseId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_DatabaseId_v1 IS NOT NULL AND @G_DatabaseId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_DatabaseId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_DatabaseId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'TableId' AND [type] = 0)
@@ -30099,15 +31486,17 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_TableId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'), '%1', '[T].[TableId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TableId_v2'), '%2', '@TableId_v1'), '%1', '[T].[TableId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TableId'), '%1', '[T].[TableId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[TableId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[TableId] ' + [C].[SqlComparator]
+        ELSE '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_TableId_comparator
                           AND (([C].[Arity] IS NULL AND @G_TableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_TableId_v1 IS NOT NULL AND @G_TableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_TableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -30115,13 +31504,17 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -30155,7 +31548,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                ,@T_Name = @WT_Name
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_DatabaseId bigint,@T_TableId bigint,@T_Name nvarchar(50),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_DatabaseId bigint,@T_TableId bigint,@T_Name nvarchar(50),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_DatabaseId = @WT_DatabaseId
                                ,@T_TableId = @WT_TableId
@@ -30173,6 +31566,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                ,@TableId_v2 = @G_TableId_v2
                                ,@TableId_vals = @G_TableId_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -30215,6 +31610,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(50)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(50)
+                   ,@S_Name_v2 nvarchar(50)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -30270,20 +31667,24 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(50))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(50))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'DatabaseId' AND [type] = 0) BEGIN
@@ -30293,15 +31694,17 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                 IF @S_DatabaseId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'), '%1', 'COALESCE([D].[DatabaseId], [O].[DatabaseId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@DatabaseId_v2'), '%2', '@DatabaseId_v1'), '%1', 'COALESCE([D].[DatabaseId], [O].[DatabaseId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@DatabaseId'), '%1', 'COALESCE([D].[DatabaseId], [O].[DatabaseId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@DatabaseId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator] + ' @DatabaseId_v1 AND @DatabaseId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[DatabaseId], [O].[DatabaseId]) ' + [C].[SqlComparator] + ' @DatabaseId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_DatabaseId_comparator
                               AND (([C].[Arity] IS NULL AND @S_DatabaseId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_DatabaseId_v1 IS NOT NULL AND @S_DatabaseId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_DatabaseId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_DatabaseId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'TableId' AND [type] = 0) BEGIN
@@ -30311,15 +31714,17 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                 IF @S_TableId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TableId_v2'), '%2', '@TableId_v1'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TableId'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_TableId_comparator
                               AND (([C].[Arity] IS NULL AND @S_TableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_TableId_v1 IS NOT NULL AND @S_TableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_TableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -30329,13 +31734,17 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -30345,7 +31754,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@DatabaseId bigint,@DatabaseId_v1 bigint,@DatabaseId_v2 bigint,@DatabaseId_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -30359,6 +31768,8 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                        ,@TableId_v2 = @S_TableId_v2
                                        ,@TableId_vals = @S_TableId_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -30545,7 +31956,7 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Columns', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -30700,7 +32111,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -30742,6 +32153,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -30760,6 +32172,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -30822,7 +32235,7 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -30884,6 +32297,7 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
                ,@W_IsVirtual bit = CAST(JSON_VALUE(@ActualRecord, '$.IsVirtual') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Columns] ON
         INSERT INTO [dbo].[Columns] ([Id]
                                             ,[TableId]
                                             ,[Sequence]
@@ -30934,6 +32348,7 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsVirtual
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Columns] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -30964,7 +32379,7 @@ ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -31026,8 +32441,7 @@ ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
                ,@W_IsInWords bit = CAST(JSON_VALUE(@ActualRecord, '$.IsInWords') AS bit)
                ,@W_IsVirtual bit = CAST(JSON_VALUE(@ActualRecord, '$.IsVirtual') AS bit)
 
-        UPDATE [dbo].[Columns] SET [Id] = @W_Id
-                                          ,[TableId] = @W_TableId
+        UPDATE [dbo].[Columns] SET [TableId] = @W_TableId
                                           ,[Sequence] = @W_Sequence
                                           ,[DomainId] = @W_DomainId
                                           ,[ReferenceTableId] = @W_ReferenceTableId
@@ -31082,7 +32496,7 @@ ALTER PROCEDURE [dbo].[ColumnDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -31153,13 +32567,13 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -31197,7 +32611,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -31350,36 +32764,58 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
                    ,@G_Alias_comparator TINYINT
                    ,@G_Alias_v nvarchar(25)
                    ,@G_Alias_vals NVARCHAR(MAX)
+                   ,@G_Alias_v1 nvarchar(25)
+                   ,@G_Alias_v2 nvarchar(25)
                    ,@G_IsAutoIncrement_comparator TINYINT
                    ,@G_IsAutoIncrement_v bit
                    ,@G_IsAutoIncrement_vals NVARCHAR(MAX)
+                   ,@G_IsAutoIncrement_v1 bit
+                   ,@G_IsAutoIncrement_v2 bit
                    ,@G_IsRequired_comparator TINYINT
                    ,@G_IsRequired_v bit
                    ,@G_IsRequired_vals NVARCHAR(MAX)
+                   ,@G_IsRequired_v1 bit
+                   ,@G_IsRequired_v2 bit
                    ,@G_IsListable_comparator TINYINT
                    ,@G_IsListable_v bit
                    ,@G_IsListable_vals NVARCHAR(MAX)
+                   ,@G_IsListable_v1 bit
+                   ,@G_IsListable_v2 bit
                    ,@G_IsFilterable_comparator TINYINT
                    ,@G_IsFilterable_v bit
                    ,@G_IsFilterable_vals NVARCHAR(MAX)
+                   ,@G_IsFilterable_v1 bit
+                   ,@G_IsFilterable_v2 bit
                    ,@G_IsEditable_comparator TINYINT
                    ,@G_IsEditable_v bit
                    ,@G_IsEditable_vals NVARCHAR(MAX)
+                   ,@G_IsEditable_v1 bit
+                   ,@G_IsEditable_v2 bit
                    ,@G_IsGridable_comparator TINYINT
                    ,@G_IsGridable_v bit
                    ,@G_IsGridable_vals NVARCHAR(MAX)
+                   ,@G_IsGridable_v1 bit
+                   ,@G_IsGridable_v2 bit
                    ,@G_IsEncrypted_comparator TINYINT
                    ,@G_IsEncrypted_v bit
                    ,@G_IsEncrypted_vals NVARCHAR(MAX)
+                   ,@G_IsEncrypted_v1 bit
+                   ,@G_IsEncrypted_v2 bit
                    ,@G_IsInWords_comparator TINYINT
                    ,@G_IsInWords_v bit
                    ,@G_IsInWords_vals NVARCHAR(MAX)
+                   ,@G_IsInWords_v1 bit
+                   ,@G_IsInWords_v2 bit
                    ,@G_IsVirtual_comparator TINYINT
                    ,@G_IsVirtual_v bit
                    ,@G_IsVirtual_vals NVARCHAR(MAX)
+                   ,@G_IsVirtual_v1 bit
+                   ,@G_IsVirtual_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -31449,6 +32885,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
             SELECT @G_Alias_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Alias.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.Alias') IS NOT NULL AND JSON_QUERY(@Filter, '$.Alias') IS NULL THEN 3 END
@@ -31461,6 +32899,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Alias.value'),
                 JSON_QUERY(@Filter, '$.Alias')
             )
+            SELECT @G_Alias_v1 = TRY_CAST(JSON_VALUE(@G_Alias_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Alias_v2 = TRY_CAST(JSON_VALUE(@G_Alias_vals, '$[1]') AS nvarchar(25))
             SELECT @G_IsAutoIncrement_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsAutoIncrement.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsAutoIncrement') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsAutoIncrement') IS NULL THEN 3 END
@@ -31473,6 +32913,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsAutoIncrement.value'),
                 JSON_QUERY(@Filter, '$.IsAutoIncrement')
             )
+            SELECT @G_IsAutoIncrement_v1 = TRY_CAST(JSON_VALUE(@G_IsAutoIncrement_vals, '$[0]') AS bit)
+                  ,@G_IsAutoIncrement_v2 = TRY_CAST(JSON_VALUE(@G_IsAutoIncrement_vals, '$[1]') AS bit)
             SELECT @G_IsRequired_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsRequired.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsRequired') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsRequired') IS NULL THEN 3 END
@@ -31485,6 +32927,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsRequired.value'),
                 JSON_QUERY(@Filter, '$.IsRequired')
             )
+            SELECT @G_IsRequired_v1 = TRY_CAST(JSON_VALUE(@G_IsRequired_vals, '$[0]') AS bit)
+                  ,@G_IsRequired_v2 = TRY_CAST(JSON_VALUE(@G_IsRequired_vals, '$[1]') AS bit)
             SELECT @G_IsListable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsListable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsListable') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsListable') IS NULL THEN 3 END
@@ -31497,6 +32941,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsListable.value'),
                 JSON_QUERY(@Filter, '$.IsListable')
             )
+            SELECT @G_IsListable_v1 = TRY_CAST(JSON_VALUE(@G_IsListable_vals, '$[0]') AS bit)
+                  ,@G_IsListable_v2 = TRY_CAST(JSON_VALUE(@G_IsListable_vals, '$[1]') AS bit)
             SELECT @G_IsFilterable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsFilterable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsFilterable') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsFilterable') IS NULL THEN 3 END
@@ -31509,6 +32955,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsFilterable.value'),
                 JSON_QUERY(@Filter, '$.IsFilterable')
             )
+            SELECT @G_IsFilterable_v1 = TRY_CAST(JSON_VALUE(@G_IsFilterable_vals, '$[0]') AS bit)
+                  ,@G_IsFilterable_v2 = TRY_CAST(JSON_VALUE(@G_IsFilterable_vals, '$[1]') AS bit)
             SELECT @G_IsEditable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsEditable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsEditable') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsEditable') IS NULL THEN 3 END
@@ -31521,6 +32969,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsEditable.value'),
                 JSON_QUERY(@Filter, '$.IsEditable')
             )
+            SELECT @G_IsEditable_v1 = TRY_CAST(JSON_VALUE(@G_IsEditable_vals, '$[0]') AS bit)
+                  ,@G_IsEditable_v2 = TRY_CAST(JSON_VALUE(@G_IsEditable_vals, '$[1]') AS bit)
             SELECT @G_IsGridable_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsGridable.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsGridable') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsGridable') IS NULL THEN 3 END
@@ -31533,6 +32983,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsGridable.value'),
                 JSON_QUERY(@Filter, '$.IsGridable')
             )
+            SELECT @G_IsGridable_v1 = TRY_CAST(JSON_VALUE(@G_IsGridable_vals, '$[0]') AS bit)
+                  ,@G_IsGridable_v2 = TRY_CAST(JSON_VALUE(@G_IsGridable_vals, '$[1]') AS bit)
             SELECT @G_IsEncrypted_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsEncrypted.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsEncrypted') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsEncrypted') IS NULL THEN 3 END
@@ -31545,6 +32997,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsEncrypted.value'),
                 JSON_QUERY(@Filter, '$.IsEncrypted')
             )
+            SELECT @G_IsEncrypted_v1 = TRY_CAST(JSON_VALUE(@G_IsEncrypted_vals, '$[0]') AS bit)
+                  ,@G_IsEncrypted_v2 = TRY_CAST(JSON_VALUE(@G_IsEncrypted_vals, '$[1]') AS bit)
             SELECT @G_IsInWords_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsInWords.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsInWords') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsInWords') IS NULL THEN 3 END
@@ -31557,6 +33011,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsInWords.value'),
                 JSON_QUERY(@Filter, '$.IsInWords')
             )
+            SELECT @G_IsInWords_v1 = TRY_CAST(JSON_VALUE(@G_IsInWords_vals, '$[0]') AS bit)
+                  ,@G_IsInWords_v2 = TRY_CAST(JSON_VALUE(@G_IsInWords_vals, '$[1]') AS bit)
             SELECT @G_IsVirtual_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsVirtual.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsVirtual') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsVirtual') IS NULL THEN 3 END
@@ -31569,18 +33025,22 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsVirtual.value'),
                 JSON_QUERY(@Filter, '$.IsVirtual')
             )
+            SELECT @G_IsVirtual_v1 = TRY_CAST(JSON_VALUE(@G_IsVirtual_vals, '$[0]') AS bit)
+                  ,@G_IsVirtual_v2 = TRY_CAST(JSON_VALUE(@G_IsVirtual_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'TableId' AND [type] = 0)
@@ -31588,15 +33048,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_TableId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'), '%1', '[T].[TableId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TableId_v2'), '%2', '@TableId_v1'), '%1', '[T].[TableId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TableId'), '%1', '[T].[TableId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[TableId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[TableId] ' + [C].[SqlComparator]
+        ELSE '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_TableId_comparator
                           AND (([C].[Arity] IS NULL AND @G_TableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_TableId_v1 IS NOT NULL AND @G_TableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_TableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'DomainId' AND [type] = 0)
@@ -31604,15 +33066,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_DomainId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@DomainId_vals))'), '%1', '[T].[DomainId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@DomainId_v2'), '%2', '@DomainId_v1'), '%1', '[T].[DomainId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@DomainId'), '%1', '[T].[DomainId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[DomainId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@DomainId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[DomainId] ' + [C].[SqlComparator] + ' @DomainId_v1 AND @DomainId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[DomainId] ' + [C].[SqlComparator]
+        ELSE '[T].[DomainId] ' + [C].[SqlComparator] + ' @DomainId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_DomainId_comparator
                           AND (([C].[Arity] IS NULL AND @G_DomainId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_DomainId_v1 IS NOT NULL AND @G_DomainId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_DomainId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_DomainId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ReferenceTableId' AND [type] = 0)
@@ -31620,15 +33084,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ReferenceTableId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'), '%1', '[T].[ReferenceTableId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ReferenceTableId_v2'), '%2', '@ReferenceTableId_v1'), '%1', '[T].[ReferenceTableId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ReferenceTableId'), '%1', '[T].[ReferenceTableId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ReferenceTableId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ReferenceTableId] ' + [C].[SqlComparator] + ' @ReferenceTableId_v1 AND @ReferenceTableId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ReferenceTableId] ' + [C].[SqlComparator]
+        ELSE '[T].[ReferenceTableId] ' + [C].[SqlComparator] + ' @ReferenceTableId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ReferenceTableId_comparator
                           AND (([C].[Arity] IS NULL AND @G_ReferenceTableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_ReferenceTableId_v1 IS NOT NULL AND @G_ReferenceTableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ReferenceTableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_ReferenceTableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -31636,13 +33102,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Alias' AND [type] = 0)
@@ -31650,13 +33120,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Alias_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'), '%1', '[T].[Alias]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Alias'), '%1', '[T].[Alias]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Alias] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Alias] ' + [C].[SqlComparator] + ' @Alias_v1 AND @Alias_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Alias] ' + [C].[SqlComparator]
+        ELSE '[T].[Alias] ' + [C].[SqlComparator] + ' @Alias'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Alias_comparator
                           AND (([C].[Arity] IS NULL AND @G_Alias_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Alias_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Alias_v1 IS NOT NULL AND @G_Alias_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Alias_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsAutoIncrement' AND [type] = 0)
@@ -31664,13 +33138,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsAutoIncrement_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsAutoIncrement_vals))'), '%1', '[T].[IsAutoIncrement]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsAutoIncrement'), '%1', '[T].[IsAutoIncrement]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsAutoIncrement] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsAutoIncrement_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsAutoIncrement] ' + [C].[SqlComparator] + ' @IsAutoIncrement_v1 AND @IsAutoIncrement_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsAutoIncrement] ' + [C].[SqlComparator]
+        ELSE '[T].[IsAutoIncrement] ' + [C].[SqlComparator] + ' @IsAutoIncrement'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsAutoIncrement_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsAutoIncrement_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsAutoIncrement_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsAutoIncrement_v1 IS NOT NULL AND @G_IsAutoIncrement_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsAutoIncrement_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsRequired' AND [type] = 0)
@@ -31678,13 +33156,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsRequired_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsRequired_vals))'), '%1', '[T].[IsRequired]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsRequired'), '%1', '[T].[IsRequired]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsRequired] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsRequired_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsRequired] ' + [C].[SqlComparator] + ' @IsRequired_v1 AND @IsRequired_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsRequired] ' + [C].[SqlComparator]
+        ELSE '[T].[IsRequired] ' + [C].[SqlComparator] + ' @IsRequired'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsRequired_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsRequired_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsRequired_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsRequired_v1 IS NOT NULL AND @G_IsRequired_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsRequired_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsListable' AND [type] = 0)
@@ -31692,13 +33174,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsListable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsListable_vals))'), '%1', '[T].[IsListable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsListable'), '%1', '[T].[IsListable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsListable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsListable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsListable] ' + [C].[SqlComparator] + ' @IsListable_v1 AND @IsListable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsListable] ' + [C].[SqlComparator]
+        ELSE '[T].[IsListable] ' + [C].[SqlComparator] + ' @IsListable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsListable_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsListable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsListable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsListable_v1 IS NOT NULL AND @G_IsListable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsListable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsFilterable' AND [type] = 0)
@@ -31706,13 +33192,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsFilterable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsFilterable_vals))'), '%1', '[T].[IsFilterable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsFilterable'), '%1', '[T].[IsFilterable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsFilterable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsFilterable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsFilterable] ' + [C].[SqlComparator] + ' @IsFilterable_v1 AND @IsFilterable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsFilterable] ' + [C].[SqlComparator]
+        ELSE '[T].[IsFilterable] ' + [C].[SqlComparator] + ' @IsFilterable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsFilterable_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsFilterable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsFilterable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsFilterable_v1 IS NOT NULL AND @G_IsFilterable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsFilterable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsEditable' AND [type] = 0)
@@ -31720,13 +33210,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsEditable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsEditable_vals))'), '%1', '[T].[IsEditable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsEditable'), '%1', '[T].[IsEditable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsEditable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsEditable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsEditable] ' + [C].[SqlComparator] + ' @IsEditable_v1 AND @IsEditable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsEditable] ' + [C].[SqlComparator]
+        ELSE '[T].[IsEditable] ' + [C].[SqlComparator] + ' @IsEditable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsEditable_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsEditable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsEditable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsEditable_v1 IS NOT NULL AND @G_IsEditable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsEditable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsGridable' AND [type] = 0)
@@ -31734,13 +33228,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsGridable_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsGridable_vals))'), '%1', '[T].[IsGridable]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsGridable'), '%1', '[T].[IsGridable]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsGridable] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsGridable_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsGridable] ' + [C].[SqlComparator] + ' @IsGridable_v1 AND @IsGridable_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsGridable] ' + [C].[SqlComparator]
+        ELSE '[T].[IsGridable] ' + [C].[SqlComparator] + ' @IsGridable'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsGridable_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsGridable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsGridable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsGridable_v1 IS NOT NULL AND @G_IsGridable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsGridable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsEncrypted' AND [type] = 0)
@@ -31748,13 +33246,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsEncrypted_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsEncrypted_vals))'), '%1', '[T].[IsEncrypted]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsEncrypted'), '%1', '[T].[IsEncrypted]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsEncrypted] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsEncrypted_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsEncrypted] ' + [C].[SqlComparator] + ' @IsEncrypted_v1 AND @IsEncrypted_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsEncrypted] ' + [C].[SqlComparator]
+        ELSE '[T].[IsEncrypted] ' + [C].[SqlComparator] + ' @IsEncrypted'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsEncrypted_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsEncrypted_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsEncrypted_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsEncrypted_v1 IS NOT NULL AND @G_IsEncrypted_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsEncrypted_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsInWords' AND [type] = 0)
@@ -31762,13 +33264,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsInWords_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsInWords_vals))'), '%1', '[T].[IsInWords]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsInWords'), '%1', '[T].[IsInWords]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsInWords] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsInWords_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsInWords] ' + [C].[SqlComparator] + ' @IsInWords_v1 AND @IsInWords_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsInWords] ' + [C].[SqlComparator]
+        ELSE '[T].[IsInWords] ' + [C].[SqlComparator] + ' @IsInWords'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsInWords_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsInWords_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsInWords_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsInWords_v1 IS NOT NULL AND @G_IsInWords_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsInWords_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsVirtual' AND [type] = 0)
@@ -31776,13 +33282,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsVirtual_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsVirtual_vals))'), '%1', '[T].[IsVirtual]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsVirtual'), '%1', '[T].[IsVirtual]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsVirtual] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsVirtual_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsVirtual] ' + [C].[SqlComparator] + ' @IsVirtual_v1 AND @IsVirtual_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsVirtual] ' + [C].[SqlComparator]
+        ELSE '[T].[IsVirtual] ' + [C].[SqlComparator] + ' @IsVirtual'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsVirtual_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsVirtual_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsVirtual_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsVirtual_v1 IS NOT NULL AND @G_IsVirtual_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsVirtual_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -31808,7 +33318,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@ReferenceTableId bigint,@ReferenceTableId_v1 bigint,@ReferenceTableId_v2 bigint,@ReferenceTableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@ReferenceTableId bigint,@ReferenceTableId_v1 bigint,@ReferenceTableId_v2 bigint,@ReferenceTableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_v1 bit,@IsAutoIncrement_v2 bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_v1 bit,@IsRequired_v2 bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_v1 bit,@IsListable_v2 bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_v1 bit,@IsFilterable_v2 bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_v1 bit,@IsEditable_v2 bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_v1 bit,@IsGridable_v2 bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_v1 bit,@IsEncrypted_v2 bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_v1 bit,@IsInWords_v2 bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_v1 bit,@IsVirtual_v2 bit,@IsVirtual_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_TableId = @WT_TableId
                                ,@T_DomainId = @WT_DomainId
@@ -31841,26 +33351,48 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                ,@ReferenceTableId_v2 = @G_ReferenceTableId_v2
                                ,@ReferenceTableId_vals = @G_ReferenceTableId_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@Alias = @G_Alias_v
+                               ,@Alias_v1 = @G_Alias_v1
+                               ,@Alias_v2 = @G_Alias_v2
                                ,@Alias_vals = @G_Alias_vals
                                ,@IsAutoIncrement = @G_IsAutoIncrement_v
+                               ,@IsAutoIncrement_v1 = @G_IsAutoIncrement_v1
+                               ,@IsAutoIncrement_v2 = @G_IsAutoIncrement_v2
                                ,@IsAutoIncrement_vals = @G_IsAutoIncrement_vals
                                ,@IsRequired = @G_IsRequired_v
+                               ,@IsRequired_v1 = @G_IsRequired_v1
+                               ,@IsRequired_v2 = @G_IsRequired_v2
                                ,@IsRequired_vals = @G_IsRequired_vals
                                ,@IsListable = @G_IsListable_v
+                               ,@IsListable_v1 = @G_IsListable_v1
+                               ,@IsListable_v2 = @G_IsListable_v2
                                ,@IsListable_vals = @G_IsListable_vals
                                ,@IsFilterable = @G_IsFilterable_v
+                               ,@IsFilterable_v1 = @G_IsFilterable_v1
+                               ,@IsFilterable_v2 = @G_IsFilterable_v2
                                ,@IsFilterable_vals = @G_IsFilterable_vals
                                ,@IsEditable = @G_IsEditable_v
+                               ,@IsEditable_v1 = @G_IsEditable_v1
+                               ,@IsEditable_v2 = @G_IsEditable_v2
                                ,@IsEditable_vals = @G_IsEditable_vals
                                ,@IsGridable = @G_IsGridable_v
+                               ,@IsGridable_v1 = @G_IsGridable_v1
+                               ,@IsGridable_v2 = @G_IsGridable_v2
                                ,@IsGridable_vals = @G_IsGridable_vals
                                ,@IsEncrypted = @G_IsEncrypted_v
+                               ,@IsEncrypted_v1 = @G_IsEncrypted_v1
+                               ,@IsEncrypted_v2 = @G_IsEncrypted_v2
                                ,@IsEncrypted_vals = @G_IsEncrypted_vals
                                ,@IsInWords = @G_IsInWords_v
+                               ,@IsInWords_v1 = @G_IsInWords_v1
+                               ,@IsInWords_v2 = @G_IsInWords_v2
                                ,@IsInWords_vals = @G_IsInWords_vals
                                ,@IsVirtual = @G_IsVirtual_v
+                               ,@IsVirtual_v1 = @G_IsVirtual_v1
+                               ,@IsVirtual_v2 = @G_IsVirtual_v2
                                ,@IsVirtual_vals = @G_IsVirtual_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -31919,36 +33451,58 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
                    ,@S_Alias_comparator TINYINT
                    ,@S_Alias_v nvarchar(25)
                    ,@S_Alias_vals NVARCHAR(MAX)
+                   ,@S_Alias_v1 nvarchar(25)
+                   ,@S_Alias_v2 nvarchar(25)
                    ,@S_IsAutoIncrement_comparator TINYINT
                    ,@S_IsAutoIncrement_v bit
                    ,@S_IsAutoIncrement_vals NVARCHAR(MAX)
+                   ,@S_IsAutoIncrement_v1 bit
+                   ,@S_IsAutoIncrement_v2 bit
                    ,@S_IsRequired_comparator TINYINT
                    ,@S_IsRequired_v bit
                    ,@S_IsRequired_vals NVARCHAR(MAX)
+                   ,@S_IsRequired_v1 bit
+                   ,@S_IsRequired_v2 bit
                    ,@S_IsListable_comparator TINYINT
                    ,@S_IsListable_v bit
                    ,@S_IsListable_vals NVARCHAR(MAX)
+                   ,@S_IsListable_v1 bit
+                   ,@S_IsListable_v2 bit
                    ,@S_IsFilterable_comparator TINYINT
                    ,@S_IsFilterable_v bit
                    ,@S_IsFilterable_vals NVARCHAR(MAX)
+                   ,@S_IsFilterable_v1 bit
+                   ,@S_IsFilterable_v2 bit
                    ,@S_IsEditable_comparator TINYINT
                    ,@S_IsEditable_v bit
                    ,@S_IsEditable_vals NVARCHAR(MAX)
+                   ,@S_IsEditable_v1 bit
+                   ,@S_IsEditable_v2 bit
                    ,@S_IsGridable_comparator TINYINT
                    ,@S_IsGridable_v bit
                    ,@S_IsGridable_vals NVARCHAR(MAX)
+                   ,@S_IsGridable_v1 bit
+                   ,@S_IsGridable_v2 bit
                    ,@S_IsEncrypted_comparator TINYINT
                    ,@S_IsEncrypted_v bit
                    ,@S_IsEncrypted_vals NVARCHAR(MAX)
+                   ,@S_IsEncrypted_v1 bit
+                   ,@S_IsEncrypted_v2 bit
                    ,@S_IsInWords_comparator TINYINT
                    ,@S_IsInWords_v bit
                    ,@S_IsInWords_vals NVARCHAR(MAX)
+                   ,@S_IsInWords_v1 bit
+                   ,@S_IsInWords_v2 bit
                    ,@S_IsVirtual_comparator TINYINT
                    ,@S_IsVirtual_v bit
                    ,@S_IsVirtual_vals NVARCHAR(MAX)
+                   ,@S_IsVirtual_v1 bit
+                   ,@S_IsVirtual_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -32018,6 +33572,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_Alias_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Alias.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.Alias') IS NOT NULL AND JSON_QUERY(@Search, '$.Alias') IS NULL THEN 9 END
@@ -32030,6 +33586,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Alias.value'),
                     JSON_QUERY(@Search, '$.Alias')
                 )
+                SELECT @S_Alias_v1 = TRY_CAST(JSON_VALUE(@S_Alias_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Alias_v2 = TRY_CAST(JSON_VALUE(@S_Alias_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_IsAutoIncrement_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsAutoIncrement.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsAutoIncrement') IS NOT NULL AND JSON_QUERY(@Search, '$.IsAutoIncrement') IS NULL THEN 3 END
@@ -32042,6 +33600,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsAutoIncrement.value'),
                     JSON_QUERY(@Search, '$.IsAutoIncrement')
                 )
+                SELECT @S_IsAutoIncrement_v1 = TRY_CAST(JSON_VALUE(@S_IsAutoIncrement_vals, '$[0]') AS bit)
+                      ,@S_IsAutoIncrement_v2 = TRY_CAST(JSON_VALUE(@S_IsAutoIncrement_vals, '$[1]') AS bit)
                 SELECT @S_IsRequired_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsRequired.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsRequired') IS NOT NULL AND JSON_QUERY(@Search, '$.IsRequired') IS NULL THEN 3 END
@@ -32054,6 +33614,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsRequired.value'),
                     JSON_QUERY(@Search, '$.IsRequired')
                 )
+                SELECT @S_IsRequired_v1 = TRY_CAST(JSON_VALUE(@S_IsRequired_vals, '$[0]') AS bit)
+                      ,@S_IsRequired_v2 = TRY_CAST(JSON_VALUE(@S_IsRequired_vals, '$[1]') AS bit)
                 SELECT @S_IsListable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsListable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsListable') IS NOT NULL AND JSON_QUERY(@Search, '$.IsListable') IS NULL THEN 3 END
@@ -32066,6 +33628,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsListable.value'),
                     JSON_QUERY(@Search, '$.IsListable')
                 )
+                SELECT @S_IsListable_v1 = TRY_CAST(JSON_VALUE(@S_IsListable_vals, '$[0]') AS bit)
+                      ,@S_IsListable_v2 = TRY_CAST(JSON_VALUE(@S_IsListable_vals, '$[1]') AS bit)
                 SELECT @S_IsFilterable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsFilterable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsFilterable') IS NOT NULL AND JSON_QUERY(@Search, '$.IsFilterable') IS NULL THEN 3 END
@@ -32078,6 +33642,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsFilterable.value'),
                     JSON_QUERY(@Search, '$.IsFilterable')
                 )
+                SELECT @S_IsFilterable_v1 = TRY_CAST(JSON_VALUE(@S_IsFilterable_vals, '$[0]') AS bit)
+                      ,@S_IsFilterable_v2 = TRY_CAST(JSON_VALUE(@S_IsFilterable_vals, '$[1]') AS bit)
                 SELECT @S_IsEditable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsEditable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsEditable') IS NOT NULL AND JSON_QUERY(@Search, '$.IsEditable') IS NULL THEN 3 END
@@ -32090,6 +33656,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsEditable.value'),
                     JSON_QUERY(@Search, '$.IsEditable')
                 )
+                SELECT @S_IsEditable_v1 = TRY_CAST(JSON_VALUE(@S_IsEditable_vals, '$[0]') AS bit)
+                      ,@S_IsEditable_v2 = TRY_CAST(JSON_VALUE(@S_IsEditable_vals, '$[1]') AS bit)
                 SELECT @S_IsGridable_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsGridable.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsGridable') IS NOT NULL AND JSON_QUERY(@Search, '$.IsGridable') IS NULL THEN 3 END
@@ -32102,6 +33670,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsGridable.value'),
                     JSON_QUERY(@Search, '$.IsGridable')
                 )
+                SELECT @S_IsGridable_v1 = TRY_CAST(JSON_VALUE(@S_IsGridable_vals, '$[0]') AS bit)
+                      ,@S_IsGridable_v2 = TRY_CAST(JSON_VALUE(@S_IsGridable_vals, '$[1]') AS bit)
                 SELECT @S_IsEncrypted_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsEncrypted.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsEncrypted') IS NOT NULL AND JSON_QUERY(@Search, '$.IsEncrypted') IS NULL THEN 3 END
@@ -32114,6 +33684,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsEncrypted.value'),
                     JSON_QUERY(@Search, '$.IsEncrypted')
                 )
+                SELECT @S_IsEncrypted_v1 = TRY_CAST(JSON_VALUE(@S_IsEncrypted_vals, '$[0]') AS bit)
+                      ,@S_IsEncrypted_v2 = TRY_CAST(JSON_VALUE(@S_IsEncrypted_vals, '$[1]') AS bit)
                 SELECT @S_IsInWords_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsInWords.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsInWords') IS NOT NULL AND JSON_QUERY(@Search, '$.IsInWords') IS NULL THEN 3 END
@@ -32126,6 +33698,8 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsInWords.value'),
                     JSON_QUERY(@Search, '$.IsInWords')
                 )
+                SELECT @S_IsInWords_v1 = TRY_CAST(JSON_VALUE(@S_IsInWords_vals, '$[0]') AS bit)
+                      ,@S_IsInWords_v2 = TRY_CAST(JSON_VALUE(@S_IsInWords_vals, '$[1]') AS bit)
                 SELECT @S_IsVirtual_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsVirtual.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsVirtual') IS NOT NULL AND JSON_QUERY(@Search, '$.IsVirtual') IS NULL THEN 3 END
@@ -32138,20 +33712,24 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsVirtual.value'),
                     JSON_QUERY(@Search, '$.IsVirtual')
                 )
+                SELECT @S_IsVirtual_v1 = TRY_CAST(JSON_VALUE(@S_IsVirtual_vals, '$[0]') AS bit)
+                      ,@S_IsVirtual_v2 = TRY_CAST(JSON_VALUE(@S_IsVirtual_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'TableId' AND [type] = 0) BEGIN
@@ -32161,15 +33739,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_TableId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TableId_v2'), '%2', '@TableId_v1'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TableId'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_TableId_comparator
                               AND (([C].[Arity] IS NULL AND @S_TableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_TableId_v1 IS NOT NULL AND @S_TableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_TableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'DomainId' AND [type] = 0) BEGIN
@@ -32179,15 +33759,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_DomainId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@DomainId_vals))'), '%1', 'COALESCE([D].[DomainId], [O].[DomainId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@DomainId_v2'), '%2', '@DomainId_v1'), '%1', 'COALESCE([D].[DomainId], [O].[DomainId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@DomainId'), '%1', 'COALESCE([D].[DomainId], [O].[DomainId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[DomainId], [O].[DomainId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@DomainId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[DomainId], [O].[DomainId]) ' + [C].[SqlComparator] + ' @DomainId_v1 AND @DomainId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[DomainId], [O].[DomainId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[DomainId], [O].[DomainId]) ' + [C].[SqlComparator] + ' @DomainId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_DomainId_comparator
                               AND (([C].[Arity] IS NULL AND @S_DomainId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_DomainId_v1 IS NOT NULL AND @S_DomainId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_DomainId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_DomainId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ReferenceTableId' AND [type] = 0) BEGIN
@@ -32197,15 +33779,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_ReferenceTableId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'), '%1', 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ReferenceTableId_v2'), '%2', '@ReferenceTableId_v1'), '%1', 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ReferenceTableId'), '%1', 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) ' + [C].[SqlComparator] + ' @ReferenceTableId_v1 AND @ReferenceTableId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) ' + [C].[SqlComparator] + ' @ReferenceTableId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ReferenceTableId_comparator
                               AND (([C].[Arity] IS NULL AND @S_ReferenceTableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_ReferenceTableId_v1 IS NOT NULL AND @S_ReferenceTableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ReferenceTableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_ReferenceTableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -32215,13 +33799,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Alias' AND [type] = 0) BEGIN
@@ -32231,13 +33819,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_Alias_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'), '%1', 'COALESCE([D].[Alias], [O].[Alias])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Alias'), '%1', 'COALESCE([D].[Alias], [O].[Alias])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Alias_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' @Alias_v1 AND @Alias_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Alias], [O].[Alias]) ' + [C].[SqlComparator] + ' @Alias'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Alias_comparator
                               AND (([C].[Arity] IS NULL AND @S_Alias_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Alias_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Alias_v1 IS NOT NULL AND @S_Alias_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Alias_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsAutoIncrement' AND [type] = 0) BEGIN
@@ -32247,13 +33839,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsAutoIncrement_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsAutoIncrement_vals))'), '%1', 'COALESCE([D].[IsAutoIncrement], [O].[IsAutoIncrement])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsAutoIncrement'), '%1', 'COALESCE([D].[IsAutoIncrement], [O].[IsAutoIncrement])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsAutoIncrement], [O].[IsAutoIncrement]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsAutoIncrement_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsAutoIncrement], [O].[IsAutoIncrement]) ' + [C].[SqlComparator] + ' @IsAutoIncrement_v1 AND @IsAutoIncrement_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsAutoIncrement], [O].[IsAutoIncrement]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsAutoIncrement], [O].[IsAutoIncrement]) ' + [C].[SqlComparator] + ' @IsAutoIncrement'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsAutoIncrement_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsAutoIncrement_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsAutoIncrement_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsAutoIncrement_v1 IS NOT NULL AND @S_IsAutoIncrement_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsAutoIncrement_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsRequired' AND [type] = 0) BEGIN
@@ -32263,13 +33859,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsRequired_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsRequired_vals))'), '%1', 'COALESCE([D].[IsRequired], [O].[IsRequired])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsRequired'), '%1', 'COALESCE([D].[IsRequired], [O].[IsRequired])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsRequired], [O].[IsRequired]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsRequired_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsRequired], [O].[IsRequired]) ' + [C].[SqlComparator] + ' @IsRequired_v1 AND @IsRequired_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsRequired], [O].[IsRequired]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsRequired], [O].[IsRequired]) ' + [C].[SqlComparator] + ' @IsRequired'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsRequired_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsRequired_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsRequired_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsRequired_v1 IS NOT NULL AND @S_IsRequired_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsRequired_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsListable' AND [type] = 0) BEGIN
@@ -32279,13 +33879,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsListable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsListable_vals))'), '%1', 'COALESCE([D].[IsListable], [O].[IsListable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsListable'), '%1', 'COALESCE([D].[IsListable], [O].[IsListable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsListable], [O].[IsListable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsListable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsListable], [O].[IsListable]) ' + [C].[SqlComparator] + ' @IsListable_v1 AND @IsListable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsListable], [O].[IsListable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsListable], [O].[IsListable]) ' + [C].[SqlComparator] + ' @IsListable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsListable_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsListable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsListable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsListable_v1 IS NOT NULL AND @S_IsListable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsListable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsFilterable' AND [type] = 0) BEGIN
@@ -32295,13 +33899,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsFilterable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsFilterable_vals))'), '%1', 'COALESCE([D].[IsFilterable], [O].[IsFilterable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsFilterable'), '%1', 'COALESCE([D].[IsFilterable], [O].[IsFilterable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsFilterable], [O].[IsFilterable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsFilterable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsFilterable], [O].[IsFilterable]) ' + [C].[SqlComparator] + ' @IsFilterable_v1 AND @IsFilterable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsFilterable], [O].[IsFilterable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsFilterable], [O].[IsFilterable]) ' + [C].[SqlComparator] + ' @IsFilterable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsFilterable_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsFilterable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsFilterable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsFilterable_v1 IS NOT NULL AND @S_IsFilterable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsFilterable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsEditable' AND [type] = 0) BEGIN
@@ -32311,13 +33919,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsEditable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsEditable_vals))'), '%1', 'COALESCE([D].[IsEditable], [O].[IsEditable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsEditable'), '%1', 'COALESCE([D].[IsEditable], [O].[IsEditable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsEditable], [O].[IsEditable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsEditable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsEditable], [O].[IsEditable]) ' + [C].[SqlComparator] + ' @IsEditable_v1 AND @IsEditable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsEditable], [O].[IsEditable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsEditable], [O].[IsEditable]) ' + [C].[SqlComparator] + ' @IsEditable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsEditable_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsEditable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsEditable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsEditable_v1 IS NOT NULL AND @S_IsEditable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsEditable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsGridable' AND [type] = 0) BEGIN
@@ -32327,13 +33939,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsGridable_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsGridable_vals))'), '%1', 'COALESCE([D].[IsGridable], [O].[IsGridable])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsGridable'), '%1', 'COALESCE([D].[IsGridable], [O].[IsGridable])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsGridable], [O].[IsGridable]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsGridable_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsGridable], [O].[IsGridable]) ' + [C].[SqlComparator] + ' @IsGridable_v1 AND @IsGridable_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsGridable], [O].[IsGridable]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsGridable], [O].[IsGridable]) ' + [C].[SqlComparator] + ' @IsGridable'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsGridable_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsGridable_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsGridable_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsGridable_v1 IS NOT NULL AND @S_IsGridable_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsGridable_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsEncrypted' AND [type] = 0) BEGIN
@@ -32343,13 +33959,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsEncrypted_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsEncrypted_vals))'), '%1', 'COALESCE([D].[IsEncrypted], [O].[IsEncrypted])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsEncrypted'), '%1', 'COALESCE([D].[IsEncrypted], [O].[IsEncrypted])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsEncrypted], [O].[IsEncrypted]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsEncrypted_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsEncrypted], [O].[IsEncrypted]) ' + [C].[SqlComparator] + ' @IsEncrypted_v1 AND @IsEncrypted_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsEncrypted], [O].[IsEncrypted]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsEncrypted], [O].[IsEncrypted]) ' + [C].[SqlComparator] + ' @IsEncrypted'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsEncrypted_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsEncrypted_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsEncrypted_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsEncrypted_v1 IS NOT NULL AND @S_IsEncrypted_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsEncrypted_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsInWords' AND [type] = 0) BEGIN
@@ -32359,13 +33979,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsInWords_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsInWords_vals))'), '%1', 'COALESCE([D].[IsInWords], [O].[IsInWords])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsInWords'), '%1', 'COALESCE([D].[IsInWords], [O].[IsInWords])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsInWords], [O].[IsInWords]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsInWords_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsInWords], [O].[IsInWords]) ' + [C].[SqlComparator] + ' @IsInWords_v1 AND @IsInWords_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsInWords], [O].[IsInWords]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsInWords], [O].[IsInWords]) ' + [C].[SqlComparator] + ' @IsInWords'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsInWords_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsInWords_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsInWords_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsInWords_v1 IS NOT NULL AND @S_IsInWords_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsInWords_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsVirtual' AND [type] = 0) BEGIN
@@ -32375,13 +33999,17 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 IF @S_IsVirtual_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsVirtual_vals))'), '%1', 'COALESCE([D].[IsVirtual], [O].[IsVirtual])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsVirtual'), '%1', 'COALESCE([D].[IsVirtual], [O].[IsVirtual])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsVirtual], [O].[IsVirtual]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsVirtual_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsVirtual], [O].[IsVirtual]) ' + [C].[SqlComparator] + ' @IsVirtual_v1 AND @IsVirtual_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsVirtual], [O].[IsVirtual]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsVirtual], [O].[IsVirtual]) ' + [C].[SqlComparator] + ' @IsVirtual'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsVirtual_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsVirtual_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsVirtual_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsVirtual_v1 IS NOT NULL AND @S_IsVirtual_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsVirtual_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -32391,7 +34019,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@ReferenceTableId bigint,@ReferenceTableId_v1 bigint,@ReferenceTableId_v2 bigint,@ReferenceTableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@ReferenceTableId bigint,@ReferenceTableId_v1 bigint,@ReferenceTableId_v2 bigint,@ReferenceTableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_v1 bit,@IsAutoIncrement_v2 bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_v1 bit,@IsRequired_v2 bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_v1 bit,@IsListable_v2 bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_v1 bit,@IsFilterable_v2 bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_v1 bit,@IsEditable_v2 bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_v1 bit,@IsGridable_v2 bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_v1 bit,@IsEncrypted_v2 bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_v1 bit,@IsInWords_v2 bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_v1 bit,@IsVirtual_v2 bit,@IsVirtual_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -32409,26 +34037,48 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                        ,@ReferenceTableId_v2 = @S_ReferenceTableId_v2
                                        ,@ReferenceTableId_vals = @S_ReferenceTableId_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@Alias = @S_Alias_v
+                                       ,@Alias_v1 = @S_Alias_v1
+                                       ,@Alias_v2 = @S_Alias_v2
                                        ,@Alias_vals = @S_Alias_vals
                                        ,@IsAutoIncrement = @S_IsAutoIncrement_v
+                                       ,@IsAutoIncrement_v1 = @S_IsAutoIncrement_v1
+                                       ,@IsAutoIncrement_v2 = @S_IsAutoIncrement_v2
                                        ,@IsAutoIncrement_vals = @S_IsAutoIncrement_vals
                                        ,@IsRequired = @S_IsRequired_v
+                                       ,@IsRequired_v1 = @S_IsRequired_v1
+                                       ,@IsRequired_v2 = @S_IsRequired_v2
                                        ,@IsRequired_vals = @S_IsRequired_vals
                                        ,@IsListable = @S_IsListable_v
+                                       ,@IsListable_v1 = @S_IsListable_v1
+                                       ,@IsListable_v2 = @S_IsListable_v2
                                        ,@IsListable_vals = @S_IsListable_vals
                                        ,@IsFilterable = @S_IsFilterable_v
+                                       ,@IsFilterable_v1 = @S_IsFilterable_v1
+                                       ,@IsFilterable_v2 = @S_IsFilterable_v2
                                        ,@IsFilterable_vals = @S_IsFilterable_vals
                                        ,@IsEditable = @S_IsEditable_v
+                                       ,@IsEditable_v1 = @S_IsEditable_v1
+                                       ,@IsEditable_v2 = @S_IsEditable_v2
                                        ,@IsEditable_vals = @S_IsEditable_vals
                                        ,@IsGridable = @S_IsGridable_v
+                                       ,@IsGridable_v1 = @S_IsGridable_v1
+                                       ,@IsGridable_v2 = @S_IsGridable_v2
                                        ,@IsGridable_vals = @S_IsGridable_vals
                                        ,@IsEncrypted = @S_IsEncrypted_v
+                                       ,@IsEncrypted_v1 = @S_IsEncrypted_v1
+                                       ,@IsEncrypted_v2 = @S_IsEncrypted_v2
                                        ,@IsEncrypted_vals = @S_IsEncrypted_vals
                                        ,@IsInWords = @S_IsInWords_v
+                                       ,@IsInWords_v1 = @S_IsInWords_v1
+                                       ,@IsInWords_v2 = @S_IsInWords_v2
                                        ,@IsInWords_vals = @S_IsInWords_vals
                                        ,@IsVirtual = @S_IsVirtual_v
+                                       ,@IsVirtual_v1 = @S_IsVirtual_v1
+                                       ,@IsVirtual_v2 = @S_IsVirtual_v2
                                        ,@IsVirtual_vals = @S_IsVirtual_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -32747,7 +34397,7 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Indexes', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -32821,7 +34471,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -32863,6 +34513,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -32881,6 +34532,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -32943,7 +34595,7 @@ ALTER PROCEDURE [dbo].[IndexCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -32986,6 +34638,7 @@ ALTER PROCEDURE [dbo].[IndexCreate](@Login NVARCHAR(MAX)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
                ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Indexes] ON
         INSERT INTO [dbo].[Indexes] ([Id]
                                             ,[TableId]
                                             ,[Name]
@@ -32998,6 +34651,7 @@ ALTER PROCEDURE [dbo].[IndexCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsUnique
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Indexes] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -33028,7 +34682,7 @@ ALTER PROCEDURE [dbo].[IndexUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -33071,8 +34725,7 @@ ALTER PROCEDURE [dbo].[IndexUpdate](@Login NVARCHAR(MAX)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
                ,@W_IsUnique bit = CAST(JSON_VALUE(@ActualRecord, '$.IsUnique') AS bit)
 
-        UPDATE [dbo].[Indexes] SET [Id] = @W_Id
-                                          ,[TableId] = @W_TableId
+        UPDATE [dbo].[Indexes] SET [TableId] = @W_TableId
                                           ,[Name] = @W_Name
                                           ,[IsUnique] = @W_IsUnique
                                           ,[UpdatedAt] = GETDATE()
@@ -33108,7 +34761,7 @@ ALTER PROCEDURE [dbo].[IndexDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -33179,13 +34832,13 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -33226,7 +34879,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Name] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nvarchar(50) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -33289,9 +34942,13 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(50)
                    ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(50)
+                   ,@G_Name_v2 nvarchar(50)
                    ,@G_IsUnique_comparator TINYINT
                    ,@G_IsUnique_v bit
                    ,@G_IsUnique_vals NVARCHAR(MAX)
+                   ,@G_IsUnique_v1 bit
+                   ,@G_IsUnique_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -33333,6 +34990,8 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Name.value'),
                 JSON_QUERY(@Filter, '$.Name')
             )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(50))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(50))
             SELECT @G_IsUnique_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.IsUnique.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.IsUnique') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsUnique') IS NULL THEN 3 END
@@ -33345,18 +35004,22 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsUnique.value'),
                 JSON_QUERY(@Filter, '$.IsUnique')
             )
+            SELECT @G_IsUnique_v1 = TRY_CAST(JSON_VALUE(@G_IsUnique_vals, '$[0]') AS bit)
+                  ,@G_IsUnique_v2 = TRY_CAST(JSON_VALUE(@G_IsUnique_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'TableId' AND [type] = 0)
@@ -33364,15 +35027,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_TableId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'), '%1', '[T].[TableId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TableId_v2'), '%2', '@TableId_v1'), '%1', '[T].[TableId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TableId'), '%1', '[T].[TableId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[TableId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[TableId] ' + [C].[SqlComparator]
+        ELSE '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_TableId_comparator
                           AND (([C].[Arity] IS NULL AND @G_TableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_TableId_v1 IS NOT NULL AND @G_TableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_TableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
@@ -33380,13 +35045,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Name_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', '[T].[Name]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', '[T].[Name]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Name_comparator
                           AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsUnique' AND [type] = 0)
@@ -33394,13 +35063,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsUnique_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsUnique_vals))'), '%1', '[T].[IsUnique]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsUnique'), '%1', '[T].[IsUnique]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsUnique] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsUnique_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsUnique] ' + [C].[SqlComparator] + ' @IsUnique_v1 AND @IsUnique_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsUnique] ' + [C].[SqlComparator]
+        ELSE '[T].[IsUnique] ' + [C].[SqlComparator] + ' @IsUnique'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsUnique_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsUnique_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsUnique_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsUnique_v1 IS NOT NULL AND @G_IsUnique_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsUnique_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -33434,7 +35107,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                ,@T_IsUnique = @WT_IsUnique
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_TableId bigint,@T_Name nvarchar(50),@T_IsUnique bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX),@IsUnique bit,@IsUnique_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_Name nvarchar(50),@T_IsUnique bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX),@IsUnique bit,@IsUnique_v1 bit,@IsUnique_v2 bit,@IsUnique_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_TableId = @WT_TableId
                                ,@T_Name = @WT_Name
@@ -33448,8 +35121,12 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                ,@TableId_v2 = @G_TableId_v2
                                ,@TableId_vals = @G_TableId_vals
                                ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
                                ,@Name_vals = @G_Name_vals
                                ,@IsUnique = @G_IsUnique_v
+                               ,@IsUnique_v1 = @G_IsUnique_v1
+                               ,@IsUnique_v2 = @G_IsUnique_v2
                                ,@IsUnique_vals = @G_IsUnique_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -33487,9 +35164,13 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(50)
                    ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(50)
+                   ,@S_Name_v2 nvarchar(50)
                    ,@S_IsUnique_comparator TINYINT
                    ,@S_IsUnique_v bit
                    ,@S_IsUnique_vals NVARCHAR(MAX)
+                   ,@S_IsUnique_v1 bit
+                   ,@S_IsUnique_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -33531,6 +35212,8 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Name.value'),
                     JSON_QUERY(@Search, '$.Name')
                 )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(50))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(50))
                 SELECT @S_IsUnique_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.IsUnique.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.IsUnique') IS NOT NULL AND JSON_QUERY(@Search, '$.IsUnique') IS NULL THEN 3 END
@@ -33543,20 +35226,24 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsUnique.value'),
                     JSON_QUERY(@Search, '$.IsUnique')
                 )
+                SELECT @S_IsUnique_v1 = TRY_CAST(JSON_VALUE(@S_IsUnique_vals, '$[0]') AS bit)
+                      ,@S_IsUnique_v2 = TRY_CAST(JSON_VALUE(@S_IsUnique_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'TableId' AND [type] = 0) BEGIN
@@ -33566,15 +35253,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                 IF @S_TableId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@TableId_v2'), '%2', '@TableId_v1'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@TableId'), '%1', 'COALESCE([D].[TableId], [O].[TableId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_TableId_comparator
                               AND (([C].[Arity] IS NULL AND @S_TableId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_TableId_v1 IS NOT NULL AND @S_TableId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_TableId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
@@ -33584,13 +35273,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                 IF @S_Name_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'), '%1', 'COALESCE([D].[Name], [O].[Name])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Name'), '%1', 'COALESCE([D].[Name], [O].[Name])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Name_comparator
                               AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsUnique' AND [type] = 0) BEGIN
@@ -33600,13 +35293,17 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                 IF @S_IsUnique_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsUnique_vals))'), '%1', 'COALESCE([D].[IsUnique], [O].[IsUnique])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsUnique'), '%1', 'COALESCE([D].[IsUnique], [O].[IsUnique])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsUnique], [O].[IsUnique]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsUnique_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsUnique], [O].[IsUnique]) ' + [C].[SqlComparator] + ' @IsUnique_v1 AND @IsUnique_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsUnique], [O].[IsUnique]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsUnique], [O].[IsUnique]) ' + [C].[SqlComparator] + ' @IsUnique'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsUnique_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsUnique_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsUnique_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsUnique_v1 IS NOT NULL AND @S_IsUnique_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsUnique_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -33616,7 +35313,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_vals NVARCHAR(MAX),@IsUnique bit,@IsUnique_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX),@IsUnique bit,@IsUnique_v1 bit,@IsUnique_v2 bit,@IsUnique_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -33626,8 +35323,12 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                        ,@TableId_v2 = @S_TableId_v2
                                        ,@TableId_vals = @S_TableId_vals
                                        ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
                                        ,@Name_vals = @S_Name_vals
                                        ,@IsUnique = @S_IsUnique_v
+                                       ,@IsUnique_v1 = @S_IsUnique_v1
+                                       ,@IsUnique_v2 = @S_IsUnique_v2
                                        ,@IsUnique_vals = @S_IsUnique_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -33789,7 +35490,7 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Indexkeys] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Indexkeys', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -33870,7 +35571,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -33912,6 +35613,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -33930,6 +35632,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -33992,7 +35695,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -34036,6 +35739,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCreate](@Login NVARCHAR(MAX)
                ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
                ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Indexkeys] ON
         INSERT INTO [dbo].[Indexkeys] ([Id]
                                             ,[IndexId]
                                             ,[Sequence]
@@ -34050,6 +35754,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsDescending
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Indexkeys] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -34080,7 +35785,7 @@ ALTER PROCEDURE [dbo].[IndexkeyUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -34124,8 +35829,7 @@ ALTER PROCEDURE [dbo].[IndexkeyUpdate](@Login NVARCHAR(MAX)
                ,@W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
                ,@W_IsDescending bit = CAST(JSON_VALUE(@ActualRecord, '$.IsDescending') AS bit)
 
-        UPDATE [dbo].[Indexkeys] SET [Id] = @W_Id
-                                          ,[IndexId] = @W_IndexId
+        UPDATE [dbo].[Indexkeys] SET [IndexId] = @W_IndexId
                                           ,[Sequence] = @W_Sequence
                                           ,[ColumnId] = @W_ColumnId
                                           ,[IsDescending] = @W_IsDescending
@@ -34162,7 +35866,7 @@ ALTER PROCEDURE [dbo].[IndexkeyDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -34233,13 +35937,13 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -34277,7 +35981,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -34341,6 +36045,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                    ,@G_IsDescending_comparator TINYINT
                    ,@G_IsDescending_v bit
                    ,@G_IsDescending_vals NVARCHAR(MAX)
+                   ,@G_IsDescending_v1 bit
+                   ,@G_IsDescending_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -34396,18 +36102,22 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsDescending.value'),
                 JSON_QUERY(@Filter, '$.IsDescending')
             )
+            SELECT @G_IsDescending_v1 = TRY_CAST(JSON_VALUE(@G_IsDescending_vals, '$[0]') AS bit)
+                  ,@G_IsDescending_v2 = TRY_CAST(JSON_VALUE(@G_IsDescending_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IndexId' AND [type] = 0)
@@ -34415,15 +36125,17 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IndexId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@IndexId_vals))'), '%1', '[T].[IndexId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@IndexId_v2'), '%2', '@IndexId_v1'), '%1', '[T].[IndexId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IndexId'), '%1', '[T].[IndexId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IndexId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@IndexId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IndexId] ' + [C].[SqlComparator] + ' @IndexId_v1 AND @IndexId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IndexId] ' + [C].[SqlComparator]
+        ELSE '[T].[IndexId] ' + [C].[SqlComparator] + ' @IndexId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IndexId_comparator
                           AND (([C].[Arity] IS NULL AND @G_IndexId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_IndexId_v1 IS NOT NULL AND @G_IndexId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IndexId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_IndexId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ColumnId' AND [type] = 0)
@@ -34431,15 +36143,17 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ColumnId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId_vals))'), '%1', '[T].[ColumnId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ColumnId_v2'), '%2', '@ColumnId_v1'), '%1', '[T].[ColumnId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ColumnId'), '%1', '[T].[ColumnId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ColumnId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ColumnId] ' + [C].[SqlComparator] + ' @ColumnId_v1 AND @ColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ColumnId] ' + [C].[SqlComparator]
+        ELSE '[T].[ColumnId] ' + [C].[SqlComparator] + ' @ColumnId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ColumnId_comparator
                           AND (([C].[Arity] IS NULL AND @G_ColumnId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_ColumnId_v1 IS NOT NULL AND @G_ColumnId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ColumnId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_ColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsDescending' AND [type] = 0)
@@ -34447,13 +36161,17 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsDescending_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsDescending_vals))'), '%1', '[T].[IsDescending]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsDescending'), '%1', '[T].[IsDescending]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsDescending] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsDescending_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsDescending] ' + [C].[SqlComparator] + ' @IsDescending_v1 AND @IsDescending_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsDescending] ' + [C].[SqlComparator]
+        ELSE '[T].[IsDescending] ' + [C].[SqlComparator] + ' @IsDescending'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsDescending_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsDescending_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsDescending_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsDescending_v1 IS NOT NULL AND @G_IsDescending_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsDescending_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -34479,7 +36197,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_IndexId bigint,@T_ColumnId bigint,@T_IsDescending bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@IndexId bigint,@IndexId_v1 bigint,@IndexId_v2 bigint,@IndexId_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@IsDescending bit,@IsDescending_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_IndexId bigint,@T_ColumnId bigint,@T_IsDescending bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@IndexId bigint,@IndexId_v1 bigint,@IndexId_v2 bigint,@IndexId_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@IsDescending bit,@IsDescending_v1 bit,@IsDescending_v2 bit,@IsDescending_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_IndexId = @WT_IndexId
                                ,@T_ColumnId = @WT_ColumnId
@@ -34497,6 +36215,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                ,@ColumnId_v2 = @G_ColumnId_v2
                                ,@ColumnId_vals = @G_ColumnId_vals
                                ,@IsDescending = @G_IsDescending_v
+                               ,@IsDescending_v1 = @G_IsDescending_v1
+                               ,@IsDescending_v2 = @G_IsDescending_v2
                                ,@IsDescending_vals = @G_IsDescending_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -34539,6 +36259,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                    ,@S_IsDescending_comparator TINYINT
                    ,@S_IsDescending_v bit
                    ,@S_IsDescending_vals NVARCHAR(MAX)
+                   ,@S_IsDescending_v1 bit
+                   ,@S_IsDescending_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -34594,20 +36316,24 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsDescending.value'),
                     JSON_QUERY(@Search, '$.IsDescending')
                 )
+                SELECT @S_IsDescending_v1 = TRY_CAST(JSON_VALUE(@S_IsDescending_vals, '$[0]') AS bit)
+                      ,@S_IsDescending_v2 = TRY_CAST(JSON_VALUE(@S_IsDescending_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IndexId' AND [type] = 0) BEGIN
@@ -34617,15 +36343,17 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 IF @S_IndexId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@IndexId_vals))'), '%1', 'COALESCE([D].[IndexId], [O].[IndexId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@IndexId_v2'), '%2', '@IndexId_v1'), '%1', 'COALESCE([D].[IndexId], [O].[IndexId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IndexId'), '%1', 'COALESCE([D].[IndexId], [O].[IndexId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IndexId], [O].[IndexId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@IndexId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IndexId], [O].[IndexId]) ' + [C].[SqlComparator] + ' @IndexId_v1 AND @IndexId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IndexId], [O].[IndexId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IndexId], [O].[IndexId]) ' + [C].[SqlComparator] + ' @IndexId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IndexId_comparator
                               AND (([C].[Arity] IS NULL AND @S_IndexId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_IndexId_v1 IS NOT NULL AND @S_IndexId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IndexId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_IndexId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ColumnId' AND [type] = 0) BEGIN
@@ -34635,15 +36363,17 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 IF @S_ColumnId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId_vals))'), '%1', 'COALESCE([D].[ColumnId], [O].[ColumnId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ColumnId_v2'), '%2', '@ColumnId_v1'), '%1', 'COALESCE([D].[ColumnId], [O].[ColumnId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ColumnId'), '%1', 'COALESCE([D].[ColumnId], [O].[ColumnId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator] + ' @ColumnId_v1 AND @ColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator] + ' @ColumnId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ColumnId_comparator
                               AND (([C].[Arity] IS NULL AND @S_ColumnId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_ColumnId_v1 IS NOT NULL AND @S_ColumnId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ColumnId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_ColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsDescending' AND [type] = 0) BEGIN
@@ -34653,13 +36383,17 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 IF @S_IsDescending_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsDescending_vals))'), '%1', 'COALESCE([D].[IsDescending], [O].[IsDescending])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsDescending'), '%1', 'COALESCE([D].[IsDescending], [O].[IsDescending])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsDescending], [O].[IsDescending]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsDescending_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsDescending], [O].[IsDescending]) ' + [C].[SqlComparator] + ' @IsDescending_v1 AND @IsDescending_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsDescending], [O].[IsDescending]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsDescending], [O].[IsDescending]) ' + [C].[SqlComparator] + ' @IsDescending'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsDescending_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsDescending_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsDescending_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsDescending_v1 IS NOT NULL AND @S_IsDescending_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsDescending_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -34669,7 +36403,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@IndexId bigint,@IndexId_v1 bigint,@IndexId_v2 bigint,@IndexId_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@IsDescending bit,@IsDescending_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@IndexId bigint,@IndexId_v1 bigint,@IndexId_v2 bigint,@IndexId_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@IsDescending bit,@IsDescending_v1 bit,@IsDescending_v2 bit,@IsDescending_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -34683,6 +36417,8 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                        ,@ColumnId_v2 = @S_ColumnId_v2
                                        ,@ColumnId_vals = @S_ColumnId_vals
                                        ,@IsDescending = @S_IsDescending_v
+                                       ,@IsDescending_v1 = @S_IsDescending_v1
+                                       ,@IsDescending_v2 = @S_IsDescending_v2
                                        ,@IsDescending_vals = @S_IsDescending_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -34912,7 +36648,7 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Sessions', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -34996,7 +36732,7 @@ ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -35038,6 +36774,7 @@ ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -35056,6 +36793,7 @@ ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -35118,7 +36856,7 @@ ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -35163,6 +36901,7 @@ ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
                ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
                ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Sessions] ON
         INSERT INTO [dbo].[Sessions] ([Id]
                                             ,[SystemId]
                                             ,[UserId]
@@ -35179,6 +36918,7 @@ ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsLogged
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Sessions] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -35209,7 +36949,7 @@ ALTER PROCEDURE [dbo].[SessionUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -35254,8 +36994,7 @@ ALTER PROCEDURE [dbo].[SessionUpdate](@Login NVARCHAR(MAX)
                ,@W_PublicKey nvarchar(256) = CAST(JSON_VALUE(@ActualRecord, '$.PublicKey') AS nvarchar(256))
                ,@W_IsLogged bit = CAST(JSON_VALUE(@ActualRecord, '$.IsLogged') AS bit)
 
-        UPDATE [dbo].[Sessions] SET [Id] = @W_Id
-                                          ,[SystemId] = @W_SystemId
+        UPDATE [dbo].[Sessions] SET [SystemId] = @W_SystemId
                                           ,[UserId] = @W_UserId
                                           ,[ClientRsaPublicKey] = @W_ClientRsaPublicKey
                                           ,[PublicKey] = @W_PublicKey
@@ -35293,7 +37032,7 @@ ALTER PROCEDURE [dbo].[SessionDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -35364,13 +37103,13 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -35408,7 +37147,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -35473,6 +37212,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                    ,@G_IsLogged_comparator TINYINT
                    ,@G_IsLogged_v bit
                    ,@G_IsLogged_vals NVARCHAR(MAX)
+                   ,@G_IsLogged_v1 bit
+                   ,@G_IsLogged_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -35528,18 +37269,22 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsLogged.value'),
                 JSON_QUERY(@Filter, '$.IsLogged')
             )
+            SELECT @G_IsLogged_v1 = TRY_CAST(JSON_VALUE(@G_IsLogged_vals, '$[0]') AS bit)
+                  ,@G_IsLogged_v2 = TRY_CAST(JSON_VALUE(@G_IsLogged_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SystemId' AND [type] = 0)
@@ -35547,15 +37292,17 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_SystemId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', '[T].[SystemId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', '[T].[SystemId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', '[T].[SystemId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[SystemId] ' + [C].[SqlComparator]
+        ELSE '[T].[SystemId] ' + [C].[SqlComparator] + ' @SystemId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_SystemId_comparator
                           AND (([C].[Arity] IS NULL AND @G_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_SystemId_v1 IS NOT NULL AND @G_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'UserId' AND [type] = 0)
@@ -35563,15 +37310,17 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_UserId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'), '%1', '[T].[UserId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@UserId_v2'), '%2', '@UserId_v1'), '%1', '[T].[UserId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@UserId'), '%1', '[T].[UserId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[UserId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[UserId] ' + [C].[SqlComparator] + ' @UserId_v1 AND @UserId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[UserId] ' + [C].[SqlComparator]
+        ELSE '[T].[UserId] ' + [C].[SqlComparator] + ' @UserId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_UserId_comparator
                           AND (([C].[Arity] IS NULL AND @G_UserId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_UserId_v1 IS NOT NULL AND @G_UserId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_UserId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_UserId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsLogged' AND [type] = 0)
@@ -35579,13 +37328,17 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsLogged_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsLogged_vals))'), '%1', '[T].[IsLogged]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsLogged'), '%1', '[T].[IsLogged]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsLogged] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsLogged_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsLogged] ' + [C].[SqlComparator] + ' @IsLogged_v1 AND @IsLogged_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsLogged] ' + [C].[SqlComparator]
+        ELSE '[T].[IsLogged] ' + [C].[SqlComparator] + ' @IsLogged'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsLogged_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsLogged_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsLogged_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsLogged_v1 IS NOT NULL AND @G_IsLogged_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsLogged_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -35611,7 +37364,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_IsLogged bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@IsLogged bit,@IsLogged_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_SystemId bigint,@T_UserId bigint,@T_IsLogged bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@IsLogged bit,@IsLogged_v1 bit,@IsLogged_v2 bit,@IsLogged_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_SystemId = @WT_SystemId
                                ,@T_UserId = @WT_UserId
@@ -35629,6 +37382,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                ,@UserId_v2 = @G_UserId_v2
                                ,@UserId_vals = @G_UserId_vals
                                ,@IsLogged = @G_IsLogged_v
+                               ,@IsLogged_v1 = @G_IsLogged_v1
+                               ,@IsLogged_v2 = @G_IsLogged_v2
                                ,@IsLogged_vals = @G_IsLogged_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -35671,6 +37426,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                    ,@S_IsLogged_comparator TINYINT
                    ,@S_IsLogged_v bit
                    ,@S_IsLogged_vals NVARCHAR(MAX)
+                   ,@S_IsLogged_v1 bit
+                   ,@S_IsLogged_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -35726,20 +37483,24 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsLogged.value'),
                     JSON_QUERY(@Search, '$.IsLogged')
                 )
+                SELECT @S_IsLogged_v1 = TRY_CAST(JSON_VALUE(@S_IsLogged_vals, '$[0]') AS bit)
+                      ,@S_IsLogged_v2 = TRY_CAST(JSON_VALUE(@S_IsLogged_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'SystemId' AND [type] = 0) BEGIN
@@ -35749,15 +37510,17 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                 IF @S_SystemId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@SystemId_v2'), '%2', '@SystemId_v1'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SystemId'), '%1', 'COALESCE([D].[SystemId], [O].[SystemId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@SystemId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId_v1 AND @SystemId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[SystemId], [O].[SystemId]) ' + [C].[SqlComparator] + ' @SystemId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_SystemId_comparator
                               AND (([C].[Arity] IS NULL AND @S_SystemId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_SystemId_v1 IS NOT NULL AND @S_SystemId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_SystemId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'UserId' AND [type] = 0) BEGIN
@@ -35767,15 +37530,17 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                 IF @S_UserId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'), '%1', 'COALESCE([D].[UserId], [O].[UserId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@UserId_v2'), '%2', '@UserId_v1'), '%1', 'COALESCE([D].[UserId], [O].[UserId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@UserId'), '%1', 'COALESCE([D].[UserId], [O].[UserId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@UserId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator] + ' @UserId_v1 AND @UserId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[UserId], [O].[UserId]) ' + [C].[SqlComparator] + ' @UserId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_UserId_comparator
                               AND (([C].[Arity] IS NULL AND @S_UserId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_UserId_v1 IS NOT NULL AND @S_UserId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_UserId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_UserId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsLogged' AND [type] = 0) BEGIN
@@ -35785,13 +37550,17 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                 IF @S_IsLogged_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsLogged_vals))'), '%1', 'COALESCE([D].[IsLogged], [O].[IsLogged])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsLogged'), '%1', 'COALESCE([D].[IsLogged], [O].[IsLogged])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsLogged], [O].[IsLogged]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsLogged_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsLogged], [O].[IsLogged]) ' + [C].[SqlComparator] + ' @IsLogged_v1 AND @IsLogged_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsLogged], [O].[IsLogged]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsLogged], [O].[IsLogged]) ' + [C].[SqlComparator] + ' @IsLogged'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsLogged_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsLogged_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsLogged_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsLogged_v1 IS NOT NULL AND @S_IsLogged_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsLogged_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -35801,7 +37570,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@IsLogged bit,@IsLogged_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@SystemId bigint,@SystemId_v1 bigint,@SystemId_v2 bigint,@SystemId_vals NVARCHAR(MAX),@UserId bigint,@UserId_v1 bigint,@UserId_v2 bigint,@UserId_vals NVARCHAR(MAX),@IsLogged bit,@IsLogged_v1 bit,@IsLogged_v2 bit,@IsLogged_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -35815,6 +37584,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                        ,@UserId_v2 = @S_UserId_v2
                                        ,@UserId_vals = @S_UserId_vals
                                        ,@IsLogged = @S_IsLogged_v
+                                       ,@IsLogged_v1 = @S_IsLogged_v1
+                                       ,@IsLogged_v2 = @S_IsLogged_v2
                                        ,@IsLogged_vals = @S_IsLogged_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -35984,7 +37755,7 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Transactions', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -36051,7 +37822,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -36093,6 +37864,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -36111,6 +37883,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -36173,13 +37946,13 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -36217,7 +37990,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -36266,15 +38039,17 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -36351,15 +38126,17 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -36530,7 +38307,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Operations] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Operations', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -36611,7 +38388,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -36653,6 +38430,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -36671,6 +38449,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -36733,7 +38512,7 @@ ALTER PROCEDURE [dbo].[OperationCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -36779,6 +38558,7 @@ ALTER PROCEDURE [dbo].[OperationCreate](@Login NVARCHAR(MAX)
                ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
                ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Operations] ON
         INSERT INTO [dbo].[Operations] ([Id]
                                             ,[TransactionId]
                                             ,[TableName]
@@ -36797,6 +38577,7 @@ ALTER PROCEDURE [dbo].[OperationCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsConfirmed
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Operations] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -36827,7 +38608,7 @@ ALTER PROCEDURE [dbo].[OperationUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -36873,8 +38654,7 @@ ALTER PROCEDURE [dbo].[OperationUpdate](@Login NVARCHAR(MAX)
                ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
                ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
 
-        UPDATE [dbo].[Operations] SET [Id] = @W_Id
-                                          ,[TransactionId] = @W_TransactionId
+        UPDATE [dbo].[Operations] SET [TransactionId] = @W_TransactionId
                                           ,[TableName] = @W_TableName
                                           ,[Action] = @W_Action
                                           ,[LastRecord] = @W_LastRecord
@@ -36913,7 +38693,7 @@ ALTER PROCEDURE [dbo].[OperationDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -36984,13 +38764,13 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -37028,7 +38808,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -37081,15 +38861,17 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -37166,15 +38948,17 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -37371,7 +39155,7 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Unicities', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -37441,7 +39225,7 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -37483,6 +39267,7 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -37501,6 +39286,7 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -37563,7 +39349,7 @@ ALTER PROCEDURE [dbo].[UnicityCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -37606,6 +39392,7 @@ ALTER PROCEDURE [dbo].[UnicityCreate](@Login NVARCHAR(MAX)
                ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
                ,@W_IsBidirectional bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBidirectional') AS bit)
 
+        SET IDENTITY_INSERT [dbo].[Unicities] ON
         INSERT INTO [dbo].[Unicities] ([Id]
                                             ,[ColumnId1]
                                             ,[ColumnId2]
@@ -37618,6 +39405,7 @@ ALTER PROCEDURE [dbo].[UnicityCreate](@Login NVARCHAR(MAX)
                                              ,@W_IsBidirectional
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Unicities] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -37648,7 +39436,7 @@ ALTER PROCEDURE [dbo].[UnicityUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -37691,8 +39479,7 @@ ALTER PROCEDURE [dbo].[UnicityUpdate](@Login NVARCHAR(MAX)
                ,@W_ColumnId2 bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId2') AS bigint)
                ,@W_IsBidirectional bit = CAST(JSON_VALUE(@ActualRecord, '$.IsBidirectional') AS bit)
 
-        UPDATE [dbo].[Unicities] SET [Id] = @W_Id
-                                          ,[ColumnId1] = @W_ColumnId1
+        UPDATE [dbo].[Unicities] SET [ColumnId1] = @W_ColumnId1
                                           ,[ColumnId2] = @W_ColumnId2
                                           ,[IsBidirectional] = @W_IsBidirectional
                                           ,[UpdatedAt] = GETDATE()
@@ -37728,7 +39515,7 @@ ALTER PROCEDURE [dbo].[UnicityDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -37799,13 +39586,13 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -37843,7 +39630,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -37906,6 +39693,8 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                    ,@G_IsBidirectional_comparator TINYINT
                    ,@G_IsBidirectional_v bit
                    ,@G_IsBidirectional_vals NVARCHAR(MAX)
+                   ,@G_IsBidirectional_v1 bit
+                   ,@G_IsBidirectional_v2 bit
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -37961,18 +39750,22 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.IsBidirectional.value'),
                 JSON_QUERY(@Filter, '$.IsBidirectional')
             )
+            SELECT @G_IsBidirectional_v1 = TRY_CAST(JSON_VALUE(@G_IsBidirectional_vals, '$[0]') AS bit)
+                  ,@G_IsBidirectional_v2 = TRY_CAST(JSON_VALUE(@G_IsBidirectional_vals, '$[1]') AS bit)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ColumnId1' AND [type] = 0)
@@ -37980,15 +39773,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ColumnId1_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId1_vals))'), '%1', '[T].[ColumnId1]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ColumnId1_v2'), '%2', '@ColumnId1_v1'), '%1', '[T].[ColumnId1]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ColumnId1'), '%1', '[T].[ColumnId1]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ColumnId1] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId1_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ColumnId1] ' + [C].[SqlComparator] + ' @ColumnId1_v1 AND @ColumnId1_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ColumnId1] ' + [C].[SqlComparator]
+        ELSE '[T].[ColumnId1] ' + [C].[SqlComparator] + ' @ColumnId1'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ColumnId1_comparator
                           AND (([C].[Arity] IS NULL AND @G_ColumnId1_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_ColumnId1_v1 IS NOT NULL AND @G_ColumnId1_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ColumnId1_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_ColumnId1_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ColumnId2' AND [type] = 0)
@@ -37996,15 +39791,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ColumnId2_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId2_vals))'), '%1', '[T].[ColumnId2]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ColumnId2_v2'), '%2', '@ColumnId2_v1'), '%1', '[T].[ColumnId2]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ColumnId2'), '%1', '[T].[ColumnId2]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ColumnId2] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId2_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ColumnId2] ' + [C].[SqlComparator] + ' @ColumnId2_v1 AND @ColumnId2_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ColumnId2] ' + [C].[SqlComparator]
+        ELSE '[T].[ColumnId2] ' + [C].[SqlComparator] + ' @ColumnId2'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ColumnId2_comparator
                           AND (([C].[Arity] IS NULL AND @G_ColumnId2_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_ColumnId2_v1 IS NOT NULL AND @G_ColumnId2_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ColumnId2_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_ColumnId2_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsBidirectional' AND [type] = 0)
@@ -38012,13 +39809,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_IsBidirectional_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsBidirectional_vals))'), '%1', '[T].[IsBidirectional]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsBidirectional'), '%1', '[T].[IsBidirectional]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsBidirectional] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsBidirectional_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsBidirectional] ' + [C].[SqlComparator] + ' @IsBidirectional_v1 AND @IsBidirectional_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsBidirectional] ' + [C].[SqlComparator]
+        ELSE '[T].[IsBidirectional] ' + [C].[SqlComparator] + ' @IsBidirectional'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_IsBidirectional_comparator
                           AND (([C].[Arity] IS NULL AND @G_IsBidirectional_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_IsBidirectional_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_IsBidirectional_v1 IS NOT NULL AND @G_IsBidirectional_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsBidirectional_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -38044,7 +39845,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_ColumnId1 bigint,@T_ColumnId2 bigint,@T_IsBidirectional bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId1 bigint,@ColumnId1_v1 bigint,@ColumnId1_v2 bigint,@ColumnId1_vals NVARCHAR(MAX),@ColumnId2 bigint,@ColumnId2_v1 bigint,@ColumnId2_v2 bigint,@ColumnId2_vals NVARCHAR(MAX),@IsBidirectional bit,@IsBidirectional_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_ColumnId1 bigint,@T_ColumnId2 bigint,@T_IsBidirectional bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId1 bigint,@ColumnId1_v1 bigint,@ColumnId1_v2 bigint,@ColumnId1_vals NVARCHAR(MAX),@ColumnId2 bigint,@ColumnId2_v1 bigint,@ColumnId2_v2 bigint,@ColumnId2_vals NVARCHAR(MAX),@IsBidirectional bit,@IsBidirectional_v1 bit,@IsBidirectional_v2 bit,@IsBidirectional_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_ColumnId1 = @WT_ColumnId1
                                ,@T_ColumnId2 = @WT_ColumnId2
@@ -38062,6 +39863,8 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                ,@ColumnId2_v2 = @G_ColumnId2_v2
                                ,@ColumnId2_vals = @G_ColumnId2_vals
                                ,@IsBidirectional = @G_IsBidirectional_v
+                               ,@IsBidirectional_v1 = @G_IsBidirectional_v1
+                               ,@IsBidirectional_v2 = @G_IsBidirectional_v2
                                ,@IsBidirectional_vals = @G_IsBidirectional_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
@@ -38104,6 +39907,8 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                    ,@S_IsBidirectional_comparator TINYINT
                    ,@S_IsBidirectional_v bit
                    ,@S_IsBidirectional_vals NVARCHAR(MAX)
+                   ,@S_IsBidirectional_v1 bit
+                   ,@S_IsBidirectional_v2 bit
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -38159,20 +39964,24 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.IsBidirectional.value'),
                     JSON_QUERY(@Search, '$.IsBidirectional')
                 )
+                SELECT @S_IsBidirectional_v1 = TRY_CAST(JSON_VALUE(@S_IsBidirectional_vals, '$[0]') AS bit)
+                      ,@S_IsBidirectional_v2 = TRY_CAST(JSON_VALUE(@S_IsBidirectional_vals, '$[1]') AS bit)
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ColumnId1' AND [type] = 0) BEGIN
@@ -38182,15 +39991,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 IF @S_ColumnId1_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId1_vals))'), '%1', 'COALESCE([D].[ColumnId1], [O].[ColumnId1])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ColumnId1_v2'), '%2', '@ColumnId1_v1'), '%1', 'COALESCE([D].[ColumnId1], [O].[ColumnId1])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ColumnId1'), '%1', 'COALESCE([D].[ColumnId1], [O].[ColumnId1])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ColumnId1], [O].[ColumnId1]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId1_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ColumnId1], [O].[ColumnId1]) ' + [C].[SqlComparator] + ' @ColumnId1_v1 AND @ColumnId1_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ColumnId1], [O].[ColumnId1]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ColumnId1], [O].[ColumnId1]) ' + [C].[SqlComparator] + ' @ColumnId1'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ColumnId1_comparator
                               AND (([C].[Arity] IS NULL AND @S_ColumnId1_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_ColumnId1_v1 IS NOT NULL AND @S_ColumnId1_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ColumnId1_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_ColumnId1_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ColumnId2' AND [type] = 0) BEGIN
@@ -38200,15 +40011,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 IF @S_ColumnId2_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId2_vals))'), '%1', 'COALESCE([D].[ColumnId2], [O].[ColumnId2])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ColumnId2_v2'), '%2', '@ColumnId2_v1'), '%1', 'COALESCE([D].[ColumnId2], [O].[ColumnId2])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ColumnId2'), '%1', 'COALESCE([D].[ColumnId2], [O].[ColumnId2])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ColumnId2], [O].[ColumnId2]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId2_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ColumnId2], [O].[ColumnId2]) ' + [C].[SqlComparator] + ' @ColumnId2_v1 AND @ColumnId2_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ColumnId2], [O].[ColumnId2]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ColumnId2], [O].[ColumnId2]) ' + [C].[SqlComparator] + ' @ColumnId2'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ColumnId2_comparator
                               AND (([C].[Arity] IS NULL AND @S_ColumnId2_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_ColumnId2_v1 IS NOT NULL AND @S_ColumnId2_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ColumnId2_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_ColumnId2_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsBidirectional' AND [type] = 0) BEGIN
@@ -38218,13 +40031,17 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 IF @S_IsBidirectional_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS bit) FROM OPENJSON(@IsBidirectional_vals))'), '%1', 'COALESCE([D].[IsBidirectional], [O].[IsBidirectional])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@IsBidirectional'), '%1', 'COALESCE([D].[IsBidirectional], [O].[IsBidirectional])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsBidirectional], [O].[IsBidirectional]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsBidirectional_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsBidirectional], [O].[IsBidirectional]) ' + [C].[SqlComparator] + ' @IsBidirectional_v1 AND @IsBidirectional_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsBidirectional], [O].[IsBidirectional]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsBidirectional], [O].[IsBidirectional]) ' + [C].[SqlComparator] + ' @IsBidirectional'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_IsBidirectional_comparator
                               AND (([C].[Arity] IS NULL AND @S_IsBidirectional_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_IsBidirectional_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_IsBidirectional_v1 IS NOT NULL AND @S_IsBidirectional_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsBidirectional_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -38234,7 +40051,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId1 bigint,@ColumnId1_v1 bigint,@ColumnId1_v2 bigint,@ColumnId1_vals NVARCHAR(MAX),@ColumnId2 bigint,@ColumnId2_v1 bigint,@ColumnId2_v2 bigint,@ColumnId2_vals NVARCHAR(MAX),@IsBidirectional bit,@IsBidirectional_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId1 bigint,@ColumnId1_v1 bigint,@ColumnId1_v2 bigint,@ColumnId1_vals NVARCHAR(MAX),@ColumnId2 bigint,@ColumnId2_v1 bigint,@ColumnId2_v2 bigint,@ColumnId2_vals NVARCHAR(MAX),@IsBidirectional bit,@IsBidirectional_v1 bit,@IsBidirectional_v2 bit,@IsBidirectional_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -38248,6 +40065,8 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                        ,@ColumnId2_v2 = @S_ColumnId2_v2
                                        ,@ColumnId2_vals = @S_ColumnId2_vals
                                        ,@IsBidirectional = @S_IsBidirectional_v
+                                       ,@IsBidirectional_v1 = @S_IsBidirectional_v1
+                                       ,@IsBidirectional_v2 = @S_IsBidirectional_v2
                                        ,@IsBidirectional_vals = @S_IsBidirectional_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
@@ -38491,7 +40310,7 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Comparators] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Comparators', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -38504,7 +40323,7 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
                                   AND [Symbol] = JSON_VALUE(@LastRecord, '$.Symbol')
                                   AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
                                   AND [dbo].[IS_EQUAL]([Arity], JSON_VALUE(@LastRecord, '$.Arity'), 'tinyint') = 1
-                                  AND [dbo].[IS_EQUAL]([SqlCode], JSON_VALUE(@LastRecord, '$.SqlCode'), 'nvarchar') = 1)
+                                  AND [dbo].[IS_EQUAL]([SqlComparator], JSON_VALUE(@LastRecord, '$.SqlComparator'), 'nvarchar') = 1)
             AND NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
                             WHERE [TransactionId] = @TransactionId
@@ -38514,7 +40333,7 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Symbol') = JSON_VALUE(@LastRecord, '$.Symbol')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
                                   AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Arity'), JSON_VALUE(@LastRecord, '$.Arity'), 'tinyint') = 1
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SqlCode'), JSON_VALUE(@LastRecord, '$.SqlCode'), 'nvarchar') = 1)
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SqlComparator'), JSON_VALUE(@LastRecord, '$.SqlComparator'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Comparators alterado por outro usuário', 1
         END
 
@@ -38527,7 +40346,7 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
             DECLARE @W_Symbol nchar(1) = CAST(JSON_VALUE(@ActualRecord, '$.Symbol') AS nchar(1))
                    ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Arity tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Arity') AS tinyint)
-                   ,@W_SqlCode nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.SqlCode') AS nvarchar(50))
+                   ,@W_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.SqlComparator') AS nvarchar(15))
 
             IF @W_Symbol IS NULL
                 THROW 51000, 'Valor de Symbol em @ActualRecord é requerido.', 1
@@ -38562,7 +40381,7 @@ ALTER PROCEDURE [dbo].[ComparatorPersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -38604,6 +40423,7 @@ ALTER PROCEDURE [dbo].[ComparatorPersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -38622,6 +40442,7 @@ ALTER PROCEDURE [dbo].[ComparatorPersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -38684,7 +40505,7 @@ ALTER PROCEDURE [dbo].[ComparatorCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -38726,22 +40547,24 @@ ALTER PROCEDURE [dbo].[ComparatorCreate](@Login NVARCHAR(MAX)
         DECLARE @W_Symbol nchar(1) = CAST(JSON_VALUE(@ActualRecord, '$.Symbol') AS nchar(1))
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
                ,@W_Arity tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Arity') AS tinyint)
-               ,@W_SqlCode nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.SqlCode') AS nvarchar(50))
+               ,@W_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.SqlComparator') AS nvarchar(15))
 
+        SET IDENTITY_INSERT [dbo].[Comparators] ON
         INSERT INTO [dbo].[Comparators] ([Id]
                                             ,[Symbol]
                                             ,[Description]
                                             ,[Arity]
-                                            ,[SqlCode]
+                                            ,[SqlComparator]
                                             ,[CreatedAt]
                                             ,[CreatedBy])
                                       VALUES (@W_Id
                                              ,@W_Symbol
                                              ,@W_Description
                                              ,@W_Arity
-                                             ,@W_SqlCode
+                                             ,@W_SqlComparator
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Comparators] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -38772,7 +40595,7 @@ ALTER PROCEDURE [dbo].[ComparatorUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -38814,13 +40637,12 @@ ALTER PROCEDURE [dbo].[ComparatorUpdate](@Login NVARCHAR(MAX)
         DECLARE @W_Symbol nchar(1) = CAST(JSON_VALUE(@ActualRecord, '$.Symbol') AS nchar(1))
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
                ,@W_Arity tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Arity') AS tinyint)
-               ,@W_SqlCode nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.SqlCode') AS nvarchar(50))
+               ,@W_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.SqlComparator') AS nvarchar(15))
 
-        UPDATE [dbo].[Comparators] SET [Id] = @W_Id
-                                          ,[Symbol] = @W_Symbol
+        UPDATE [dbo].[Comparators] SET [Symbol] = @W_Symbol
                                           ,[Description] = @W_Description
                                           ,[Arity] = @W_Arity
-                                          ,[SqlCode] = @W_SqlCode
+                                          ,[SqlComparator] = @W_SqlComparator
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
             WHERE [Id] = @W_Id
@@ -38854,7 +40676,7 @@ ALTER PROCEDURE [dbo].[ComparatorDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -38925,13 +40747,13 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -38972,7 +40794,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
             SET @OrderBy = '[T].[Symbol] ASC, [T].[Id] ASC'
         DECLARE @PickerValue nchar(1) = NULL
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -38981,7 +40803,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Symbol') AS nchar(1)) AS [Symbol]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Arity') AS tinyint) AS [Arity]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SqlCode') AS nvarchar(50)) AS [SqlCode]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SqlComparator') AS nvarchar(15)) AS [SqlComparator]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -38998,7 +40820,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                ,@WT_Symbol nchar(1) = CAST(JSON_VALUE(@Filter, '$.Symbol') AS nchar(1))
                ,@WT_Description nvarchar(50) = CAST(JSON_VALUE(@Filter, '$.Description') AS nvarchar(50))
                ,@WT_Arity tinyint = CAST(JSON_VALUE(@Filter, '$.Arity') AS tinyint)
-               ,@WT_SqlCode nvarchar(50) = CAST(JSON_VALUE(@Filter, '$.SqlCode') AS nvarchar(50))
+               ,@WT_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@Filter, '$.SqlComparator') AS nvarchar(15))
 
         IF @WT_Id IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[Id] = @T_Id'
@@ -39018,10 +40840,10 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
         ELSE IF @WT_Arity IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[Arity] = @T_Arity'
         END
-        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SqlCode' AND [type] = 0)
-            SET @Where = @Where + ' AND [T].[SqlCode] IS NULL'
-        ELSE IF @WT_SqlCode IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[SqlCode] = @T_SqlCode'
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SqlComparator' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[SqlComparator] IS NULL'
+        ELSE IF @WT_SqlComparator IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[SqlComparator] = @T_SqlComparator'
         END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@Filter, '$.Picker.Value') AS nchar(1))
@@ -39037,17 +40859,23 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                    ,@G_Symbol_comparator TINYINT
                    ,@G_Symbol_v nchar(1)
                    ,@G_Symbol_vals NVARCHAR(MAX)
+                   ,@G_Symbol_v1 nchar(1)
+                   ,@G_Symbol_v2 nchar(1)
                    ,@G_Description_comparator TINYINT
                    ,@G_Description_v nvarchar(50)
                    ,@G_Description_vals NVARCHAR(MAX)
+                   ,@G_Description_v1 nvarchar(50)
+                   ,@G_Description_v2 nvarchar(50)
                    ,@G_Arity_comparator TINYINT
                    ,@G_Arity_v tinyint
                    ,@G_Arity_vals NVARCHAR(MAX)
                    ,@G_Arity_v1 tinyint
                    ,@G_Arity_v2 tinyint
-                   ,@G_SqlCode_comparator TINYINT
-                   ,@G_SqlCode_v nvarchar(50)
-                   ,@G_SqlCode_vals NVARCHAR(MAX)
+                   ,@G_SqlComparator_comparator TINYINT
+                   ,@G_SqlComparator_v nvarchar(15)
+                   ,@G_SqlComparator_vals NVARCHAR(MAX)
+                   ,@G_SqlComparator_v1 nvarchar(15)
+                   ,@G_SqlComparator_v2 nvarchar(15)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -39075,6 +40903,8 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Symbol.value'),
                 JSON_QUERY(@Filter, '$.Symbol')
             )
+            SELECT @G_Symbol_v1 = TRY_CAST(JSON_VALUE(@G_Symbol_vals, '$[0]') AS nchar(1))
+                  ,@G_Symbol_v2 = TRY_CAST(JSON_VALUE(@G_Symbol_vals, '$[1]') AS nchar(1))
             SELECT @G_Description_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Description.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.Description') IS NOT NULL AND JSON_QUERY(@Filter, '$.Description') IS NULL THEN 3 END
@@ -39087,6 +40917,8 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.Description.value'),
                 JSON_QUERY(@Filter, '$.Description')
             )
+            SELECT @G_Description_v1 = TRY_CAST(JSON_VALUE(@G_Description_vals, '$[0]') AS nvarchar(50))
+                  ,@G_Description_v2 = TRY_CAST(JSON_VALUE(@G_Description_vals, '$[1]') AS nvarchar(50))
             SELECT @G_Arity_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Arity.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.Arity') IS NOT NULL AND JSON_QUERY(@Filter, '$.Arity') IS NULL THEN 3 END
@@ -39101,30 +40933,34 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
             )
             SELECT @G_Arity_v1 = TRY_CAST(JSON_VALUE(@G_Arity_vals, '$[0]') AS tinyint)
                   ,@G_Arity_v2 = TRY_CAST(JSON_VALUE(@G_Arity_vals, '$[1]') AS tinyint)
-            SELECT @G_SqlCode_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.SqlCode.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.SqlCode') IS NOT NULL AND JSON_QUERY(@Filter, '$.SqlCode') IS NULL THEN 3 END
+            SELECT @G_SqlComparator_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.SqlComparator.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.SqlComparator') IS NOT NULL AND JSON_QUERY(@Filter, '$.SqlComparator') IS NULL THEN 3 END
             )
-                  ,@G_SqlCode_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.SqlCode.value') AS nvarchar(50)),
-                TRY_CAST(JSON_VALUE(@Filter, '$.SqlCode') AS nvarchar(50))
+                  ,@G_SqlComparator_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.SqlComparator.value') AS nvarchar(15)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.SqlComparator') AS nvarchar(15))
             )
-                  ,@G_SqlCode_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.SqlCode.value'),
-                JSON_QUERY(@Filter, '$.SqlCode')
+                  ,@G_SqlComparator_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.SqlComparator.value'),
+                JSON_QUERY(@Filter, '$.SqlComparator')
             )
+            SELECT @G_SqlComparator_v1 = TRY_CAST(JSON_VALUE(@G_SqlComparator_vals, '$[0]') AS nvarchar(15))
+                  ,@G_SqlComparator_v2 = TRY_CAST(JSON_VALUE(@G_SqlComparator_vals, '$[1]') AS nvarchar(15))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Symbol' AND [type] = 0)
@@ -39132,13 +40968,17 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Symbol_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nchar(1)) FROM OPENJSON(@Symbol_vals))'), '%1', '[T].[Symbol]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Symbol'), '%1', '[T].[Symbol]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Symbol] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nchar(1)) FROM OPENJSON(@Symbol_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Symbol] ' + [C].[SqlComparator] + ' @Symbol_v1 AND @Symbol_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Symbol] ' + [C].[SqlComparator]
+        ELSE '[T].[Symbol] ' + [C].[SqlComparator] + ' @Symbol'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Symbol_comparator
                           AND (([C].[Arity] IS NULL AND @G_Symbol_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Symbol_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Symbol_v1 IS NOT NULL AND @G_Symbol_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Symbol_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Description' AND [type] = 0)
@@ -39146,13 +40986,17 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Description_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Description_vals))'), '%1', '[T].[Description]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Description'), '%1', '[T].[Description]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Description] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Description_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Description] ' + [C].[SqlComparator] + ' @Description_v1 AND @Description_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Description] ' + [C].[SqlComparator]
+        ELSE '[T].[Description] ' + [C].[SqlComparator] + ' @Description'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Description_comparator
                           AND (([C].[Arity] IS NULL AND @G_Description_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Description_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_Description_v1 IS NOT NULL AND @G_Description_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Description_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Arity' AND [type] = 0)
@@ -39160,29 +41004,35 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_Arity_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Arity_vals))'), '%1', '[T].[Arity]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Arity_v2'), '%2', '@Arity_v1'), '%1', '[T].[Arity]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Arity'), '%1', '[T].[Arity]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Arity] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Arity_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Arity] ' + [C].[SqlComparator] + ' @Arity_v1 AND @Arity_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Arity] ' + [C].[SqlComparator]
+        ELSE '[T].[Arity] ' + [C].[SqlComparator] + ' @Arity'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Arity_comparator
                           AND (([C].[Arity] IS NULL AND @G_Arity_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Arity_v1 IS NOT NULL AND @G_Arity_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Arity_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Arity_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SqlCode' AND [type] = 0)
-                SET @Where = @Where + ' AND [T].[SqlCode] IS NULL'
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'SqlComparator' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[SqlComparator] IS NULL'
             ELSE
-            IF @G_SqlCode_comparator IS NOT NULL BEGIN
+            IF @G_SqlComparator_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@SqlCode_vals))'), '%1', '[T].[SqlCode]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SqlCode'), '%1', '[T].[SqlCode]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[SqlComparator] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@SqlComparator_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[SqlComparator] ' + [C].[SqlComparator] + ' @SqlComparator_v1 AND @SqlComparator_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[SqlComparator] ' + [C].[SqlComparator]
+        ELSE '[T].[SqlComparator] ' + [C].[SqlComparator] + ' @SqlComparator'
     END
                     FROM [dbo].[Comparators] [C]
-                    WHERE [C].[Id] = @G_SqlCode_comparator
-                          AND (([C].[Arity] IS NULL AND @G_SqlCode_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_SqlCode_v IS NOT NULL))
+                    WHERE [C].[Id] = @G_SqlComparator_comparator
+                          AND (([C].[Arity] IS NULL AND @G_SqlComparator_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_SqlComparator_v1 IS NOT NULL AND @G_SqlComparator_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_SqlComparator_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -39208,43 +41058,49 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nchar(1),@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlCode nvarchar(50)'
+                               ,N'@PickerValue nchar(1),@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15)'
                                ,@PickerValue = @PickerValue
                                ,@T_Id = @WT_Id
                                ,@T_Symbol = @WT_Symbol
                                ,@T_Description = @WT_Description
                                ,@T_Arity = @WT_Arity
-                               ,@T_SqlCode = @WT_SqlCode
+                               ,@T_SqlComparator = @WT_SqlComparator
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlCode nvarchar(50),@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlCode nvarchar(50),@SqlCode_vals NVARCHAR(MAX)'
+                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15),@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_v1 nchar(1),@Symbol_v2 nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlComparator nvarchar(15),@SqlComparator_v1 nvarchar(15),@SqlComparator_v2 nvarchar(15),@SqlComparator_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Symbol = @WT_Symbol
                                ,@T_Description = @WT_Description
                                ,@T_Arity = @WT_Arity
-                               ,@T_SqlCode = @WT_SqlCode
+                               ,@T_SqlComparator = @WT_SqlComparator
                                ,@Id = @G_Id_v
                                ,@Id_v1 = @G_Id_v1
                                ,@Id_v2 = @G_Id_v2
                                ,@Id_vals = @G_Id_vals
                                ,@Symbol = @G_Symbol_v
+                               ,@Symbol_v1 = @G_Symbol_v1
+                               ,@Symbol_v2 = @G_Symbol_v2
                                ,@Symbol_vals = @G_Symbol_vals
                                ,@Description = @G_Description_v
+                               ,@Description_v1 = @G_Description_v1
+                               ,@Description_v2 = @G_Description_v2
                                ,@Description_vals = @G_Description_vals
                                ,@Arity = @G_Arity_v
                                ,@Arity_v1 = @G_Arity_v1
                                ,@Arity_v2 = @G_Arity_v2
                                ,@Arity_vals = @G_Arity_vals
-                               ,@SqlCode = @G_SqlCode_v
-                               ,@SqlCode_vals = @G_SqlCode_vals
+                               ,@SqlComparator = @G_SqlComparator_v
+                               ,@SqlComparator_v1 = @G_SqlComparator_v1
+                               ,@SqlComparator_v2 = @G_SqlComparator_v2
+                               ,@SqlComparator_vals = @G_SqlComparator_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlCode nvarchar(50)'
+                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15)'
                                ,@T_Id = @WT_Id
                                ,@T_Symbol = @WT_Symbol
                                ,@T_Description = @WT_Description
                                ,@T_Arity = @WT_Arity
-                               ,@T_SqlCode = @WT_SqlCode
+                               ,@T_SqlComparator = @WT_SqlComparator
         END
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -39269,17 +41125,23 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                    ,@S_Symbol_comparator TINYINT
                    ,@S_Symbol_v nchar(1)
                    ,@S_Symbol_vals NVARCHAR(MAX)
+                   ,@S_Symbol_v1 nchar(1)
+                   ,@S_Symbol_v2 nchar(1)
                    ,@S_Description_comparator TINYINT
                    ,@S_Description_v nvarchar(50)
                    ,@S_Description_vals NVARCHAR(MAX)
+                   ,@S_Description_v1 nvarchar(50)
+                   ,@S_Description_v2 nvarchar(50)
                    ,@S_Arity_comparator TINYINT
                    ,@S_Arity_v tinyint
                    ,@S_Arity_vals NVARCHAR(MAX)
                    ,@S_Arity_v1 tinyint
                    ,@S_Arity_v2 tinyint
-                   ,@S_SqlCode_comparator TINYINT
-                   ,@S_SqlCode_v nvarchar(50)
-                   ,@S_SqlCode_vals NVARCHAR(MAX)
+                   ,@S_SqlComparator_comparator TINYINT
+                   ,@S_SqlComparator_v nvarchar(15)
+                   ,@S_SqlComparator_vals NVARCHAR(MAX)
+                   ,@S_SqlComparator_v1 nvarchar(15)
+                   ,@S_SqlComparator_v2 nvarchar(15)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -39307,6 +41169,8 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Symbol.value'),
                     JSON_QUERY(@Search, '$.Symbol')
                 )
+                SELECT @S_Symbol_v1 = TRY_CAST(JSON_VALUE(@S_Symbol_vals, '$[0]') AS nchar(1))
+                      ,@S_Symbol_v2 = TRY_CAST(JSON_VALUE(@S_Symbol_vals, '$[1]') AS nchar(1))
                 SELECT @S_Description_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Description.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.Description') IS NOT NULL AND JSON_QUERY(@Search, '$.Description') IS NULL THEN 9 END
@@ -39319,6 +41183,8 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.Description.value'),
                     JSON_QUERY(@Search, '$.Description')
                 )
+                SELECT @S_Description_v1 = TRY_CAST(JSON_VALUE(@S_Description_vals, '$[0]') AS nvarchar(50))
+                      ,@S_Description_v2 = TRY_CAST(JSON_VALUE(@S_Description_vals, '$[1]') AS nvarchar(50))
                 SELECT @S_Arity_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Arity.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.Arity') IS NOT NULL AND JSON_QUERY(@Search, '$.Arity') IS NULL THEN 3 END
@@ -39333,32 +41199,36 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                 )
                 SELECT @S_Arity_v1 = TRY_CAST(JSON_VALUE(@S_Arity_vals, '$[0]') AS tinyint)
                       ,@S_Arity_v2 = TRY_CAST(JSON_VALUE(@S_Arity_vals, '$[1]') AS tinyint)
-                SELECT @S_SqlCode_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.SqlCode.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.SqlCode') IS NOT NULL AND JSON_QUERY(@Search, '$.SqlCode') IS NULL THEN 9 END
+                SELECT @S_SqlComparator_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.SqlComparator.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.SqlComparator') IS NOT NULL AND JSON_QUERY(@Search, '$.SqlComparator') IS NULL THEN 9 END
                 )
-                      ,@S_SqlCode_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.SqlCode.value') AS nvarchar(50)),
-                    TRY_CAST(JSON_VALUE(@Search, '$.SqlCode') AS nvarchar(50))
+                      ,@S_SqlComparator_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.SqlComparator.value') AS nvarchar(15)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.SqlComparator') AS nvarchar(15))
                 )
-                      ,@S_SqlCode_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.SqlCode.value'),
-                    JSON_QUERY(@Search, '$.SqlCode')
+                      ,@S_SqlComparator_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.SqlComparator.value'),
+                    JSON_QUERY(@Search, '$.SqlComparator')
                 )
+                SELECT @S_SqlComparator_v1 = TRY_CAST(JSON_VALUE(@S_SqlComparator_vals, '$[0]') AS nvarchar(15))
+                      ,@S_SqlComparator_v2 = TRY_CAST(JSON_VALUE(@S_SqlComparator_vals, '$[1]') AS nvarchar(15))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Symbol' AND [type] = 0) BEGIN
@@ -39368,13 +41238,17 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                 IF @S_Symbol_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nchar(1)) FROM OPENJSON(@Symbol_vals))'), '%1', 'COALESCE([D].[Symbol], [O].[Symbol])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Symbol'), '%1', 'COALESCE([D].[Symbol], [O].[Symbol])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Symbol], [O].[Symbol]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nchar(1)) FROM OPENJSON(@Symbol_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Symbol], [O].[Symbol]) ' + [C].[SqlComparator] + ' @Symbol_v1 AND @Symbol_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Symbol], [O].[Symbol]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Symbol], [O].[Symbol]) ' + [C].[SqlComparator] + ' @Symbol'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Symbol_comparator
                               AND (([C].[Arity] IS NULL AND @S_Symbol_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Symbol_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Symbol_v1 IS NOT NULL AND @S_Symbol_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Symbol_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Description' AND [type] = 0) BEGIN
@@ -39384,13 +41258,17 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                 IF @S_Description_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Description_vals))'), '%1', 'COALESCE([D].[Description], [O].[Description])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Description'), '%1', 'COALESCE([D].[Description], [O].[Description])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Description_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator] + ' @Description_v1 AND @Description_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator] + ' @Description'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Description_comparator
                               AND (([C].[Arity] IS NULL AND @S_Description_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Description_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_Description_v1 IS NOT NULL AND @S_Description_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Description_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Arity' AND [type] = 0) BEGIN
@@ -39400,31 +41278,37 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                 IF @S_Arity_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Arity_vals))'), '%1', 'COALESCE([D].[Arity], [O].[Arity])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Arity_v2'), '%2', '@Arity_v1'), '%1', 'COALESCE([D].[Arity], [O].[Arity])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Arity'), '%1', 'COALESCE([D].[Arity], [O].[Arity])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Arity], [O].[Arity]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Arity_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Arity], [O].[Arity]) ' + [C].[SqlComparator] + ' @Arity_v1 AND @Arity_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Arity], [O].[Arity]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Arity], [O].[Arity]) ' + [C].[SqlComparator] + ' @Arity'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Arity_comparator
                               AND (([C].[Arity] IS NULL AND @S_Arity_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Arity_v1 IS NOT NULL AND @S_Arity_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Arity_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Arity_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
-                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'SqlCode' AND [type] = 0) BEGIN
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'SqlComparator' AND [type] = 0) BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
-                    SET @Where = @Where + 'COALESCE([D].[SqlCode], [O].[SqlCode]) IS NULL'
+                    SET @Where = @Where + 'COALESCE([D].[SqlComparator], [O].[SqlComparator]) IS NULL'
                 END ELSE
-                IF @S_SqlCode_comparator IS NOT NULL BEGIN
+                IF @S_SqlComparator_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@SqlCode_vals))'), '%1', 'COALESCE([D].[SqlCode], [O].[SqlCode])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@SqlCode'), '%1', 'COALESCE([D].[SqlCode], [O].[SqlCode])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[SqlComparator], [O].[SqlComparator]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@SqlComparator_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[SqlComparator], [O].[SqlComparator]) ' + [C].[SqlComparator] + ' @SqlComparator_v1 AND @SqlComparator_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[SqlComparator], [O].[SqlComparator]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[SqlComparator], [O].[SqlComparator]) ' + [C].[SqlComparator] + ' @SqlComparator'
     END
                         FROM [dbo].[Comparators] [C]
-                        WHERE [C].[Id] = @S_SqlCode_comparator
-                              AND (([C].[Arity] IS NULL AND @S_SqlCode_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_SqlCode_v IS NOT NULL))
+                        WHERE [C].[Id] = @S_SqlComparator_comparator
+                              AND (([C].[Arity] IS NULL AND @S_SqlComparator_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_SqlComparator_v1 IS NOT NULL AND @S_SqlComparator_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_SqlComparator_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -39434,21 +41318,27 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlCode nvarchar(50),@SqlCode_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_v1 nchar(1),@Symbol_v2 nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlComparator nvarchar(15),@SqlComparator_v1 nvarchar(15),@SqlComparator_v2 nvarchar(15),@SqlComparator_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
                                        ,@Id_vals = @S_Id_vals
                                        ,@Symbol = @S_Symbol_v
+                                       ,@Symbol_v1 = @S_Symbol_v1
+                                       ,@Symbol_v2 = @S_Symbol_v2
                                        ,@Symbol_vals = @S_Symbol_vals
                                        ,@Description = @S_Description_v
+                                       ,@Description_v1 = @S_Description_v1
+                                       ,@Description_v2 = @S_Description_v2
                                        ,@Description_vals = @S_Description_vals
                                        ,@Arity = @S_Arity_v
                                        ,@Arity_v1 = @S_Arity_v1
                                        ,@Arity_v2 = @S_Arity_v2
                                        ,@Arity_vals = @S_Arity_vals
-                                       ,@SqlCode = @S_SqlCode_v
-                                       ,@SqlCode_vals = @S_SqlCode_vals
+                                       ,@SqlComparator = @S_SqlComparator_v
+                                       ,@SqlComparator_v1 = @S_SqlComparator_v1
+                                       ,@SqlComparator_v2 = @S_SqlComparator_v2
+                                       ,@SqlComparator_vals = @S_SqlComparator_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
                     IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
@@ -39468,7 +41358,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nchar(1)) AS [Symbol]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
                     ,CAST(NULL AS tinyint) AS [Arity]
-                    ,CAST(NULL AS nvarchar(50)) AS [SqlCode]
+                    ,CAST(NULL AS nvarchar(15)) AS [SqlComparator]
             INTO [#result]
         SET @sql = 'INSERT [#result]
                         SELECT ''Comparator'' AS [Kind]
@@ -39477,7 +41367,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                               ,[T].[Symbol]
                               ,[T].[Description]
                               ,[T].[Arity]
-                              ,[T].[SqlCode]
+                              ,[T].[SqlComparator]
                             FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Comparators] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
@@ -39488,7 +41378,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                                   ,[O].[Symbol]
                                   ,[O].[Description]
                                   ,[O].[Arity]
-                                  ,[O].[SqlCode]
+                                  ,[O].[SqlComparator]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
@@ -39502,7 +41392,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                       ,[Symbol] AS [ListItemValue]
                       ,[Description]
                       ,[Arity]
-                      ,[SqlCode]
+                      ,[SqlComparator]
                     FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
@@ -39588,7 +41478,7 @@ ALTER PROCEDURE [dbo].[RuleValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Rules] WHERE [Id] = @W_Id)
             THROW 51000, 'Chave-primária não existe em Rules', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -39653,7 +41543,7 @@ ALTER PROCEDURE [dbo].[RulePersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -39695,6 +41585,7 @@ ALTER PROCEDURE [dbo].[RulePersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -39713,6 +41604,7 @@ ALTER PROCEDURE [dbo].[RulePersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -39775,7 +41667,7 @@ ALTER PROCEDURE [dbo].[RuleCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -39817,6 +41709,7 @@ ALTER PROCEDURE [dbo].[RuleCreate](@Login NVARCHAR(MAX)
         DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
                ,@W_ComparatorId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.ComparatorId') AS tinyint)
 
+        SET IDENTITY_INSERT [dbo].[Rules] ON
         INSERT INTO [dbo].[Rules] ([Id]
                                             ,[CategoryId]
                                             ,[ComparatorId]
@@ -39827,6 +41720,7 @@ ALTER PROCEDURE [dbo].[RuleCreate](@Login NVARCHAR(MAX)
                                              ,@W_ComparatorId
                                              ,GETDATE()
                                              ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Rules] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -39857,7 +41751,7 @@ ALTER PROCEDURE [dbo].[RuleUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -39899,8 +41793,7 @@ ALTER PROCEDURE [dbo].[RuleUpdate](@Login NVARCHAR(MAX)
         DECLARE @W_CategoryId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS tinyint)
                ,@W_ComparatorId tinyint = CAST(JSON_VALUE(@ActualRecord, '$.ComparatorId') AS tinyint)
 
-        UPDATE [dbo].[Rules] SET [Id] = @W_Id
-                                          ,[CategoryId] = @W_CategoryId
+        UPDATE [dbo].[Rules] SET [CategoryId] = @W_CategoryId
                                           ,[ComparatorId] = @W_ComparatorId
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
@@ -39935,7 +41828,7 @@ ALTER PROCEDURE [dbo].[RuleDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -40006,13 +41899,13 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -40050,7 +41943,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -40149,15 +42042,17 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', '[T].[Id]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', '[T].[Id]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', '[T].[Id]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_Id_comparator
                           AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'CategoryId' AND [type] = 0)
@@ -40165,15 +42060,17 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_CategoryId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@CategoryId_vals))'), '%1', '[T].[CategoryId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@CategoryId_v2'), '%2', '@CategoryId_v1'), '%1', '[T].[CategoryId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@CategoryId'), '%1', '[T].[CategoryId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[CategoryId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@CategoryId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[CategoryId] ' + [C].[SqlComparator] + ' @CategoryId_v1 AND @CategoryId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[CategoryId] ' + [C].[SqlComparator]
+        ELSE '[T].[CategoryId] ' + [C].[SqlComparator] + ' @CategoryId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_CategoryId_comparator
                           AND (([C].[Arity] IS NULL AND @G_CategoryId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_CategoryId_v1 IS NOT NULL AND @G_CategoryId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_CategoryId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_CategoryId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ComparatorId' AND [type] = 0)
@@ -40181,15 +42078,17 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_ComparatorId_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@ComparatorId_vals))'), '%1', '[T].[ComparatorId]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ComparatorId_v2'), '%2', '@ComparatorId_v1'), '%1', '[T].[ComparatorId]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ComparatorId'), '%1', '[T].[ComparatorId]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[ComparatorId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@ComparatorId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ComparatorId] ' + [C].[SqlComparator] + ' @ComparatorId_v1 AND @ComparatorId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ComparatorId] ' + [C].[SqlComparator]
+        ELSE '[T].[ComparatorId] ' + [C].[SqlComparator] + ' @ComparatorId'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_ComparatorId_comparator
                           AND (([C].[Arity] IS NULL AND @G_ComparatorId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_ComparatorId_v1 IS NOT NULL AND @G_ComparatorId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_ComparatorId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_ComparatorId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -40316,15 +42215,17 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                 IF @S_Id_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@Id_v2'), '%2', '@Id_v1'), '%1', 'COALESCE([D].[Id], [O].[Id])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@Id'), '%1', 'COALESCE([D].[Id], [O].[Id])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_Id_comparator
                               AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'CategoryId' AND [type] = 0) BEGIN
@@ -40334,15 +42235,17 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                 IF @S_CategoryId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@CategoryId_vals))'), '%1', 'COALESCE([D].[CategoryId], [O].[CategoryId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@CategoryId_v2'), '%2', '@CategoryId_v1'), '%1', 'COALESCE([D].[CategoryId], [O].[CategoryId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@CategoryId'), '%1', 'COALESCE([D].[CategoryId], [O].[CategoryId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@CategoryId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator] + ' @CategoryId_v1 AND @CategoryId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator] + ' @CategoryId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_CategoryId_comparator
                               AND (([C].[Arity] IS NULL AND @S_CategoryId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_CategoryId_v1 IS NOT NULL AND @S_CategoryId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_CategoryId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_CategoryId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ComparatorId' AND [type] = 0) BEGIN
@@ -40352,15 +42255,17 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                 IF @S_ComparatorId_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@ComparatorId_vals))'), '%1', 'COALESCE([D].[ComparatorId], [O].[ComparatorId])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@ComparatorId_v2'), '%2', '@ComparatorId_v1'), '%1', 'COALESCE([D].[ComparatorId], [O].[ComparatorId])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@ComparatorId'), '%1', 'COALESCE([D].[ComparatorId], [O].[ComparatorId])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@ComparatorId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator] + ' @ComparatorId_v1 AND @ComparatorId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator] + ' @ComparatorId'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_ComparatorId_comparator
                               AND (([C].[Arity] IS NULL AND @S_ComparatorId_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_ComparatorId_v1 IS NOT NULL AND @S_ComparatorId_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_ComparatorId_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_ComparatorId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -40446,7 +42351,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
               ,[R].[Symbol]
               ,[R].[Description]
               ,[R].[Arity]
-              ,[R].[SqlCode]
+              ,[R].[SqlComparator]
             INTO [#Comparators]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Comparators] [R] ON [R].[Id] = [T].[ComparatorId]
@@ -40557,7 +42462,7 @@ ALTER PROCEDURE [dbo].[testeValidate](@SessionId BIGINT
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk1') AS tinyint) = @W_pk1                                                AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk2') AS tinyint) = @W_pk2                                                AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk3') AS tinyint) = @W_pk3)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create'
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[testes] WHERE [pk1] = @W_pk1      AND [pk2] = @W_pk2      AND [pk3] = @W_pk3)
             THROW 51000, 'Chave-primária não existe em testes', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
@@ -40624,7 +42529,7 @@ ALTER PROCEDURE [dbo].[testePersist](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @OperationId BIGINT
                ,@CreatedBy NVARCHAR(25)
@@ -40657,6 +42562,7 @@ ALTER PROCEDURE [dbo].[testePersist](@Login NVARCHAR(MAX)
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk1') AS tinyint) = @W_pk1      AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk2') AS tinyint) = @W_pk2      AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk3') AS tinyint) = @W_pk3
         IF @@ROWCOUNT = 0 BEGIN
             EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
             INSERT INTO [dbo].[Operations] ([Id]
                                              ,[TransactionId]
                                              ,[TableName]
@@ -40675,6 +42581,7 @@ ALTER PROCEDURE [dbo].[testePersist](@Login NVARCHAR(MAX)
                                              ,NULL
                                              ,GETDATE()
                                              ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
         END ELSE IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
             THROW 51000, @ErrorMessage, 1
@@ -40737,7 +42644,7 @@ ALTER PROCEDURE [dbo].[testeCreate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -40831,7 +42738,7 @@ ALTER PROCEDURE [dbo].[testeUpdate](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -40917,7 +42824,7 @@ ALTER PROCEDURE [dbo].[testeDelete](@Login NVARCHAR(MAX)
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
     SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
     IF @SessionId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+        THROW 51000, 'SessionId é requerido', 1
 
     DECLARE @TransactionId BIGINT
                ,@TransactionIdAux BIGINT
@@ -40990,13 +42897,13 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
     SET NOCOUNT ON
     SET TRANSACTION ISOLATION LEVEL READ COMMITTED
 
-    DECLARE @LoginId BIGINT
+    DECLARE @SessionId BIGINT
     DECLARE @LoginReturn BIGINT
 
     EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @LoginId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @LoginId IS NULL
-        THROW 51000, 'LoginId é requerido', 1
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
 
         IF @Filter IS NULL
             SET @Filter = '{}'
@@ -41034,7 +42941,7 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 FROM STRING_SPLIT(@OrderBy, ',')
         END
 
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
 
         IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
             SET @TransactionId = NULL
@@ -41114,12 +43021,18 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                    ,@G_cpo1_comparator TINYINT
                    ,@G_cpo1_v nvarchar(25)
                    ,@G_cpo1_vals NVARCHAR(MAX)
+                   ,@G_cpo1_v1 nvarchar(25)
+                   ,@G_cpo1_v2 nvarchar(25)
                    ,@G_cpo2_comparator TINYINT
                    ,@G_cpo2_v nvarchar(25)
                    ,@G_cpo2_vals NVARCHAR(MAX)
+                   ,@G_cpo2_v1 nvarchar(25)
+                   ,@G_cpo2_v2 nvarchar(25)
                    ,@G_cpo3_comparator TINYINT
                    ,@G_cpo3_v nvarchar(25)
                    ,@G_cpo3_vals NVARCHAR(MAX)
+                   ,@G_cpo3_v1 nvarchar(25)
+                   ,@G_cpo3_v2 nvarchar(25)
                    ,@G_cpo4_comparator TINYINT
                    ,@G_cpo4_v tinyint
                    ,@G_cpo4_vals NVARCHAR(MAX)
@@ -41180,6 +43093,8 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.cpo1.value'),
                 JSON_QUERY(@Filter, '$.cpo1')
             )
+            SELECT @G_cpo1_v1 = TRY_CAST(JSON_VALUE(@G_cpo1_vals, '$[0]') AS nvarchar(25))
+                  ,@G_cpo1_v2 = TRY_CAST(JSON_VALUE(@G_cpo1_vals, '$[1]') AS nvarchar(25))
             SELECT @G_cpo2_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.cpo2.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.cpo2') IS NOT NULL AND JSON_QUERY(@Filter, '$.cpo2') IS NULL THEN 3 END
@@ -41192,6 +43107,8 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.cpo2.value'),
                 JSON_QUERY(@Filter, '$.cpo2')
             )
+            SELECT @G_cpo2_v1 = TRY_CAST(JSON_VALUE(@G_cpo2_vals, '$[0]') AS nvarchar(25))
+                  ,@G_cpo2_v2 = TRY_CAST(JSON_VALUE(@G_cpo2_vals, '$[1]') AS nvarchar(25))
             SELECT @G_cpo3_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.cpo3.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.cpo3') IS NOT NULL AND JSON_QUERY(@Filter, '$.cpo3') IS NULL THEN 3 END
@@ -41204,6 +43121,8 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 JSON_QUERY(@Filter, '$.cpo3.value'),
                 JSON_QUERY(@Filter, '$.cpo3')
             )
+            SELECT @G_cpo3_v1 = TRY_CAST(JSON_VALUE(@G_cpo3_vals, '$[0]') AS nvarchar(25))
+                  ,@G_cpo3_v2 = TRY_CAST(JSON_VALUE(@G_cpo3_vals, '$[1]') AS nvarchar(25))
             SELECT @G_cpo4_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.cpo4.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.cpo4') IS NOT NULL AND JSON_QUERY(@Filter, '$.cpo4') IS NULL THEN 3 END
@@ -41221,41 +43140,47 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
 
             IF @G_pk1_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'), '%1', '[T].[pk1]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@pk1_v2'), '%2', '@pk1_v1'), '%1', '[T].[pk1]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@pk1'), '%1', '[T].[pk1]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[pk1] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[pk1] ' + [C].[SqlComparator] + ' @pk1_v1 AND @pk1_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[pk1] ' + [C].[SqlComparator]
+        ELSE '[T].[pk1] ' + [C].[SqlComparator] + ' @pk1'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_pk1_comparator
                           AND (([C].[Arity] IS NULL AND @G_pk1_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_pk1_v1 IS NOT NULL AND @G_pk1_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_pk1_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_pk1_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF @G_pk2_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'), '%1', '[T].[pk2]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@pk2_v2'), '%2', '@pk2_v1'), '%1', '[T].[pk2]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@pk2'), '%1', '[T].[pk2]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[pk2] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[pk2] ' + [C].[SqlComparator] + ' @pk2_v1 AND @pk2_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[pk2] ' + [C].[SqlComparator]
+        ELSE '[T].[pk2] ' + [C].[SqlComparator] + ' @pk2'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_pk2_comparator
                           AND (([C].[Arity] IS NULL AND @G_pk2_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_pk2_v1 IS NOT NULL AND @G_pk2_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_pk2_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_pk2_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF @G_pk3_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'), '%1', '[T].[pk3]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@pk3_v2'), '%2', '@pk3_v1'), '%1', '[T].[pk3]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@pk3'), '%1', '[T].[pk3]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[pk3] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[pk3] ' + [C].[SqlComparator] + ' @pk3_v1 AND @pk3_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[pk3] ' + [C].[SqlComparator]
+        ELSE '[T].[pk3] ' + [C].[SqlComparator] + ' @pk3'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_pk3_comparator
                           AND (([C].[Arity] IS NULL AND @G_pk3_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_pk3_v1 IS NOT NULL AND @G_pk3_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_pk3_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_pk3_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo1' AND [type] = 0)
@@ -41263,13 +43188,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_cpo1_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'), '%1', '[T].[cpo1]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo1'), '%1', '[T].[cpo1]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[cpo1] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[cpo1] ' + [C].[SqlComparator] + ' @cpo1_v1 AND @cpo1_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[cpo1] ' + [C].[SqlComparator]
+        ELSE '[T].[cpo1] ' + [C].[SqlComparator] + ' @cpo1'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_cpo1_comparator
                           AND (([C].[Arity] IS NULL AND @G_cpo1_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_cpo1_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_cpo1_v1 IS NOT NULL AND @G_cpo1_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_cpo1_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo2' AND [type] = 0)
@@ -41277,13 +43206,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_cpo2_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'), '%1', '[T].[cpo2]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo2'), '%1', '[T].[cpo2]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[cpo2] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[cpo2] ' + [C].[SqlComparator] + ' @cpo2_v1 AND @cpo2_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[cpo2] ' + [C].[SqlComparator]
+        ELSE '[T].[cpo2] ' + [C].[SqlComparator] + ' @cpo2'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_cpo2_comparator
                           AND (([C].[Arity] IS NULL AND @G_cpo2_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_cpo2_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_cpo2_v1 IS NOT NULL AND @G_cpo2_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_cpo2_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo3' AND [type] = 0)
@@ -41291,13 +43224,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_cpo3_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'), '%1', '[T].[cpo3]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo3'), '%1', '[T].[cpo3]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[cpo3] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[cpo3] ' + [C].[SqlComparator] + ' @cpo3_v1 AND @cpo3_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[cpo3] ' + [C].[SqlComparator]
+        ELSE '[T].[cpo3] ' + [C].[SqlComparator] + ' @cpo3'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_cpo3_comparator
                           AND (([C].[Arity] IS NULL AND @G_cpo3_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_cpo3_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @G_cpo3_v1 IS NOT NULL AND @G_cpo3_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_cpo3_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
             IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo4' AND [type] = 0)
@@ -41305,15 +43242,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
             ELSE
             IF @G_cpo4_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'), '%1', '[T].[cpo4]')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@cpo4_v2'), '%2', '@cpo4_v1'), '%1', '[T].[cpo4]')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo4'), '%1', '[T].[cpo4]')
+        WHEN [C].[Arity] IS NULL THEN '[T].[cpo4] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[cpo4] ' + [C].[SqlComparator] + ' @cpo4_v1 AND @cpo4_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[cpo4] ' + [C].[SqlComparator]
+        ELSE '[T].[cpo4] ' + [C].[SqlComparator] + ' @cpo4'
     END
                     FROM [dbo].[Comparators] [C]
                     WHERE [C].[Id] = @G_cpo4_comparator
                           AND (([C].[Arity] IS NULL AND @G_cpo4_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @G_cpo4_v1 IS NOT NULL AND @G_cpo4_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @G_cpo4_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @G_cpo4_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
         END ELSE
@@ -41345,7 +43284,7 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_pk1 tinyint,@T_pk2 tinyint,@T_pk3 tinyint,@T_cpo1 nvarchar(25),@T_cpo2 nvarchar(25),@T_cpo3 nvarchar(25),@T_cpo4 tinyint,@pk1 tinyint,@pk1_v1 tinyint,@pk1_v2 tinyint,@pk1_vals NVARCHAR(MAX),@pk2 tinyint,@pk2_v1 tinyint,@pk2_v2 tinyint,@pk2_vals NVARCHAR(MAX),@pk3 tinyint,@pk3_v1 tinyint,@pk3_v2 tinyint,@pk3_vals NVARCHAR(MAX),@cpo1 nvarchar(25),@cpo1_vals NVARCHAR(MAX),@cpo2 nvarchar(25),@cpo2_vals NVARCHAR(MAX),@cpo3 nvarchar(25),@cpo3_vals NVARCHAR(MAX),@cpo4 tinyint,@cpo4_v1 tinyint,@cpo4_v2 tinyint,@cpo4_vals NVARCHAR(MAX)'
+                               ,N'@T_pk1 tinyint,@T_pk2 tinyint,@T_pk3 tinyint,@T_cpo1 nvarchar(25),@T_cpo2 nvarchar(25),@T_cpo3 nvarchar(25),@T_cpo4 tinyint,@pk1 tinyint,@pk1_v1 tinyint,@pk1_v2 tinyint,@pk1_vals NVARCHAR(MAX),@pk2 tinyint,@pk2_v1 tinyint,@pk2_v2 tinyint,@pk2_vals NVARCHAR(MAX),@pk3 tinyint,@pk3_v1 tinyint,@pk3_v2 tinyint,@pk3_vals NVARCHAR(MAX),@cpo1 nvarchar(25),@cpo1_v1 nvarchar(25),@cpo1_v2 nvarchar(25),@cpo1_vals NVARCHAR(MAX),@cpo2 nvarchar(25),@cpo2_v1 nvarchar(25),@cpo2_v2 nvarchar(25),@cpo2_vals NVARCHAR(MAX),@cpo3 nvarchar(25),@cpo3_v1 nvarchar(25),@cpo3_v2 nvarchar(25),@cpo3_vals NVARCHAR(MAX),@cpo4 tinyint,@cpo4_v1 tinyint,@cpo4_v2 tinyint,@cpo4_vals NVARCHAR(MAX)'
                                ,@T_pk1 = @WT_pk1
                                ,@T_pk2 = @WT_pk2
                                ,@T_pk3 = @WT_pk3
@@ -41366,10 +43305,16 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                                ,@pk3_v2 = @G_pk3_v2
                                ,@pk3_vals = @G_pk3_vals
                                ,@cpo1 = @G_cpo1_v
+                               ,@cpo1_v1 = @G_cpo1_v1
+                               ,@cpo1_v2 = @G_cpo1_v2
                                ,@cpo1_vals = @G_cpo1_vals
                                ,@cpo2 = @G_cpo2_v
+                               ,@cpo2_v1 = @G_cpo2_v1
+                               ,@cpo2_v2 = @G_cpo2_v2
                                ,@cpo2_vals = @G_cpo2_vals
                                ,@cpo3 = @G_cpo3_v
+                               ,@cpo3_v1 = @G_cpo3_v1
+                               ,@cpo3_v2 = @G_cpo3_v2
                                ,@cpo3_vals = @G_cpo3_vals
                                ,@cpo4 = @G_cpo4_v
                                ,@cpo4_v1 = @G_cpo4_v1
@@ -41419,12 +43364,18 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                    ,@S_cpo1_comparator TINYINT
                    ,@S_cpo1_v nvarchar(25)
                    ,@S_cpo1_vals NVARCHAR(MAX)
+                   ,@S_cpo1_v1 nvarchar(25)
+                   ,@S_cpo1_v2 nvarchar(25)
                    ,@S_cpo2_comparator TINYINT
                    ,@S_cpo2_v nvarchar(25)
                    ,@S_cpo2_vals NVARCHAR(MAX)
+                   ,@S_cpo2_v1 nvarchar(25)
+                   ,@S_cpo2_v2 nvarchar(25)
                    ,@S_cpo3_comparator TINYINT
                    ,@S_cpo3_v nvarchar(25)
                    ,@S_cpo3_vals NVARCHAR(MAX)
+                   ,@S_cpo3_v1 nvarchar(25)
+                   ,@S_cpo3_v2 nvarchar(25)
                    ,@S_cpo4_comparator TINYINT
                    ,@S_cpo4_v tinyint
                    ,@S_cpo4_vals NVARCHAR(MAX)
@@ -41485,6 +43436,8 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.cpo1.value'),
                     JSON_QUERY(@Search, '$.cpo1')
                 )
+                SELECT @S_cpo1_v1 = TRY_CAST(JSON_VALUE(@S_cpo1_vals, '$[0]') AS nvarchar(25))
+                      ,@S_cpo1_v2 = TRY_CAST(JSON_VALUE(@S_cpo1_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_cpo2_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.cpo2.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.cpo2') IS NOT NULL AND JSON_QUERY(@Search, '$.cpo2') IS NULL THEN 9 END
@@ -41497,6 +43450,8 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.cpo2.value'),
                     JSON_QUERY(@Search, '$.cpo2')
                 )
+                SELECT @S_cpo2_v1 = TRY_CAST(JSON_VALUE(@S_cpo2_vals, '$[0]') AS nvarchar(25))
+                      ,@S_cpo2_v2 = TRY_CAST(JSON_VALUE(@S_cpo2_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_cpo3_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.cpo3.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.cpo3') IS NOT NULL AND JSON_QUERY(@Search, '$.cpo3') IS NULL THEN 9 END
@@ -41509,6 +43464,8 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                     JSON_QUERY(@Search, '$.cpo3.value'),
                     JSON_QUERY(@Search, '$.cpo3')
                 )
+                SELECT @S_cpo3_v1 = TRY_CAST(JSON_VALUE(@S_cpo3_vals, '$[0]') AS nvarchar(25))
+                      ,@S_cpo3_v2 = TRY_CAST(JSON_VALUE(@S_cpo3_vals, '$[1]') AS nvarchar(25))
                 SELECT @S_cpo4_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.cpo4.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.cpo4') IS NOT NULL AND JSON_QUERY(@Search, '$.cpo4') IS NULL THEN 3 END
@@ -41528,43 +43485,49 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 IF @S_pk1_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'), '%1', 'COALESCE([D].[pk1], [O].[pk1])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@pk1_v2'), '%2', '@pk1_v1'), '%1', 'COALESCE([D].[pk1], [O].[pk1])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@pk1'), '%1', 'COALESCE([D].[pk1], [O].[pk1])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[pk1], [O].[pk1]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[pk1], [O].[pk1]) ' + [C].[SqlComparator] + ' @pk1_v1 AND @pk1_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[pk1], [O].[pk1]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[pk1], [O].[pk1]) ' + [C].[SqlComparator] + ' @pk1'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_pk1_comparator
                               AND (([C].[Arity] IS NULL AND @S_pk1_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_pk1_v1 IS NOT NULL AND @S_pk1_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_pk1_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_pk1_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @S_pk2_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'), '%1', 'COALESCE([D].[pk2], [O].[pk2])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@pk2_v2'), '%2', '@pk2_v1'), '%1', 'COALESCE([D].[pk2], [O].[pk2])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@pk2'), '%1', 'COALESCE([D].[pk2], [O].[pk2])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[pk2], [O].[pk2]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[pk2], [O].[pk2]) ' + [C].[SqlComparator] + ' @pk2_v1 AND @pk2_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[pk2], [O].[pk2]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[pk2], [O].[pk2]) ' + [C].[SqlComparator] + ' @pk2'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_pk2_comparator
                               AND (([C].[Arity] IS NULL AND @S_pk2_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_pk2_v1 IS NOT NULL AND @S_pk2_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_pk2_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_pk2_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @S_pk3_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'), '%1', 'COALESCE([D].[pk3], [O].[pk3])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@pk3_v2'), '%2', '@pk3_v1'), '%1', 'COALESCE([D].[pk3], [O].[pk3])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@pk3'), '%1', 'COALESCE([D].[pk3], [O].[pk3])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[pk3], [O].[pk3]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[pk3], [O].[pk3]) ' + [C].[SqlComparator] + ' @pk3_v1 AND @pk3_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[pk3], [O].[pk3]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[pk3], [O].[pk3]) ' + [C].[SqlComparator] + ' @pk3'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_pk3_comparator
                               AND (([C].[Arity] IS NULL AND @S_pk3_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_pk3_v1 IS NOT NULL AND @S_pk3_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_pk3_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_pk3_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo1' AND [type] = 0) BEGIN
@@ -41574,13 +43537,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 IF @S_cpo1_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'), '%1', 'COALESCE([D].[cpo1], [O].[cpo1])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo1'), '%1', 'COALESCE([D].[cpo1], [O].[cpo1])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[cpo1], [O].[cpo1]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[cpo1], [O].[cpo1]) ' + [C].[SqlComparator] + ' @cpo1_v1 AND @cpo1_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[cpo1], [O].[cpo1]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[cpo1], [O].[cpo1]) ' + [C].[SqlComparator] + ' @cpo1'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_cpo1_comparator
                               AND (([C].[Arity] IS NULL AND @S_cpo1_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_cpo1_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_cpo1_v1 IS NOT NULL AND @S_cpo1_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_cpo1_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo2' AND [type] = 0) BEGIN
@@ -41590,13 +43557,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 IF @S_cpo2_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'), '%1', 'COALESCE([D].[cpo2], [O].[cpo2])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo2'), '%1', 'COALESCE([D].[cpo2], [O].[cpo2])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[cpo2], [O].[cpo2]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[cpo2], [O].[cpo2]) ' + [C].[SqlComparator] + ' @cpo2_v1 AND @cpo2_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[cpo2], [O].[cpo2]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[cpo2], [O].[cpo2]) ' + [C].[SqlComparator] + ' @cpo2'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_cpo2_comparator
                               AND (([C].[Arity] IS NULL AND @S_cpo2_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_cpo2_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_cpo2_v1 IS NOT NULL AND @S_cpo2_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_cpo2_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo3' AND [type] = 0) BEGIN
@@ -41606,13 +43577,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 IF @S_cpo3_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'), '%1', 'COALESCE([D].[cpo3], [O].[cpo3])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo3'), '%1', 'COALESCE([D].[cpo3], [O].[cpo3])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[cpo3], [O].[cpo3]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[cpo3], [O].[cpo3]) ' + [C].[SqlComparator] + ' @cpo3_v1 AND @cpo3_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[cpo3], [O].[cpo3]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[cpo3], [O].[cpo3]) ' + [C].[SqlComparator] + ' @cpo3'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_cpo3_comparator
                               AND (([C].[Arity] IS NULL AND @S_cpo3_vals IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_cpo3_v IS NOT NULL))
+               OR ([C].[Arity] > 2 AND @S_cpo3_v1 IS NOT NULL AND @S_cpo3_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_cpo3_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo4' AND [type] = 0) BEGIN
@@ -41622,15 +43597,17 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                 IF @S_cpo4_comparator IS NOT NULL BEGIN
                     IF @Where <> '' SET @Where = @Where + ' AND '
                     SELECT @ComparatorPredicate = CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'), '%1', 'COALESCE([D].[cpo4], [O].[cpo4])')
-        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@cpo4_v2'), '%2', '@cpo4_v1'), '%1', 'COALESCE([D].[cpo4], [O].[cpo4])')
-        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@cpo4'), '%1', 'COALESCE([D].[cpo4], [O].[cpo4])')
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[cpo4], [O].[cpo4]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[cpo4], [O].[cpo4]) ' + [C].[SqlComparator] + ' @cpo4_v1 AND @cpo4_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[cpo4], [O].[cpo4]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[cpo4], [O].[cpo4]) ' + [C].[SqlComparator] + ' @cpo4'
     END
                         FROM [dbo].[Comparators] [C]
                         WHERE [C].[Id] = @S_cpo4_comparator
                               AND (([C].[Arity] IS NULL AND @S_cpo4_vals IS NOT NULL)
                OR ([C].[Arity] > 2 AND @S_cpo4_v1 IS NOT NULL AND @S_cpo4_v2 IS NOT NULL)
-               OR ([C].[Arity] = 2 AND @S_cpo4_v IS NOT NULL))
+               OR ([C].[Arity] = 2 AND @S_cpo4_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
                 IF @Where <> '' BEGIN
@@ -41640,7 +43617,7 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[pk1] = [#].[pk1] AND [O].[pk2] = [#].[pk2] AND [O].[pk3] = [#].[pk3] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@pk1 tinyint,@pk1_v1 tinyint,@pk1_v2 tinyint,@pk1_vals NVARCHAR(MAX),@pk2 tinyint,@pk2_v1 tinyint,@pk2_v2 tinyint,@pk2_vals NVARCHAR(MAX),@pk3 tinyint,@pk3_v1 tinyint,@pk3_v2 tinyint,@pk3_vals NVARCHAR(MAX),@cpo1 nvarchar(25),@cpo1_vals NVARCHAR(MAX),@cpo2 nvarchar(25),@cpo2_vals NVARCHAR(MAX),@cpo3 nvarchar(25),@cpo3_vals NVARCHAR(MAX),@cpo4 tinyint,@cpo4_v1 tinyint,@cpo4_v2 tinyint,@cpo4_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@pk1 tinyint,@pk1_v1 tinyint,@pk1_v2 tinyint,@pk1_vals NVARCHAR(MAX),@pk2 tinyint,@pk2_v1 tinyint,@pk2_v2 tinyint,@pk2_vals NVARCHAR(MAX),@pk3 tinyint,@pk3_v1 tinyint,@pk3_v2 tinyint,@pk3_vals NVARCHAR(MAX),@cpo1 nvarchar(25),@cpo1_v1 nvarchar(25),@cpo1_v2 nvarchar(25),@cpo1_vals NVARCHAR(MAX),@cpo2 nvarchar(25),@cpo2_v1 nvarchar(25),@cpo2_v2 nvarchar(25),@cpo2_vals NVARCHAR(MAX),@cpo3 nvarchar(25),@cpo3_v1 nvarchar(25),@cpo3_v2 nvarchar(25),@cpo3_vals NVARCHAR(MAX),@cpo4 tinyint,@cpo4_v1 tinyint,@cpo4_v2 tinyint,@cpo4_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@pk1 = @S_pk1_v
                                        ,@pk1_v1 = @S_pk1_v1
                                        ,@pk1_v2 = @S_pk1_v2
@@ -41654,10 +43631,16 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                                        ,@pk3_v2 = @S_pk3_v2
                                        ,@pk3_vals = @S_pk3_vals
                                        ,@cpo1 = @S_cpo1_v
+                                       ,@cpo1_v1 = @S_cpo1_v1
+                                       ,@cpo1_v2 = @S_cpo1_v2
                                        ,@cpo1_vals = @S_cpo1_vals
                                        ,@cpo2 = @S_cpo2_v
+                                       ,@cpo2_v1 = @S_cpo2_v1
+                                       ,@cpo2_v2 = @S_cpo2_v2
                                        ,@cpo2_vals = @S_cpo2_vals
                                        ,@cpo3 = @S_cpo3_v
+                                       ,@cpo3_v1 = @S_cpo3_v1
+                                       ,@cpo3_v2 = @S_cpo3_v2
                                        ,@cpo3_vals = @S_cpo3_vals
                                        ,@cpo4 = @S_cpo4_v
                                        ,@cpo4_v1 = @S_cpo4_v1

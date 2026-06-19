@@ -2,7 +2,7 @@
 
 import TConfig from "./TConfig.class.mjs";
 import TransportCrypto from "./TransportCrypto.class.mjs";
-import TGrid from "./TGrid.class.mjs";
+import TBrowse from "./TBrowse.class.mjs";
 import TCheckbox from "./TCheckbox.class.mjs";
 import TDropdown from "./TDropdown.class.mjs";
 import TScrollBar from "./TScrollBar.class.mjs";
@@ -62,7 +62,7 @@ export default class TSystem {
                 TSpinner.Initialize(config.Styles);
                 TScreen.Initialize(config.Styles, config.Images, withBackgroundImage);
                 TMenu.Initialize(config.Styles, config.Data.Menus);
-                TGrid.Initialize(config.Styles, config.Images);
+                TBrowse.Initialize(config.Styles, config.Images);
                 TForm.Initialize(config.Styles, config.Images);
                 TDropdown.Initialize(config.Styles);
                 TCheckbox.Initialize(config.Styles);
@@ -229,7 +229,7 @@ export default class TSystem {
                 TMenu.Renderize();
                 break;
             case this.#Actions.GRID:
-                new TGrid(newValue[1], newValue[2]).Renderize();
+                new TBrowse(newValue[1], newValue[2]).Renderize();
                 break;
             case TSystem.Actions.RELOAD:
                 document.location.reload(true);

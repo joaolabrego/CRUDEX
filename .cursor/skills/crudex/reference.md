@@ -353,7 +353,7 @@ Parâmetros típicos: `@LoginId`, `@RecordFilter` (JSON), `@OrderBy`, `@PaddingG
 `@RecordFilter` atual:
 - JSON **plano** coluna → valor (predominantemente igualdade)
 - Chave especial `$._` = array de Ids selecionados
-- Filtro/pesquisa do grid (`TGrid` → `TForm` FILTER/SEARCH) serializa `#FilterValues` / `#SearchValues` nesse formato
+- Filtro/pesquisa do grid (`TBrowse` → `TForm` FILTER/SEARCH) serializa `#FilterValues` / `#SearchValues` nesse formato
 
 ### `{Table}Read` Novíssimo (mudança grande — em teste)
 
@@ -375,7 +375,7 @@ Compilação: `WHERE col1 op val1 AND col2 op val2 AND …` via `Cmp.CodeSQL`.
 
 Mesclar com expressões fixas (`Exp`/`Cnd`) e `Prm` antes de executar a query.
 
-Frontend (`TGrid`/`TForm`): adaptar envio de FILTER/SEARCH para array de critérios (sem conector explícito).
+Frontend (`TBrowse`/`TForm`): adaptar envio de FILTER/SEARCH para array de critérios (sem conector explícito).
 
 ## `TRecordSet` (frontend — **implementado v1**)
 
@@ -436,15 +436,15 @@ Fluxo:
 ### Integração
 
 ```
-TGrid  ──→  TRecordSet  ──→  POST execute / {Table}Read  →  Table + Refs
+TBrowse  ──→  TRecordSet  ──→  POST execute / {Table}Read  →  Table + Refs
 TReport ──→  TRecordSet  ──→  (mesmo contrato; percorre todas as páginas)
 ```
 
-`TGrid` deixa de chamar `Read` diretamente; delega ao `TRecordSet`. Filtros fixos (`Exp`) vêm do servidor; filtros do usuário via métodos na classe.
+`TBrowse` deixa de chamar `Read` diretamente; delega ao `TRecordSet`. Filtros fixos (`Exp`) vêm do servidor; filtros do usuário via métodos na classe.
 
 ### `TRecordSet` — contrato com `Read` atual (para testes)
 
-Chamada via `TConfig.GetAPI('execute', …)` igual ao `TGrid` hoje:
+Chamada via `TConfig.GetAPI('execute', …)` igual ao `TBrowse` hoje:
 
 ```javascript
 Parameters: {
@@ -464,7 +464,7 @@ Filtro atual: JSON plano coluna→valor; depois trocar serialização para array
 
 - [x] **`TRecordSet` + `TRecord`** — v1 em `TRecordset.class.mjs` / `TRecord.class.mjs`
 - [ ] Testar no CRUDEX atual (ex.: `Categories`)
-- [x] `TGrid` delega ao `TRecordSet` (`#ReadDataPage` → `goPage`)
+- [x] `TBrowse` delega ao `TRecordSet` (`#ReadDataPage` → `goPage`)
 - [x] `TForm` usa `SelectedRecord` / `RecordSet.readOne` (compatível com Read JSON)
 - [x] **`TDropdown`** — seleção simples, multi, inclusão manual (IN), cardinalidade (BETWEEN)
 - [x] **`TForm`** — FK (`ReferenceTableId`) usa `TDropdown.Single` + `{Table}List` via `TList.fetchPage`

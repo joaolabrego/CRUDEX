@@ -40,7 +40,7 @@ ALTER PROCEDURE[dbo].[TransactionCommit](@Login NVARCHAR(MAX)
 
 	IF @SessionId IS NULL
 
-		THROW 51000, 'LoginId Ã© requerido', 1
+		THROW 51000, 'SessionId é requerido', 1
 
 	IF @TransactionId IS NULL
 
@@ -78,9 +78,9 @@ ALTER PROCEDURE[dbo].[TransactionCommit](@Login NVARCHAR(MAX)
 
 	SET @sql = (SELECT STRING_AGG(
 								  CASE [O].[Action]
-									  WHEN 'create' THEN '[dbo].[' + [T].[Alias] + 'Create] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
-									  WHEN 'update' THEN '[dbo].[' + [T].[Alias] + 'Update] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
-									  WHEN 'delete' THEN '[dbo].[' + [T].[Alias] + 'Delete] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'create' THEN 'EXEC [dbo].[' + [T].[Alias] + 'Create] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'update' THEN 'EXEC [dbo].[' + [T].[Alias] + 'Update] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
+									  WHEN 'delete' THEN 'EXEC [dbo].[' + [T].[Alias] + 'Delete] @Login = @Login, @OperationId = ' + CAST([O].[Id] AS VARCHAR(20))
 								  END, '; ')
 
 					FROM [dbo].[Operations] [O]

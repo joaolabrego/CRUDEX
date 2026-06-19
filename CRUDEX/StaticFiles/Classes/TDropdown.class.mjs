@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 
 import TCheckbox from "./TCheckbox.class.mjs";
 
@@ -136,11 +136,7 @@ export default class TDropdown {
         this.#applyReadOnlyState();
         this.#bindEvents();
 
-        if (options.nullCondition) {
-            this.#clearSingle();
-            if (this.#input)
-                this.#input.placeholder = "nulo";
-        } else if (options.value !== undefined && options.value !== null && options.value !== ""
+        if (options.value !== undefined && options.value !== null && options.value !== ""
             && !TCheckbox.isNullMarker(options.value)) {
             this.setValue(options.value, false);
         } else if (this.#isAddableMode())

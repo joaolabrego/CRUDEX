@@ -593,6 +593,26 @@ namespace crudex.Classes
         static DataRow? GetAutoIncrementPrimaryKeyColumn(TDataRows primaryColumns) =>
             primaryColumns.FirstOrDefault(column => Settings.ToBoolean(column["IsAutoIncrement"]));
 
+        static bool HasAutoIncrementPrimaryKey(TDataRows primaryColumns) =>
+            GetAutoIncrementPrimaryKeyColumn(primaryColumns) != null;
+
+        static void AppendIdentityInsertOn(StringBuilder result, string tableName, string indent) =>
+            result.Append($"{indent}SET IDENTITY_INSERT [dbo].[{tableName}] ON\r\n");
+
+        static void AppendIdentityInsertOff(StringBuilder result, string tableName, string indent) =>
+            result.Append($"{indent}SET IDENTITY_INSERT [dbo].[{tableName}] OFF\r\n");
+
+        static string BuildColumnDefinition(DataRow column, TDictionary constraints)
+        {
+            var required = $"{(constraints.TryGetValue("Required", out dynamic? value) ? value : "")}";
+            var autoIncrement = $"{(constraints.TryGetValue("AutoIncrement", out value) ? value : "")}";
+            var defaultValue = string.IsNullOrEmpty(autoIncrement)
+                ? $"{(constraints.TryGetValue("Default", out value) ? value : "")}"
+                : string.Empty;
+            var range = $"{(constraints.TryGetValue("Range", out value) ? value : "")}";
+            return $"[{column["Name"]}] {column["#DataType"]}{autoIncrement}{required}{defaultValue}{range}";
+        }
+
         static void AppendPrimaryKeyVariableDeclarations(StringBuilder result, TDataRows primaryColumns, string jsonVariable, string indent, bool useDeclare = true)
         {
             var firstTime = true;
@@ -1045,6 +1065,7 @@ namespace crudex.Classes
             result.Append($"    DECLARE @TransactionId BIGINT\r\n");
             result.Append($"\r\n");
             AppendNewIdCall(result, systemName, databaseName, tableName, "@TransactionId");
+            AppendIdentityInsertOn(result, tableName, "    ");
             result.Append($"    INSERT [dbo].[{tableName}] ([Id]\r\n");
             result.Append($"                                ,[SessionId]\r\n");
             result.Append($"                                ,[IsConfirmed]\r\n");
@@ -1055,6 +1076,7 @@ namespace crudex.Classes
             result.Append($"                                   ,NULL\r\n");
             result.Append($"                                   ,GETDATE()\r\n");
             result.Append($"                                   ,@UserName)\r\n");
+            AppendIdentityInsertOff(result, tableName, "    ");
             result.Append($"    SET @ReturnValue = @TransactionId\r\n");
             result.Append($"\r\n");
             result.Append($"    RETURN 0\r\n");
@@ -1119,17 +1141,15 @@ namespace crudex.Classes
                 foreach (DataRow column in physicalColumnRows)
                 {
                     var constraints = GetConstraints(column, domains, types);
-                    var required = $"{(constraints.TryGetValue("Required", out dynamic? value) ? value : "")}";
+                    string definition;
                     if (Settings.ToString(table["Name"]).Equals("Operations", StringComparison.OrdinalIgnoreCase)
                         && Settings.ToString(column["Name"]).Equals("ActualRecord", StringComparison.OrdinalIgnoreCase))
-                        required = " NULL";
-                    var autoIncrement = $"{(constraints.TryGetValue("AutoIncrement", out value) ? value : "")}";
-                    var defaultValue = $"{(constraints.TryGetValue("Default", out value) ? value : "")}";
-                    var range = $"{(constraints.TryGetValue("Range", out value) ? value : "")}";
+                        definition = $"[{column["Name"]}] {column["#DataType"]} NULL";
+                    else
+                        definition = BuildColumnDefinition(column, constraints);
 
                     if (firstTime)
                     {
-                        var definition = $"[{column["Name"]}] {column["#DataType"]}{required}{defaultValue}{range}";
                         result.Append($"CREATE TABLE [dbo].[{table["Name"]}]({definition}\r\n");
                         firstTime = false;
                     }
@@ -1137,7 +1157,6 @@ namespace crudex.Classes
                         throw new Exception($"Nome de coluna {column["Name"]} é reservado.");
                     else
                     {
-                        var definition = $"[{column["Name"]}] {column["#DataType"]}{required}{defaultValue}{range}";
                         var message = $"Coluna definida na tabela '{table["Name"]}' ";
 
                         if (Settings.ToBoolean(column["IsListable"]))
@@ -1265,11 +1284,14 @@ namespace crudex.Classes
             if (dataRows.Count > 0)
             {
                 var columnRows = GetTableColumnRows(columns, table, physicalOnly: true);
+                var primaryColumns = GetPrimaryKeyColumnRows(columnRows);
                 RequireNotEmpty(columnRows, $"Tabela '{TableName(table)}' possui dados no Excel, mas não possui colunas físicas em Columns.");
 
                 result.Append($"/**********************************************************************************\r\n");
                 result.Append($"Inserir dados na tabela [dbo].[{table["Name"]}]\r\n");
                 result.Append($"**********************************************************************************/\r\n");
+                if (HasAutoIncrementPrimaryKey(primaryColumns))
+                    AppendIdentityInsertOn(result, Settings.ToString(table["Name"]), string.Empty);
                 foreach (var data in dataRows)
                 {
                     var firstTime = true;
@@ -1323,18 +1345,20 @@ namespace crudex.Classes
                     result.Append($"                                ,NULL)\r\n");
                     result.Append($"GO\r\n");
                 }
+                if (HasAutoIncrementPrimaryKey(primaryColumns))
+                    AppendIdentityInsertOff(result, Settings.ToString(table["Name"]), string.Empty);
             }
 
             return result;
         }
-        private static void AppendLoginCall(StringBuilder result, string loginIdVariable)
+        private static void AppendLoginCall(StringBuilder result, string sessionIdVariable)
         {
             result.Append($"    DECLARE @LoginReturn BIGINT\r\n");
             result.Append($"\r\n");
             result.Append($"    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT\r\n");
-            result.Append($"    SET {loginIdVariable} = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)\r\n");
-            result.Append($"    IF {loginIdVariable} IS NULL\r\n");
-            result.Append($"        THROW 51000, 'LoginId é requerido', 1\r\n");
+            result.Append($"    SET {sessionIdVariable} = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)\r\n");
+            result.Append($"    IF {sessionIdVariable} IS NULL\r\n");
+            result.Append($"        THROW 51000, 'SessionId é requerido', 1\r\n");
             result.Append($"\r\n");
         }
         private static StringBuilder GetScriptPersistTable(DataRow table, TDataRows columns, string systemName, string databaseName)
@@ -1394,6 +1418,7 @@ namespace crudex.Classes
                 result.Append($"\r\n");
                 result.Append($"        IF @@ROWCOUNT = 0 BEGIN\r\n");
                 AppendNewOperationIdCall(result, systemName, databaseName, "@OperationId");
+                AppendIdentityInsertOn(result, "Operations", "            ");
                 result.Append($"            INSERT INTO [dbo].[Operations] ([Id]\r\n");
                 result.Append($"                                             ,[TransactionId]\r\n");
                 result.Append($"                                             ,[TableName]\r\n");
@@ -1412,6 +1437,7 @@ namespace crudex.Classes
                 result.Append($"                                             ,NULL\r\n");
                 result.Append($"                                             ,GETDATE()\r\n");
                 result.Append($"                                             ,@UserName)\r\n");
+                AppendIdentityInsertOff(result, "Operations", "            ");
                 result.Append($"        END ELSE IF @IsConfirmed IS NOT NULL BEGIN\r\n");
                 result.Append($"            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;\r\n");
                 result.Append($"            THROW 51000, @ErrorMessage, 1\r\n");
@@ -1559,6 +1585,10 @@ namespace crudex.Classes
                 AppendOperationSubProcedureHeader(result, table, primaryColumns, "Create", "create");
                 AppendWorkColumnVariables(result, physicalColumnRows);
 
+                var tableName = Settings.ToString(table["Name"]);
+                if (HasAutoIncrementPrimaryKey(primaryColumns))
+                    AppendIdentityInsertOn(result, tableName, "        ");
+
                 var firstTime = true;
                 foreach (var column in physicalColumnRows)
                 {
@@ -1585,6 +1615,8 @@ namespace crudex.Classes
                 }
                 result.Append($"                                             ,GETDATE()\r\n");
                 result.Append($"                                             ,@UserName)\r\n");
+                if (HasAutoIncrementPrimaryKey(primaryColumns))
+                    AppendIdentityInsertOff(result, tableName, "        ");
                 AppendOperationSubProcedureFooter(result);
             }
 
@@ -1606,6 +1638,8 @@ namespace crudex.Classes
                 var firstTime = true;
                 foreach (var column in physicalColumnRows)
                 {
+                    if (Settings.ToBoolean(column["IsAutoIncrement"]))
+                        continue;
                     if (firstTime)
                     {
                         result.Append($"        UPDATE [dbo].[{table["Name"]}] SET [{column["Name"]}] = @W_{column["Name"]}\r\n");
@@ -1751,7 +1785,9 @@ namespace crudex.Classes
                 AppendPrimaryKeyJsonMatchClause(result, primaryColumns, "ISNULL([ActualRecord], [LastRecord])", linePrefix: "                                          ");
                 result.Append($")\r\n");
                 result.Append($"            SET @IsPendingCreate = 1\r\n");
-                result.Append($"        ELSE IF @Action <> 'create'\r\n");
+                result.Append($"        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[{table["Name"]}] WHERE ");
+                AppendPrimaryKeyWhereClause(result, primaryColumns, string.Empty, "@W_", firstConditionPrefix: string.Empty);
+                result.Append(")\r\n");
                 result.Append($"            THROW 51000, 'Chave-primária não existe em {table["Name"]}', 1\r\n");
                 result.Append($"        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN\r\n");
                 result.Append($"            IF @LastRecord IS NULL\r\n");
@@ -2072,8 +2108,8 @@ namespace crudex.Classes
                 result.Append($"    SET NOCOUNT ON\r\n");
                 result.Append($"    SET TRANSACTION ISOLATION LEVEL READ COMMITTED\r\n");
                 result.Append($"\r\n");
-                result.Append($"    DECLARE @LoginId BIGINT\r\n");
-                AppendLoginCall(result, "@LoginId");
+                result.Append($"    DECLARE @SessionId BIGINT\r\n");
+                AppendLoginCall(result, "@SessionId");
                 result.Append($"        IF @Filter IS NULL\r\n");
                 result.Append("            SET @Filter = '{}'\r\n");
                 result.Append($"        ELSE IF ISJSON(@Filter) = 0\r\n");
@@ -2116,7 +2152,7 @@ namespace crudex.Classes
                     result.Append($"        DECLARE @PickerValue {listableColumn["#DataType"]} = NULL\r\n");
                 }
                 result.Append($"\r\n");
-                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @LoginId)\r\n");
+                result.Append($"        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)\r\n");
                 result.Append($"\r\n");
                 result.Append($"        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)\r\n");
                 result.Append($"            SET @TransactionId = NULL\r\n");
@@ -2431,16 +2467,16 @@ namespace crudex.Classes
             rows.OrderBy(row => Settings.ToLong(row["Id"])).Select(row =>
             {
                 var id = Settings.ToLong(row["Id"]);
-                var sqlCode = GetComparatorSqlCode(row);
+                var sqlComparator = GetComparatorSqlComparator(row);
                 var arity = row.Table.Columns.Contains("Arity") ? row["Arity"] : DBNull.Value;
-                ValidateComparatorSqlCode(sqlCode, arity, id);
+                ValidateComparatorSqlComparator(sqlComparator, arity, id);
                 return new TDictionary
                 {
                     ["Id"] = id,
                     ["Symbol"] = Settings.ToString(row["Symbol"]),
                     ["Description"] = Settings.ToString(row["Description"]),
                     ["Arity"] = Settings.IsNull(arity) || string.IsNullOrWhiteSpace(Settings.ToString(arity)) ? null : Settings.ToLong(arity),
-                    ["SqlCode"] = sqlCode,
+                    ["SqlComparator"] = sqlComparator,
                 };
             }).ToArray();
 
@@ -2493,47 +2529,100 @@ namespace crudex.Classes
         static bool IsBinaryComparator(TDictionary comparator) =>
             !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) == 2;
 
-        static string GetComparatorSqlCode(DataRow row)
+        static bool IsUnaryComparator(TDictionary comparator) =>
+            !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) == 1;
+
+        static readonly HashSet<string> ListSqlComparators = new(StringComparer.OrdinalIgnoreCase) { "IN", "NOT IN" };
+        static readonly HashSet<string> BinarySqlComparators = new(StringComparer.OrdinalIgnoreCase) { "<", "<=", "=", "<>", ">=", ">", "LIKE", "NOT LIKE" };
+        static readonly HashSet<string> BetweenSqlComparators = new(StringComparer.OrdinalIgnoreCase) { "BETWEEN", "NOT BETWEEN" };
+        static readonly HashSet<string> UnarySqlComparators = new(StringComparer.OrdinalIgnoreCase) { "IS NULL", "IS NOT NULL" };
+
+        static string GetComparatorSqlComparator(DataRow row)
         {
             var id = Settings.ToLong(row["Id"]);
-            var sqlCode = string.Empty;
-            if (row.Table.Columns.Contains("SqlCode"))
-                sqlCode = Settings.ToString(row["SqlCode"]);
-            else if (row.Table.Columns.Contains("CodeSQL"))
-                sqlCode = Settings.ToString(row["CodeSQL"]);
+            if (row.Table.Columns.Contains("SqlComparator"))
+            {
+                var sqlComparator = Settings.ToString(row["SqlComparator"]).Trim();
+                if (!string.IsNullOrWhiteSpace(sqlComparator))
+                    return sqlComparator;
+            }
+
+            if (row.Table.Columns.Contains("SqlCode") || row.Table.Columns.Contains("CodeSQL"))
+                return DeriveSqlComparatorFromSqlCode(GetLegacyComparatorSqlCode(row), id);
+
+            throw new Exception($"Comparators (Id {id}): SqlComparator é obrigatório no metadado.");
+        }
+
+        static string GetLegacyComparatorSqlCode(DataRow row)
+        {
+            var id = Settings.ToLong(row["Id"]);
+            var sqlCode = row.Table.Columns.Contains("SqlCode")
+                ? Settings.ToString(row["SqlCode"])
+                : Settings.ToString(row["CodeSQL"]);
 
             if (string.IsNullOrWhiteSpace(sqlCode))
-                throw new Exception($"Comparators (Id {id}): SqlCode é obrigatório no metadado.");
+                throw new Exception($"Comparators (Id {id}): SqlComparator é obrigatório no metadado.");
 
             return sqlCode.Trim();
         }
 
-        static void ValidateComparatorSqlCode(string sqlCode, object? arity, long id)
+        static string DeriveSqlComparatorFromSqlCode(string sqlCode, long id)
         {
-            if (!sqlCode.Contains("%1", StringComparison.Ordinal))
-                throw new Exception($"Comparators (Id {id}): SqlCode deve conter %1.");
+            var patterns = new (string Pattern, string Comparator)[]
+            {
+                ("%1 NOT BETWEEN %2 AND %3", "NOT BETWEEN"),
+                ("%1 BETWEEN %2 AND %3", "BETWEEN"),
+                ("%1 NOT IN %2", "NOT IN"),
+                ("%1 IN %2", "IN"),
+                ("%1 NOT LIKE %2", "NOT LIKE"),
+                ("%1 LIKE %2", "LIKE"),
+                ("%1 IS NOT NULL", "IS NOT NULL"),
+                ("%1 IS NULL", "IS NULL"),
+                ("%1 <> %2", "<>"),
+                ("%1 <= %2", "<="),
+                ("%1 >= %2", ">="),
+                ("%1 < %2", "<"),
+                ("%1 > %2", ">"),
+                ("%1 = %2", "="),
+            };
 
+            foreach (var (pattern, comparator) in patterns)
+            {
+                if (string.Equals(sqlCode, pattern, StringComparison.OrdinalIgnoreCase))
+                    return comparator;
+            }
+
+            throw new Exception($"Comparators (Id {id}): SqlCode legado '{sqlCode}' não mapeia para SqlComparator.");
+        }
+
+        static void ValidateComparatorSqlComparator(string sqlComparator, object? arity, long id)
+        {
             if (IsNullArity(arity))
             {
-                if (!sqlCode.Contains("%2", StringComparison.Ordinal))
-                    throw new Exception($"Comparators (Id {id}): SqlCode deve conter %2.");
+                if (!ListSqlComparators.Contains(sqlComparator))
+                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity NULL (esperado IN ou NOT IN).");
                 return;
             }
 
             var arityValue = Settings.ToLong(arity);
-            if (arityValue == 3)
+            if (arityValue > 2)
             {
-                if (!sqlCode.Contains("%2", StringComparison.Ordinal) || !sqlCode.Contains("%3", StringComparison.Ordinal))
-                    throw new Exception($"Comparators (Id {id}): SqlCode deve conter %2 e %3.");
+                if (!BetweenSqlComparators.Contains(sqlComparator))
+                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity {arityValue} (esperado BETWEEN ou NOT BETWEEN).");
+                return;
+            }
+
+            if (arityValue == 1)
+            {
+                if (!UnarySqlComparators.Contains(sqlComparator))
+                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity 1 (esperado IS NULL ou IS NOT NULL).");
                 return;
             }
 
             if (arityValue == 2)
             {
-                if (!sqlCode.Contains("%2", StringComparison.Ordinal))
-                    throw new Exception($"Comparators (Id {id}): SqlCode deve conter %2.");
-                if (sqlCode.Contains("%3", StringComparison.Ordinal))
-                    throw new Exception($"Comparators (Id {id}): SqlCode com Arity 2 não deve conter %3.");
+                if (!BinarySqlComparators.Contains(sqlComparator))
+                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity 2.");
                 return;
             }
 
@@ -2545,12 +2634,14 @@ namespace crudex.Classes
 
         static string BuildComparatorPredicateCaseExpression(string columnRef, string parameterName, string dataType, bool needsBetweenSlots)
         {
+            var column = EscapeSqlStringLiteral(columnRef);
             var betweenBranch = needsBetweenSlots
-                ? $"        WHEN [C].[Arity] > 2 THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', '@{parameterName}_v2'), '%2', '@{parameterName}_v1'), '%1', '{EscapeSqlStringLiteral(columnRef)}')\r\n"
+                ? $"        WHEN [C].[Arity] > 2 THEN '{column} ' + [C].[SqlComparator] + ' @{parameterName}_v1 AND @{parameterName}_v2'\r\n"
                 : string.Empty;
             return $@"CASE
-        WHEN [C].[Arity] IS NULL THEN REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '(SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{parameterName}_vals))'), '%1', '{EscapeSqlStringLiteral(columnRef)}')
-{betweenBranch}        ELSE REPLACE(REPLACE(REPLACE([C].[SqlCode], '%3', ''), '%2', '@{parameterName}'), '%1', '{EscapeSqlStringLiteral(columnRef)}')
+        WHEN [C].[Arity] IS NULL THEN '{column} ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{parameterName}_vals))'
+{betweenBranch}        WHEN [C].[Arity] = 1 THEN '{column} ' + [C].[SqlComparator]
+        ELSE '{column} ' + [C].[SqlComparator] + ' @{parameterName}'
     END";
         }
 
@@ -2560,7 +2651,8 @@ namespace crudex.Classes
                 ? $"               OR ([C].[Arity] > 2 AND {valueVarPrefix}v1 IS NOT NULL AND {valueVarPrefix}v2 IS NOT NULL)\r\n"
                 : string.Empty;
             return $@"(([C].[Arity] IS NULL AND {valueVarPrefix}vals IS NOT NULL)
-{betweenBranch}               OR ([C].[Arity] = 2 AND {valueVarPrefix}v IS NOT NULL))";
+{betweenBranch}               OR ([C].[Arity] = 2 AND {valueVarPrefix}v IS NOT NULL)
+               OR ([C].[Arity] = 1))";
         }
 
         static void AppendComparatorPredicateFromMetadata(StringBuilder result, string indent, string opVariable, string columnRef, string dataType, string parameterName, bool isSearch, bool needsBetweenSlots)

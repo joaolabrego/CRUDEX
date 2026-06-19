@@ -37,6 +37,8 @@ export default class TComparator {
         const n = Number(arity);
         if (Number.isFinite(n) && n > 2)
             return "between";
+        if (Number.isFinite(n) && n === 1)
+            return "unary";
         return "single";
     }
 

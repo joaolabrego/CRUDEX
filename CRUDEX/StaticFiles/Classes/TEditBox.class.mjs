@@ -9,6 +9,8 @@ import TMask from "./TMask.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 
 export default class TEditBox {
+    static #operatorMenuCloseBound = false;
+
     #column = null;
     #root = null;
     #legend = null;
@@ -174,11 +176,31 @@ export default class TEditBox {
         return TEditBox.#domainWidthCh(domain);
     }
 
+    static #parseValidValues(domain) {
+        const raw = domain?.ValidValues;
+        if (TConfig.IsEmpty(raw))
+            return null;
+        const items = String(raw).split(";")
+            .map(part => part.trim())
+            .filter(part => part.length > 0);
+        return items.length ? items : null;
+    }
+
+    #domainValidValues() {
+        return TEditBox.#parseValidValues(this.#column.Domain);
+    }
+
     #effectiveDomain() {
         return this.#domainVariant ?? this.#column.Domain;
     }
 
+    #usesValidValuesDropdown() {
+        return !this.#isReference && this.#domainValidValues() != null;
+    }
+
     #usesCheckboxControl() {
+        if (this.#usesValidValuesDropdown())
+            return false;
         if (this.#effectiveDomain().Type.Category.HtmlInputType !== "checkbox")
             return false;
         if (this.#domainVariant)
@@ -211,6 +233,13 @@ export default class TEditBox {
             const listable = refTable?.GetListableColumn();
             const domain = listable?.Domain ?? this.#effectiveDomain();
             return TEditBox.#widthChFromDomain(domain);
+        }
+
+        const validValues = this.#domainValidValues();
+        if (validValues) {
+            const longest = validValues.reduce((max, value) => Math.max(max, value.length), 0);
+            if (longest > 0)
+                return longest;
         }
 
         return TEditBox.#widthChFromDomain(this.#effectiveDomain());
@@ -259,13 +288,12 @@ export default class TEditBox {
     }
 
     #mountInner() {
-        const htmlInputType = this.#column.Domain.Type.Category.HtmlInputType;
-
-        if (this.#isReference) {
+        if (this.#isReference || this.#usesValidValuesDropdown()) {
             this.#root.appendChild(this.#body);
             return;
         }
 
+        const htmlInputType = this.#column.Domain.Type.Category.HtmlInputType;
         this.#control = this.#createNativeInput(htmlInputType);
         this.#body.appendChild(this.#control);
         this.#root.appendChild(this.#body);
@@ -304,26 +332,18 @@ export default class TEditBox {
             || action === TSystem.Actions.SEARCH;
     }
 
-    #isConditionNullUi(control) {
-        return control?.placeholder === "nulo";
-    }
-
-    #setConditionNullUi(control, isNull, editMask = null) {
-        if (!control)
-            return;
-        control.placeholder = isNull
-            ? "nulo"
-            : (editMask?.placeholder ?? control.dataset.maskPlaceholder ?? "");
-    }
-
-    #toggleConditionNull(control, onChange, editMask = null) {
-        if (this.#isConditionNullUi(control)) {
-            this.#setConditionNullUi(control, false, editMask);
-            onChange(this.#column.Name, null);
-            return;
-        }
-        this.#setConditionNullUi(control, true, editMask);
-        onChange(this.#column.Name, TCheckbox.NULL_MARKER);
+    #normalizeConditionParsed(raw, defaultOp, categoryId) {
+        const parsed = TCondition.parse(raw, { defaultOp });
+        if (!parsed.isNull)
+            return parsed;
+        const isNullOp = TCondition.operatorsForCategory(categoryId).find((op) => {
+            const cmp = TSystem.GetComparator(op.Id);
+            return cmp?.ValueMode === "unary"
+                && /^IS\s+NULL$/i.test(String(cmp.Symbol ?? "").trim());
+        });
+        if (isNullOp)
+            return { comparator: isNullOp.Id, value: null, isNull: false };
+        return { comparator: defaultOp, value: null, isNull: false };
     }
 
     #nativeValueState(control) {
@@ -563,8 +583,7 @@ export default class TEditBox {
 
     #applyEditMask(control, editMask, readOnly, onChange, action) {
         control.dataset.maskPlaceholder = editMask.placeholder;
-        if (!this.#isConditionNullUi(control))
-            control.placeholder = editMask.placeholder;
+        control.placeholder = editMask.placeholder;
         control.dataset.lastValidValue = control.value;
 
         if (readOnly)
@@ -581,15 +600,10 @@ export default class TEditBox {
 
         const notify = () => {
             if (TConfig.IsEmpty(control.value)) {
-                onChange(
-                    this.#column.Name,
-                    this.#isConditionNullUi(control) ? TCheckbox.NULL_MARKER : null,
-                );
+                onChange(this.#column.Name, null);
                 this.#syncNativeValidity(control);
                 return;
             }
-            if (this.#isConditionAction(action) && this.#isConditionNullUi(control))
-                this.#setConditionNullUi(control, false, editMask);
             const parsed = this.#parseMaskedValue(editMask, control.value);
             onChange(this.#column.Name, parsed);
             this.#syncNativeValidity(control);
@@ -735,7 +749,7 @@ export default class TEditBox {
     #configureReferenceMulti(options, multiOptions = {}) {
         const { action, onConfirm, onCancel, onFirstInput, emit, parsed } = options;
         const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
-        const raw = parsed?.isNull ? TCheckbox.NULL_MARKER : (parsed?.value ?? null);
+        const raw = parsed?.value ?? null;
         const values = Array.isArray(raw)
             ? raw
             : (TConfig.IsEmpty(raw) ? [] : [raw]);
@@ -748,8 +762,7 @@ export default class TEditBox {
             labelField: "ListItemName",
             itemsPerPage: pageSize,
             placeholder: "Selecionar...",
-            value: TCheckbox.isNullMarker(raw) ? [] : values,
-            nullCondition: TCheckbox.isNullMarker(raw),
+            value: values,
             loader: (query, page) => TRecordSet.fetchPickerPage(refTable, {
                 value: query,
                 pageNumber: page,
@@ -767,7 +780,7 @@ export default class TEditBox {
         this.#bindControlKeys(this.#control, action, onConfirm, onCancel, (_name, value) => emit(value));
         onFirstInput?.(this.#control);
 
-        if (!TCheckbox.isNullMarker(raw) && values.length)
+        if (values.length)
             this.#resolveReferencePickerValues(refTable, values);
     }
 
@@ -790,7 +803,7 @@ export default class TEditBox {
             validItemCounts = null,
             betweenSlots = null,
         } = options;
-        const raw = parsed?.isNull ? TCheckbox.NULL_MARKER : (parsed?.value ?? null);
+        const raw = parsed?.value ?? null;
         const editMask = this.#getEditMask();
         const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
         const hasMask = editMask && !readOnly;
@@ -803,7 +816,6 @@ export default class TEditBox {
             validItemCounts,
             placeholder: hasMask ? (editMask.placeholder ?? "") : "Type to add",
             value: Array.isArray(raw) ? raw : (TConfig.IsEmpty(raw) ? [] : [raw]),
-            nullCondition: TCheckbox.isNullMarker(raw),
             parseValue: (text) => {
                 if (TConfig.IsEmpty(text))
                     return null;
@@ -891,12 +903,7 @@ export default class TEditBox {
                     event.preventDefault();
                     this.#checkbox.setValue(null);
                     onChange?.(this.#column.Name, null);
-                    return;
                 }
-                if (event.target.value !== "")
-                    return;
-                event.preventDefault();
-                this.#toggleConditionNull(event.target, onChange, this.#editMask);
             }
         };
     }
@@ -918,8 +925,7 @@ export default class TEditBox {
             });
 
         const fkValue = record[this.#column.Name];
-        const isNullCondition = this.#isConditionAction(action) && TCheckbox.isNullMarker(fkValue);
-        const value = !isNullCondition && listLabel != null && !TConfig.IsEmpty(fkValue)
+        const value = listLabel != null && !TConfig.IsEmpty(fkValue)
             ? { ListItemId: fkValue, ListItemName: listLabel }
             : fkValue;
         const isRequired = this.#isRequiredForAction(action);
@@ -931,8 +937,7 @@ export default class TEditBox {
         this.#body.replaceChildren();
         this.#dropdown = TDropdown.Single(this.#body, {
             catalog,
-            value: isNullCondition ? null : (TConfig.IsEmpty(fkValue) ? null : value),
-            nullCondition: isNullCondition,
+            value: TConfig.IsEmpty(fkValue) ? null : value,
             valueAs: "id",
             idField: "ListItemId",
             labelField: "ListItemName",
@@ -949,8 +954,6 @@ export default class TEditBox {
         });
 
         this.#dropdown.element.addEventListener("change", (event) => {
-            if (this.#isConditionNullUi(this.#dropdown.input))
-                this.#setConditionNullUi(this.#dropdown.input, false);
             const value = event.detail.value ?? this.#dropdown.resolveCommittedValue?.();
             if (valueChange)
                 valueChange(value);
@@ -969,8 +972,56 @@ export default class TEditBox {
         this.#control.onfocus = (event) => event.target.select();
         onFirstInput?.(this.#control);
 
-        if (!readOnly && !isNullCondition && listLabel == null && !TConfig.IsEmpty(fkValue))
+        if (!readOnly && listLabel == null && !TConfig.IsEmpty(fkValue))
             this.#resolveReferencePickerValue(refTable, fkValue);
+    }
+
+    #configureValidValues(options) {
+        const { action, record, onChange, onConfirm, onCancel, onFirstInput } = options;
+        const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
+        const isCondition = this.#isConditionAction(action);
+        const values = this.#domainValidValues();
+        if (!values)
+            throw new Error("ValidValues do domínio não definidos.");
+        const catalog = values.map(value => ({
+            ListItemId: value,
+            ListItemName: value,
+        }));
+        const rawValue = record[this.#column.Name];
+        const isRequired = this.#column.IsRequired && !isCondition && !readOnly;
+
+        this.#readOnly = readOnly;
+        this.#isRequired = isRequired;
+        this.#root.classList.remove("tedit-checkbox", "tedit-checkbox-inline");
+        this.#body.replaceChildren();
+        this.#dropdown = TDropdown.Single(this.#body, {
+            catalog,
+            value: TConfig.IsEmpty(rawValue) ? null : rawValue,
+            valueAs: "id",
+            idField: "ListItemId",
+            labelField: "ListItemName",
+            paginate: false,
+            placeholder: "",
+            required: isRequired,
+            allowEmpty: !isRequired,
+            readOnly,
+        });
+
+        this.#dropdown.element.addEventListener("change", (event) => {
+            const value = event.detail.value ?? this.#dropdown.resolveCommittedValue?.();
+            onChange(this.#column.Name, value);
+            this.#dropdown.syncFormValidity();
+        });
+
+        this.#control = this.#dropdown.input;
+        this.#control.name = this.#fieldInputName();
+        this.#disableBrowserAutofill(this.#control, readOnly);
+        this.#control.Column = this.#column;
+        this.#dropdown.syncFormValidity();
+        this.#bindValidityDismiss(this.#control);
+        this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
+        this.#control.onfocus = (event) => event.target.select();
+        onFirstInput?.(this.#control);
     }
 
     #configureCheckbox(options) {
@@ -1022,6 +1073,11 @@ export default class TEditBox {
     }
 
     #configureNativeInput(options) {
+        if (this.#usesValidValuesDropdown()) {
+            this.#configureValidValues(options);
+            return;
+        }
+
         const { action, record, sourceRecord, onChange, onConfirm, onCancel, onFirstInput } = options;
         const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
         this.#root.classList.remove("tedit-checkbox", "tedit-checkbox-inline");
@@ -1034,7 +1090,6 @@ export default class TEditBox {
         const rawValue = useDisplayValue
             ? this.#getDisplayValue(record, sourceRecord)
             : record[this.#column.Name];
-        const isNullCondition = this.#isConditionAction(action) && TCheckbox.isNullMarker(rawValue);
 
         const controlKind = htmlInputType === "textarea" ? "textarea" : "input";
         const needsNewControl = !this.#control
@@ -1055,28 +1110,20 @@ export default class TEditBox {
         this.#control.style.textAlign = domain.Type.Category.HtmlInputAlign;
 
         if (editMask && !readOnly) {
-            this.#control.value = isNullCondition ? "" : this.#formatRawValue(editMask, rawValue);
+            this.#control.value = this.#formatRawValue(editMask, rawValue);
             this.#applyEditMask(this.#control, editMask, readOnly, onChange, action);
-            if (isNullCondition)
-                this.#setConditionNullUi(this.#control, true, editMask);
         } else {
             this.#control.oninput = null;
-            this.#control.placeholder = isNullCondition ? "nulo" : "";
+            this.#control.placeholder = "";
             delete this.#control.dataset.maskPlaceholder;
             delete this.#control.dataset.lastValidValue;
             if (!readOnly) {
                 const notify = (event) => {
                     const value = event.target.value;
-                    if (TConfig.IsEmpty(value)) {
-                        onChange(
-                            this.#column.Name,
-                            this.#isConditionNullUi(event.target) ? TCheckbox.NULL_MARKER : null,
-                        );
-                    } else {
-                        if (this.#isConditionAction(action) && this.#isConditionNullUi(event.target))
-                            event.target.placeholder = "";
+                    if (TConfig.IsEmpty(value))
+                        onChange(this.#column.Name, null);
+                    else
                         onChange(this.#column.Name, value);
-                    }
                     this.#syncNativeValidity(this.#control);
                 };
                 this.#control.oninput = notify;
@@ -1085,7 +1132,7 @@ export default class TEditBox {
                 this.#control.oninput = null;
                 this.#control.onchange = null;
             }
-            this.#control.value = isNullCondition ? "" : (rawValue ?? "");
+            this.#control.value = rawValue ?? "";
         }
 
         this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
@@ -1118,8 +1165,6 @@ export default class TEditBox {
         if (this.#checkbox?.mode === TCheckbox.Modes.CONDITION)
             return this.#checkbox.value;
         if (this.#control) {
-            if (this.#isConditionNullUi(this.#control))
-                return TCheckbox.NULL_MARKER;
             const raw = this.#control.value ?? "";
             if (TConfig.IsEmpty(raw))
                 return null;
@@ -1139,14 +1184,16 @@ export default class TEditBox {
             return undefined;
 
         if (this.#operatorSelect)
-            this.#conditionOp = Number(this.#operatorSelect.value);
+            this.#conditionOp = Number(this.#operatorSelect.dataset.value);
 
         if (this.#conditionValueDropdown && !this.#conditionValueDropdown.isValid())
             return null;
 
+        const comparator = this.#getConditionComparator();
+        if (comparator?.ValueMode === "unary")
+            return TCondition.pack(this.#conditionOp, null);
+
         const valuePart = this.#readConditionValuePart();
-        if (TCheckbox.isNullMarker(valuePart))
-            return valuePart;
         return TCondition.pack(this.#conditionOp, valuePart);
     }
 
@@ -1154,33 +1201,76 @@ export default class TEditBox {
         return TSystem.GetComparator(this.#conditionOp);
     }
 
+    #bindOperatorMenuClose() {
+        if (TEditBox.#operatorMenuCloseBound)
+            return;
+        TEditBox.#operatorMenuCloseBound = true;
+        document.addEventListener("click", () => {
+            for (const shell of document.querySelectorAll(".tedit-operator.open")) {
+                shell.classList.remove("open");
+                shell.querySelector(".tedit-operator-menu")?.setAttribute("hidden", "");
+            }
+        });
+    }
+
     #buildOperatorSelect(operators, selectedOp) {
-        const shell = document.createElement("div");
+        this.#bindOperatorMenuClose();
+
+        const shell = document.createElement("button");
+        shell.type = "button";
         shell.className = "tedit-operator";
+        shell.title = "Operador de comparação — clique para alterar";
 
         const symbol = document.createElement("span");
         symbol.className = "tedit-operator-symbol";
         symbol.setAttribute("aria-hidden", "true");
 
-        const select = document.createElement("select");
-        select.className = "tedit-operator-select";
-        select.title = "Operador de comparação — clique para alterar";
+        const menu = document.createElement("div");
+        menu.className = "tedit-operator-menu";
+        menu.hidden = true;
+        menu.setAttribute("role", "listbox");
+
+        let selectedId = operators.some(op => op.Id === Number(selectedOp))
+            ? Number(selectedOp)
+            : (operators[0]?.Id ?? TCondition.DEFAULT_OP);
 
         for (const op of operators) {
-            const option = document.createElement("option");
-            option.value = String(op.Id);
-            option.textContent = op.Symbol;
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "tedit-operator-item";
+            item.dataset.value = String(op.Id);
+            item.textContent = op.Symbol;
+            item.setAttribute("role", "option");
             if (op.Description)
-                option.title = op.Description;
-            select.append(option);
+                item.title = op.Description;
+            if (op.Id === selectedId)
+                item.classList.add("selected");
+            item.addEventListener("click", (event) => {
+                event.stopPropagation();
+                shell.dataset.value = String(op.Id);
+                for (const entry of menu.querySelectorAll(".tedit-operator-item"))
+                    entry.classList.toggle("selected", entry === item);
+                shell.classList.remove("open");
+                menu.hidden = true;
+                this.#syncOperatorSelectDisplay(shell);
+                shell.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+            menu.append(item);
         }
 
-        if (operators.some(op => op.Id === Number(selectedOp)))
-            select.value = String(selectedOp);
-        else if (operators.length > 0)
-            select.value = String(operators[0].Id);
+        shell.dataset.value = String(selectedId);
+        shell.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const willOpen = !shell.classList.contains("open");
+            for (const other of document.querySelectorAll(".tedit-operator.open")) {
+                other.classList.remove("open");
+                other.querySelector(".tedit-operator-menu")?.setAttribute("hidden", "");
+            }
+            shell.classList.toggle("open", willOpen);
+            menu.hidden = !willOpen;
+        });
 
-        shell.append(symbol, select);
+        shell.append(symbol, menu);
         this.#syncOperatorSelectDisplay(shell);
         return shell;
     }
@@ -1188,18 +1278,23 @@ export default class TEditBox {
     #syncOperatorSelectDisplay(shell) {
         if (!shell)
             return;
-        const select = shell.querySelector("select");
         const symbol = shell.querySelector(".tedit-operator-symbol");
-        if (!select || !symbol)
+        if (!symbol)
             return;
 
-        const text = select.options[select.selectedIndex]?.text ?? "";
+        const selectedId = shell.dataset.value;
+        const item = shell.querySelector(`.tedit-operator-item[data-value="${selectedId}"]`)
+            ?? shell.querySelector(".tedit-operator-item");
+        const text = item?.textContent ?? "";
         symbol.textContent = text;
         const ch = Math.max(1, text.length);
         const width = `calc(${ch}ch + 2 * var(--select-edge-inset) + 0.2dvmin)`;
         shell.style.width = width;
         shell.style.minWidth = width;
         shell.style.maxWidth = width;
+        const menu = shell.querySelector(".tedit-operator-menu");
+        if (menu)
+            menu.style.minWidth = width;
     }
 
     #configureCondition(options) {
@@ -1208,32 +1303,27 @@ export default class TEditBox {
         const defaultOp = action === TSystem.Actions.SEARCH
             ? TCondition.defaultOpForSearch(category.Name)
             : TCondition.DEFAULT_OP;
-        const parsed = TCondition.parse(record[this.#column.Name], { defaultOp });
+        const parsed = this.#normalizeConditionParsed(record[this.#column.Name], defaultOp, category.Id);
         const emit = (valuePart) => {
-            if (TCheckbox.isNullMarker(valuePart))
-                onChange(this.#column.Name, valuePart);
-            else if (valuePart === null || valuePart === undefined
+            if (valuePart === null || valuePart === undefined
                 || (Array.isArray(valuePart) && valuePart.length === 0))
                 onChange(this.#column.Name, null);
             else
                 onChange(this.#column.Name, TCondition.pack(this.#conditionOp, valuePart));
         };
 
-        if (parsed.isNull)
-            this.#conditionOp = defaultOp;
-        else
-            this.#conditionOp = parsed.comparator ?? defaultOp;
+        this.#conditionOp = parsed.comparator ?? defaultOp;
 
         const operators = TCondition.operatorsForCategory(category.Id);
 
         this.#operatorHost.replaceChildren();
         this.#operatorShell = this.#buildOperatorSelect(operators, this.#conditionOp);
-        this.#operatorSelect = this.#operatorShell.querySelector("select");
+        this.#operatorSelect = this.#operatorShell;
         this.#operatorHost.append(this.#operatorShell);
         this.#operatorSelect.addEventListener("change", () => {
             this.#syncOperatorSelectDisplay(this.#operatorShell);
             const previousMode = this.#getConditionComparator()?.ValueMode ?? "single";
-            this.#conditionOp = Number(this.#operatorSelect.value);
+            this.#conditionOp = Number(this.#operatorSelect.dataset.value);
             const newMode = this.#getConditionComparator()?.ValueMode ?? "single";
 
             let parsedForRebuild;
@@ -1241,7 +1331,7 @@ export default class TEditBox {
                 emit(null);
                 parsedForRebuild = { comparator: this.#conditionOp, value: null, isNull: false };
             } else {
-                parsedForRebuild = TCondition.parse(record[this.#column.Name], { defaultOp });
+                parsedForRebuild = this.#normalizeConditionParsed(record[this.#column.Name], defaultOp, category.Id);
             }
 
             this.#rebuildConditionValue({
@@ -1259,7 +1349,7 @@ export default class TEditBox {
         const { action, record, sourceRecord, onConfirm, onCancel, onFirstInput, emit, parsed } = options;
         const comparator = this.#getConditionComparator();
         const mode = comparator?.ValueMode ?? "single";
-        const raw = parsed?.isNull ? TCheckbox.NULL_MARKER : (parsed?.value ?? null);
+        const raw = parsed?.value ?? null;
         const innerRecord = { ...record, [this.#column.Name]: raw };
         const innerOnChange = (_name, value) => emit(value);
 
@@ -1269,6 +1359,9 @@ export default class TEditBox {
         this.#checkbox = null;
         this.#body.classList.remove("tedit-addable-value");
         this.#body.replaceChildren();
+
+        if (mode === "unary")
+            return;
 
         if (mode === "between") {
             if (this.#isReference) {
@@ -1307,6 +1400,11 @@ export default class TEditBox {
                 action, record: innerRecord, sourceRecord, onChange: innerOnChange,
                 onConfirm, onCancel, onFirstInput, valueChange: emit,
             });
+        else if (this.#usesValidValuesDropdown())
+            this.#configureValidValues({
+                action, record: innerRecord, onChange: innerOnChange,
+                onConfirm, onCancel, onFirstInput,
+            });
         else if (this.#usesCheckboxControl())
             this.#configureCheckbox({
                 action, record: innerRecord, onChange: innerOnChange,
@@ -1337,6 +1435,8 @@ export default class TEditBox {
 
         if (this.#isReference)
             this.#configureReference({ ...options, onChange });
+        else if (this.#usesValidValuesDropdown())
+            this.#configureValidValues({ ...options, onChange });
         else if (this.#usesCheckboxControl())
             this.#configureCheckbox({ ...options, onChange });
         else

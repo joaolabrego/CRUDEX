@@ -276,7 +276,7 @@ CRUDEX/
 │   ├── Assets/
 │   │   ├── CRUDEX.xlsm     # Metadados do sistema atual
 │   │   └── Styles/         # CSS
-│   ├── Classes/            # Frontend SPA (TSystem, TGrid, TForm…)
+│   ├── Classes/            # Frontend SPA (TSystem, TBrowse, TForm…)
 │   └── db/
 │       └── SCRIPT-CRUDEX.sql   # Única fonte SQL válida do modelo atual
 └── appsettings.json        # Conexão, Excel, imagens, paginação
@@ -388,7 +388,7 @@ Variável de ambiente `CRUDEX_ENVIRONMENT`: `dev` | `hml` | `prd`.
 | Classe | Arquivo | Papel |
 |--------|---------|-------|
 | `TSystem` | `TSystem.class.mjs` | Bootstrap, metadados em memória, roteamento de telas |
-| `TGrid` | `TGrid.class.mjs` | Grid, botões, filtro/pesquisa na UI |
+| `TBrowse` | `TBrowse.class.mjs` | Grid, botões, filtro/pesquisa na UI |
 | `TForm` | `TForm.class.mjs` | Formulários CRUD, validação frontend |
 | `TRecordSet` | `TRecordset.class.mjs` | Paginação, filtro, chamadas `{Table}Read` |
 | `TRecord` | `TRecord.class.mjs` | Uma linha + `references.{alias}` |

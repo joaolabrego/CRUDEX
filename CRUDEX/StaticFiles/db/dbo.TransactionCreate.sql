@@ -16,6 +16,7 @@ ALTER PROCEDURE[dbo].[TransactionCreate](@SessionId BIGINT
 	DECLARE @TransactionId BIGINT
 
 	EXEC [dbo].[NewId] 'crudex', 'crudex', 'Transactions', @TransactionId OUT
+	SET IDENTITY_INSERT [dbo].[Transactions] ON
 	INSERT [dbo].[Transactions] ([Id]
 								,[SessionId]
 								,[IsConfirmed]
@@ -26,6 +27,7 @@ ALTER PROCEDURE[dbo].[TransactionCreate](@SessionId BIGINT
 								   ,NULL
 								   ,GETDATE()
 								   ,@UserName)
+	SET IDENTITY_INSERT [dbo].[Transactions] OFF
 	SET @ReturnValue = @TransactionId
 
 	RETURN 0

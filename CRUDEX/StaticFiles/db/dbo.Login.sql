@@ -12,7 +12,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 			THROW 51000, 'Parâmetro login não está no formato JSON', 1
 
 		DECLARE @Action VARCHAR(15) = CAST(JSON_VALUE(@Parameters, '$.Action') AS VARCHAR(15))
-				,@LoginId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
+				,@SessionId BIGINT = CAST(JSON_VALUE(@Parameters, '$.LoginId') AS BIGINT)
 				,@SystemName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.SystemName') AS VARCHAR(25))
 				,@UserName VARCHAR(25) = CAST(JSON_VALUE(@Parameters, '$.UserName') AS VARCHAR(25))
 				,@Password VARCHAR(256) = CAST(JSON_VALUE(@Parameters, '$.Password') AS VARCHAR(256))
@@ -94,7 +94,8 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 					SET [Password] = @NewPassword
 					WHERE [Id] = @UserId
 			END
-			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @LoginId OUT
+			EXEC [dbo].[NewId] 'crudex', 'crudex', 'Sessions', @SessionId OUT
+			SET IDENTITY_INSERT [dbo].[Sessions] ON
 			INSERT [dbo].[Sessions]([Id],
 								  [SystemId],
 								  [UserId],
@@ -103,7 +104,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  [IsLogged],
 								  [CreatedAt],
 								  [CreatedBy])
-						  VALUES (ISNULL(@LoginId, 1),
+						  VALUES (ISNULL(@SessionId, 1),
 								  @SystemId,
 								  @UserId,
 								  @PublicKey,
@@ -111,33 +112,34 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 								  1,
 								  GETDATE(),
 								  @UserName)
+			SET IDENTITY_INSERT [dbo].[Sessions] OFF
 			UPDATE [dbo].[Users]
 				SET [RetryLogins] = 0
 				WHERE [Id] = @UserId
 					  AND [RetryLogins] > 0
-			SET @ReturnValue = @LoginId
-		END ELSE IF @LoginId IS NULL
-			THROW 51000, 'Id de login é requerido', 1
+			SET @ReturnValue = @SessionId
+		END ELSE IF @SessionId IS NULL
+			THROW 51000, 'SessionId é requerido', 1
 		ELSE BEGIN
 			SELECT @SystemIdAux = [SystemId],
 				   @UserIdAux = [UserId],
 				   @IsLogged = [IsLogged]
 				FROM [dbo].[Sessions]
-				WHERE [Id] = @LoginId
+				WHERE [Id] = @SessionId
 			IF @SystemIdAux IS NULL
-				THROW 51000, 'Login não cadastrado', 1
+				THROW 51000, 'Sessão não cadastrada', 1
 			IF @SystemId <> @SystemIdAux
-				THROW 51000, 'Sistema é inválido para este login', 1
+				THROW 51000, 'Sistema é inválido para esta sessão', 1
 			IF @UserId <> @UserIdAux
-				THROW 51000, 'Usuário é inválido para este login', 1
+				THROW 51000, 'Usuário é inválido para esta sessão', 1
 			IF @IsLogged = 0
-				THROW 51000, 'Login já encerrado', 1
+				THROW 51000, 'Sessão já encerrada', 1
 			IF @action = 'logout'
 				UPDATE [dbo].[Sessions]
 					SET [IsLogged] = 0,
 						[UpdatedAt] = GETDATE(),
 						[UpdatedBy] = @UserName
-					WHERE [Id] = @LoginId
+					WHERE [Id] = @SessionId
 		END
 
 	RETURN 1

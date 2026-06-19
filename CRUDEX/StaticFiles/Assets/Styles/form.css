@@ -1,4 +1,4 @@
-﻿.form {
+.form {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     /* Altere para 5 para cinco colunas */
@@ -91,26 +91,55 @@
     font-weight: inherit;
     color: inherit;
     cursor: pointer;
+    margin: 0;
 }
 
 .tedit-operator-symbol {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    width: 100%;
+    text-align: center;
     line-height: 1;
     pointer-events: none;
 }
 
-.tedit-operator-select {
+.tedit-operator-menu {
     position: absolute;
-    inset: 0;
+    top: calc(100% + 0.1dvmin);
+    left: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    border: 0.1dvmin solid #000;
+    border-radius: 0.1dvmin;
+    background: #fff;
+    box-shadow: 0 0.2dvmin 0.4dvmin rgba(0, 0, 0, 0.15);
+}
+
+.tedit-operator-menu[hidden] {
+    display: none !important;
+}
+
+.tedit-operator-item {
+    display: block;
     width: 100%;
-    height: 100%;
     margin: 0;
-    padding: 0;
+    padding: 0.2dvmin var(--select-edge-inset);
     border: none;
-    opacity: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    text-align: center;
+    line-height: 1.2;
     cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
+}
+
+.tedit-operator-item:hover,
+.tedit-operator-item.selected {
+    background: #555;
+    color: #fff;
 }
 
 .tedit-condition-value {

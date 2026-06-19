@@ -19,7 +19,7 @@ export default class TCondition {
         return TCondition.willApplyFilter(value);
     }
 
-    /** Critério que entra no JSON enviado ao Read (IS NULL usa null explícito no payload). */
+    /** Critério que entra no JSON enviado ao Read (checkbox nullable usa null explícito no payload). */
     static willApplyFilter(value) {
         if (TCheckbox.isIgnored(value))
             return false;
@@ -28,7 +28,7 @@ export default class TCondition {
         return TCondition.toFilterPayload(value) !== undefined;
     }
 
-    /** Valor persistido no recordset — undefined = sem critério; NULL_MARKER = IS NULL. */
+    /** Valor persistido no recordset — undefined = sem critério; NULL_MARKER = IS NULL (checkbox). */
     static normalizeStoredFilter(value) {
         if (TCheckbox.isIgnored(value) || TConfig.IsEmpty(value))
             return undefined;
@@ -122,6 +122,9 @@ export default class TCondition {
             return value;
         if (comparator === null || comparator === undefined)
             return null;
+        const cmp = TSystem.GetComparator(comparator);
+        if (cmp?.ValueMode === "unary")
+            return { comparator: Number(comparator), value: null };
         value = TCondition.normalizeCriterionValue(value);
         if (value === null || value === undefined)
             return null;
@@ -146,11 +149,13 @@ export default class TCondition {
                     TCondition.normalizeCriterionValue(value.value),
                 ),
             };
-            if (normalized.value === null || normalized.value === undefined)
-                return undefined;
             if (Array.isArray(normalized.value) && normalized.value.length === 0)
                 return undefined;
             const cmp = TSystem.GetComparator(normalized.comparator);
+            if (cmp?.ValueMode === "unary")
+                return { comparator: normalized.comparator, value: null };
+            if (normalized.value === null || normalized.value === undefined)
+                return undefined;
             if (TCondition.isBetweenPartial(cmp, normalized.value))
                 return undefined;
             if (typeof normalized.value === "string" && TConfig.IsEmpty(normalized.value))

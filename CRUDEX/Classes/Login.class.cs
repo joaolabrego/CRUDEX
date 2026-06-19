@@ -67,7 +67,7 @@ namespace CRUDEX.Classes
                 {
                     InParams = new
                     {
-                        LoginId = loginId,
+                        SessionId = loginId,
                     }
                 }))).DataSet.Tables[0].Rows[0];
             return (
