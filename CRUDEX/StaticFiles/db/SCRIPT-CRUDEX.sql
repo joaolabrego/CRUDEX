@@ -542,6 +542,81 @@ CREATE TABLE [dbo].[testes]([pk1] tinyint NOT NULL CHECK ([pk1] >= CAST('1' AS t
 ALTER TABLE [dbo].[testes] ADD CONSTRAINT PK_testes PRIMARY KEY CLUSTERED ([pk1], [pk2], [pk3])
 
 /**********************************************************************************
+Criar tabela [dbo].[Expressions]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Expressions]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Expressions]
+CREATE TABLE [dbo].[Expressions]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+                                    ,[TableId] bigint NOT NULL
+                                    ,[Name] nvarchar(25) NOT NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[ClientId] bigint NOT NULL DEFAULT 1
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
+ALTER TABLE [dbo].[Expressions] ADD CONSTRAINT PK_Expressions PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
+Criar tabela [dbo].[Conditions]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Conditions]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Conditions]
+CREATE TABLE [dbo].[Conditions]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+                                    ,[ExpressionId] bigint NOT NULL
+                                    ,[Sequence] smallint NOT NULL
+                                    ,[Connector] nvarchar(15) NULL
+                                    ,[LeftParenthesis] nvarchar(20) NULL
+                                    ,[LeftColumnId] bigint NULL
+                                    ,[ComparatorId] bigint NULL
+                                    ,[RightColumnId] bigint NULL
+                                    ,[RightValues] nvarchar(max) NULL
+                                    ,[RightParenthesis] nvarchar(20) NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[ClientId] bigint NOT NULL DEFAULT 1
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
+ALTER TABLE [dbo].[Conditions] ADD CONSTRAINT PK_Conditions PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
+Criar tabela [dbo].[Properties]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Properties]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Properties]
+CREATE TABLE [dbo].[Properties]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+                                    ,[Name] nvarchar(25) NOT NULL
+                                    ,[CategoryId] bigint NULL
+                                    ,[Description] nvarchar(50) NULL
+                                    ,[IsActive] bit NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[ClientId] bigint NOT NULL DEFAULT 1
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
+ALTER TABLE [dbo].[Properties] ADD CONSTRAINT PK_Properties PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
+Criar tabela [dbo].[Behaviors]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Behaviors]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Behaviors]
+CREATE TABLE [dbo].[Behaviors]([Id] bigint NOT NULL
+                                    ,[ColumnId] bigint NOT NULL
+                                    ,[ExpressionId] bigint NOT NULL
+                                    ,[PropertyId] bigint NOT NULL
+                                    ,[Value] nvarchar(max) NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[ClientId] bigint NOT NULL DEFAULT 1
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
+ALTER TABLE [dbo].[Behaviors] ADD CONSTRAINT PK_Behaviors PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
 Criar stored procedure [dbo].[Config]
 **********************************************************************************/
 IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
@@ -2311,6 +2386,19 @@ ALTER TABLE [dbo].[Rules] WITH CHECK
     REFERENCES [dbo].[Comparators] ([Id])
 GO
 ALTER TABLE [dbo].[Rules] CHECK CONSTRAINT [FK_Rules_Comparators]
+GO
+/**********************************************************************************
+Criar referências de [dbo].[Expressions]
+**********************************************************************************/
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Expressions_Tables')
+    ALTER TABLE [dbo].[Expressions] DROP CONSTRAINT FK_Expressions_Tables
+GO
+ALTER TABLE [dbo].[Expressions] WITH CHECK 
+    ADD CONSTRAINT [FK_Expressions_Tables] 
+    FOREIGN KEY([TableId]) 
+    REFERENCES [dbo].[Tables] ([Id])
+GO
+ALTER TABLE [dbo].[Expressions] CHECK CONSTRAINT [FK_Expressions_Tables]
 GO
 
 /**********************************************************************************
@@ -5954,7 +6042,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Table' AS nvarchar(25))
                                 ,CAST(N'Tabelas de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
-                                ,CAST('23' AS bigint)
+                                ,CAST('27' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5975,7 +6063,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'DatabaseTable' AS nvarchar(25))
                                 ,CAST(N'Bancos-de-Dados x Tabelas' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
-                                ,CAST('23' AS bigint)
+                                ,CAST('27' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -5996,7 +6084,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Column' AS nvarchar(25))
                                 ,CAST(N'Colunas de tabelas' AS nvarchar(50))
                                 ,CAST('12' AS bigint)
-                                ,CAST('155' AS bigint)
+                                ,CAST('178' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6164,7 +6252,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Rule' AS nvarchar(25))
                                 ,CAST(N'Regras de comparação/categoria' AS nvarchar(50))
                                 ,NULL
-                                ,CAST('68' AS bigint)
+                                ,CAST('72' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6184,6 +6272,90 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'testes' AS nvarchar(25))
                                 ,CAST(N'teste' AS nvarchar(25))
                                 ,CAST(N'Tabela de teste de PKs múltiplas' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('24' AS bigint)
+                                ,CAST(N'Expressions' AS nvarchar(25))
+                                ,CAST(N'Expression' AS nvarchar(25))
+                                ,CAST(N'Expressões lógicas' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST(N'Conditions' AS nvarchar(25))
+                                ,CAST(N'Condition' AS nvarchar(25))
+                                ,CAST(N'Condições lógicas' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('3' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('26' AS bigint)
+                                ,CAST(N'Properties' AS nvarchar(25))
+                                ,CAST(N'Property' AS nvarchar(25))
+                                ,CAST(N'Propriedades HTML' AS nvarchar(50))
+                                ,NULL
+                                ,CAST('19' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[ParentTableId]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('27' AS bigint)
+                                ,CAST(N'Behaviors' AS nvarchar(25))
+                                ,CAST(N'Behavior' AS nvarchar(25))
+                                ,CAST(N'Comportamentos' AS nvarchar(50))
                                 ,NULL
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -6583,6 +6755,74 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST(N'crudex x testes' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('24' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('24' AS bigint)
+                                ,CAST(N'crudex x Expressions' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST(N'crudex x Conditions' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('26' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST(N'crudex x Properties' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('27' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST(N'crudex x Behaviors' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -15119,6 +15359,1271 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('156' AS bigint)
+                                ,CAST('24' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da expressão lógica' AS nvarchar(50))
+                                ,CAST(N'ID' AS nvarchar(25))
+                                ,CAST(N'ID' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('157' AS bigint)
+                                ,CAST('24' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('12' AS bigint)
+                                ,CAST(N'TableId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da tabela' AS nvarchar(50))
+                                ,CAST(N'Tabela' AS nvarchar(25))
+                                ,CAST(N'Tabela' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('158' AS bigint)
+                                ,CAST('24' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST(N'Name' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Nome da expressão lógica' AS nvarchar(50))
+                                ,CAST(N'Nome' AS nvarchar(25))
+                                ,CAST(N'Nome' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('159' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da condição lógica' AS nvarchar(50))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('160' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'ExpressionId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da expressão lógica' AS nvarchar(50))
+                                ,CAST(N'Expressão' AS nvarchar(25))
+                                ,CAST(N'Expressão' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('161' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('4' AS bigint)
+                                ,NULL
+                                ,CAST(N'Sequence' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Sequência da condição lógica' AS nvarchar(50))
+                                ,CAST(N'Sequência' AS nvarchar(25))
+                                ,CAST(N'Sequência' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('162' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST(N'Connector' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Conector lógico' AS nvarchar(50))
+                                ,CAST(N'Coluna à esquerda' AS nvarchar(25))
+                                ,CAST(N'Coluna à esquerda' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('163' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('8' AS bigint)
+                                ,NULL
+                                ,CAST(N'LeftParenthesis' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Parênteses à esquerda' AS nvarchar(50))
+                                ,CAST(N'Conector' AS nvarchar(25))
+                                ,CAST(N'Conector' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('164' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'LeftColumnId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da coluna à esquerda' AS nvarchar(50))
+                                ,CAST(N'Parênteses à esquerda' AS nvarchar(25))
+                                ,CAST(N'Parênteses à esquerda' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('165' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('35' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'ComparatorId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id do comparador lógico' AS nvarchar(50))
+                                ,CAST(N'Comparador' AS nvarchar(25))
+                                ,CAST(N'Comparador' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('166' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('40' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'RightColumnId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da coluna à direita' AS nvarchar(50))
+                                ,CAST(N'Coluna à direita' AS nvarchar(25))
+                                ,CAST(N'Coluna à direita' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('167' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('45' AS smallint)
+                                ,CAST('12' AS bigint)
+                                ,NULL
+                                ,CAST(N'RightValues' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Valor à direita' AS nvarchar(50))
+                                ,CAST(N'Valor à direita' AS nvarchar(25))
+                                ,CAST(N'Valor à direita' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('168' AS bigint)
+                                ,CAST('25' AS bigint)
+                                ,CAST('50' AS smallint)
+                                ,CAST('8' AS bigint)
+                                ,NULL
+                                ,CAST(N'RightParenthesis' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Parênteses à direita' AS nvarchar(50))
+                                ,CAST(N'Parênteses à direita' AS nvarchar(25))
+                                ,CAST(N'Parênteses à direita' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('169' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da propriedade' AS nvarchar(50))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('170' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,NULL
+                                ,CAST(N'Name' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Nome da propriedade' AS nvarchar(50))
+                                ,CAST(N'Nome' AS nvarchar(25))
+                                ,CAST(N'Nome' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('171' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'CategoryId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da categoria da propriedade' AS nvarchar(50))
+                                ,CAST(N'Categoria' AS nvarchar(25))
+                                ,CAST(N'Categoria' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('172' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,NULL
+                                ,CAST(N'Description' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Descrição da propriedade' AS nvarchar(50))
+                                ,CAST(N'Descrição' AS nvarchar(25))
+                                ,CAST(N'Descrição' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('173' AS bigint)
+                                ,CAST('26' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('6' AS bigint)
+                                ,NULL
+                                ,CAST(N'IsActive' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Propriedade é ativa?' AS nvarchar(50))
+                                ,CAST(N'Ativa?' AS nvarchar(25))
+                                ,CAST(N'Ativa?' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('174' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id do comportamento' AS nvarchar(50))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('175' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'ColumnId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Coluna da propriedade' AS nvarchar(50))
+                                ,CAST(N'Coluna' AS nvarchar(25))
+                                ,CAST(N'Coluna' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('176' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'ExpressionId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da expressão lógica' AS nvarchar(50))
+                                ,CAST(N'Expressão' AS nvarchar(25))
+                                ,CAST(N'Expressão' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('177' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'PropertyId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da propriedade' AS nvarchar(50))
+                                ,CAST(N'Propriedade' AS nvarchar(25))
+                                ,CAST(N'Propriedade' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('178' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('12' AS bigint)
+                                ,NULL
+                                ,CAST(N'Value' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Valor da propriedade' AS nvarchar(50))
+                                ,CAST(N'Valor' AS nvarchar(25))
+                                ,CAST(N'Valor' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 SET IDENTITY_INSERT [dbo].[Columns] OFF
 
 
@@ -16528,6 +18033,506 @@ INSERT INTO [dbo].[testes] ([pk1]
                                 ,CAST(N'juca' AS nvarchar(25))
                                 ,CAST(N'jeca' AS nvarchar(25))
                                 ,CAST('5' AS tinyint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Expressions]
+**********************************************************************************/
+SET IDENTITY_INSERT [dbo].[Expressions] ON
+INSERT INTO [dbo].[Expressions] ([Id]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Expression 0001' AS nvarchar(25))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+SET IDENTITY_INSERT [dbo].[Expressions] OFF
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Conditions]
+**********************************************************************************/
+INSERT INTO [dbo].[Conditions] ([Id]
+                                ,[ExpressionId]
+                                ,[Sequence]
+                                ,[Connector]
+                                ,[LeftParenthesis]
+                                ,[LeftColumnId]
+                                ,[ComparatorId]
+                                ,[RightColumnId]
+                                ,[RightValues]
+                                ,[RightParenthesis]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,NULL
+                                ,CAST(N'((' AS nvarchar(20))
+                                ,CAST('1' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,NULL
+                                ,NULL
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Conditions] ([Id]
+                                ,[ExpressionId]
+                                ,[Sequence]
+                                ,[Connector]
+                                ,[LeftParenthesis]
+                                ,[LeftColumnId]
+                                ,[ComparatorId]
+                                ,[RightColumnId]
+                                ,[RightValues]
+                                ,[RightParenthesis]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST(N'AND' AS nvarchar(15))
+                                ,NULL
+                                ,CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,NULL
+                                ,CAST(N'20' AS nvarchar(max))
+                                ,CAST(N')' AS nvarchar(20))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Conditions] ([Id]
+                                ,[ExpressionId]
+                                ,[Sequence]
+                                ,[Connector]
+                                ,[LeftParenthesis]
+                                ,[LeftColumnId]
+                                ,[ComparatorId]
+                                ,[RightColumnId]
+                                ,[RightValues]
+                                ,[RightParenthesis]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST(N'OR' AS nvarchar(15))
+                                ,CAST(N'(' AS nvarchar(20))
+                                ,CAST('1' AS bigint)
+                                ,CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST(N'5;10' AS nvarchar(max))
+                                ,CAST(N'))' AS nvarchar(20))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Properties]
+**********************************************************************************/
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST(N'disabled' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Desabilita o elemento HTML' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST(N'enabled' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Habilita o  elemento HTML' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST(N'hidden' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Esconde o  elemento HTML' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST(N'visible' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Mostra o  elemento HTML' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST(N'readonly' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Torna o  elemento HTML somente leitura' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST(N'required' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Torna o  elemento HTML obrigatório' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST(N'value' AS nvarchar(25))
+                                ,CAST('10' AS bigint)
+                                ,CAST(N'Define o valor do  elemento HTML' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST(N'placeholder' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Define o texto placeholder (dica)' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST(N'title' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Define o texto tooltip ao passar o mouse' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST(N'class' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Define classes CSS aplicadas dinamicamente' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST(N'style' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Define estilos CSS inline aplicados dinamicamente' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST(N'max' AS nvarchar(25))
+                                ,CAST('10' AS bigint)
+                                ,CAST(N'Define valor máximo' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST(N'min' AS nvarchar(25))
+                                ,CAST('10' AS bigint)
+                                ,CAST(N'Define valor mínimo' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST(N'maxlength' AS nvarchar(25))
+                                ,CAST('2' AS bigint)
+                                ,CAST(N'Define número máximo de caracteres' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST(N'minlength' AS nvarchar(25))
+                                ,CAST('2' AS bigint)
+                                ,CAST(N'Define número mínimo de caracteres' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST(N'step' AS nvarchar(25))
+                                ,CAST('2' AS bigint)
+                                ,CAST(N'Define o incremento para campos numéricos' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS bigint)
+                                ,CAST(N'patternTitle' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Define mensagem explicativa para falha no pattern' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS bigint)
+                                ,CAST(N'aria-label' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Define rótulo acessível para leitores de tela' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Properties] ([Id]
+                                ,[Name]
+                                ,[CategoryId]
+                                ,[Description]
+                                ,[IsActive]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS bigint)
+                                ,CAST(N'mask' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Define a máscara de formatação aplicada ao campo' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Behaviors]
+**********************************************************************************/
+INSERT INTO [dbo].[Behaviors] ([Id]
+                                ,[ColumnId]
+                                ,[ExpressionId]
+                                ,[PropertyId]
+                                ,[Value]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('2' AS bigint)
+                                ,CAST(N'disabled' AS nvarchar(max))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -29843,6 +31848,8 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Expressions] WHERE [TableId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Expressions', 1
         END
         IF @Action IN ('create', 'update') BEGIN
 
@@ -43707,6 +45714,4850 @@ ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
                       ,[cpo2]
                       ,[cpo3]
                       ,[cpo4]
+                    FROM [#result] FOR JSON PATH) AS [result]
+        SET @ReturnValue = @RowCount
+
+    RETURN 0
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ExpressionValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ExpressionValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpressionValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ExpressionValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
+        IF @TransactionId IS NULL
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@IsPendingCreate BIT = 0
+               ,@W_Id bigint
+
+        IF @Action = 'delete' BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        END ELSE BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        END
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Expressions] WHERE [Id] = @W_Id) AND @Action = 'create'
+            THROW 51000, 'Chave-primária já existe em Expressions', 1
+        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
+                                    FROM [dbo].[Operations]
+                                    WHERE [TransactionId] = @TransactionId
+                                          AND [TableName] = 'Expressions'
+                                          AND [IsConfirmed] IS NULL
+                                          AND [Action] = 'create'
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+            SET @IsPendingCreate = 1
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Expressions] WHERE [Id] = @W_Id)
+            THROW 51000, 'Chave-primária não existe em Expressions', 1
+        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Expressions]
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Expressions'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') = JSON_VALUE(@LastRecord, '$.TableId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name'))
+                THROW 51000, 'Registro de Expressions alterado por outro usuário', 1
+        END
+
+        IF @Action IN ('create', 'update') BEGIN
+
+            DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+                   ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+
+            IF @W_TableId IS NULL
+                THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
+            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+                THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
+            IF @W_Name IS NULL
+                THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+        END
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ExpressionPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ExpressionPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpressionPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ExpressionPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(255)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint
+
+    IF @Action = 'delete' BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+    END ELSE BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    END
+    IF @Action = 'create' AND @W_Id IS NULL BEGIN
+        SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Expressions'
+                  AND [Action] = 'create'
+                  AND [IsConfirmed] IS NULL
+        IF @W_Id IS NULL BEGIN
+            DECLARE @NewId BIGINT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Expressions', @NewId OUT
+            SET @W_Id = CAST(@NewId AS bigint)
+        END
+        SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
+    END
+
+    EXEC @TransactionId = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Expressions'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[LastRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@OperationId
+                                             ,@TransactionId
+                                             ,'Expressions'
+                                             ,@Action
+                                             ,@LastRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        ELSE IF @ActionAux = 'create'
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[LastRecord] = @LastRecord
+                   ,[ActualRecord] = NULL
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+
+    RETURN CAST(@OperationId AS BIGINT)
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ExpressionCreate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ExpressionCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpressionCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ExpressionCreate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Expressions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+
+        SET IDENTITY_INSERT [dbo].[Expressions] ON
+        INSERT INTO [dbo].[Expressions] ([Id]
+                                            ,[TableId]
+                                            ,[Name]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_TableId
+                                             ,@W_Name
+                                             ,GETDATE()
+                                             ,@UserName)
+        SET IDENTITY_INSERT [dbo].[Expressions] OFF
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ExpressionUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ExpressionUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpressionUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ExpressionUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Expressions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
+               ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+
+        UPDATE [dbo].[Expressions] SET [TableId] = @W_TableId
+                                          ,[Name] = @W_Name
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ExpressionDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ExpressionDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpressionDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ExpressionDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Expressions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Expressions] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ExpressionsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ExpressionsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpressionsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ExpressionsRead](@Login NVARCHAR(MAX)
+                                          ,@Filter NVARCHAR(MAX)
+                                          ,@Search NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+        IF @Filter IS NULL
+            SET @Filter = '{}'
+        ELSE IF ISJSON(@Filter) = 0
+            THROW 51000, 'Valor de @Filter não está no formato JSON', 1
+        IF @Search IS NULL
+            SET @Search = '{}'
+        ELSE IF ISJSON(@Search) = 0
+            THROW 51000, 'Valor de @Search não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[T].[Id] ASC'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Expressions') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') AS bigint) AS [TableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+            INTO [#tmpOperations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Expressions'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@ComparatorPredicate NVARCHAR(MAX)
+               ,@sql NVARCHAR(MAX)
+
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+               ,@WT_TableId bigint = CAST(JSON_VALUE(@Filter, '$.TableId') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.Name') AS nvarchar(25))
+
+        IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'TableId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[TableId] IS NULL'
+        ELSE IF @WT_TableId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[TableId] = @T_TableId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @G_Id_comparator TINYINT
+                   ,@G_Id_v bigint
+                   ,@G_Id_vals NVARCHAR(MAX)
+                   ,@G_Id_v1 bigint
+                   ,@G_Id_v2 bigint
+                   ,@G_TableId_comparator TINYINT
+                   ,@G_TableId_v bigint
+                   ,@G_TableId_vals NVARCHAR(MAX)
+                   ,@G_TableId_v1 bigint
+                   ,@G_TableId_v2 bigint
+                   ,@G_Name_comparator TINYINT
+                   ,@G_Name_v nvarchar(25)
+                   ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
+
+            SELECT @G_Id_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Id') IS NOT NULL AND JSON_QUERY(@Filter, '$.Id') IS NULL THEN 3 END
+            )
+                  ,@G_Id_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+            )
+                  ,@G_Id_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Id.value'),
+                JSON_QUERY(@Filter, '$.Id')
+            )
+            SELECT @G_Id_v1 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[0]') AS bigint)
+                  ,@G_Id_v2 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[1]') AS bigint)
+            SELECT @G_TableId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.TableId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.TableId') IS NOT NULL AND JSON_QUERY(@Filter, '$.TableId') IS NULL THEN 3 END
+            )
+                  ,@G_TableId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.TableId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.TableId') AS bigint)
+            )
+                  ,@G_TableId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.TableId.value'),
+                JSON_QUERY(@Filter, '$.TableId')
+            )
+            SELECT @G_TableId_v1 = TRY_CAST(JSON_VALUE(@G_TableId_vals, '$[0]') AS bigint)
+                  ,@G_TableId_v2 = TRY_CAST(JSON_VALUE(@G_TableId_vals, '$[1]') AS bigint)
+            SELECT @G_Name_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Name') IS NOT NULL AND JSON_QUERY(@Filter, '$.Name') IS NULL THEN 3 END
+            )
+                  ,@G_Name_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name.value') AS nvarchar(25)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name') AS nvarchar(25))
+            )
+                  ,@G_Name_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Name.value'),
+                JSON_QUERY(@Filter, '$.Name')
+            )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
+
+            IF @G_Id_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Id_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'TableId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[TableId] IS NULL'
+            ELSE
+            IF @G_TableId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[TableId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[TableId] ' + [C].[SqlComparator]
+        ELSE '[T].[TableId] ' + [C].[SqlComparator] + ' @TableId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_TableId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_TableId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_TableId_v1 IS NOT NULL AND @G_TableId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[Name] IS NULL'
+            ELSE
+            IF @G_Name_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Name_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+        END ELSE
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[U].[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [dbo].[Expressions] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_Name nvarchar(25),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX)'
+                               ,@T_Id = @WT_Id
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
+                               ,@Id = @G_Id_v
+                               ,@Id_v1 = @G_Id_v1
+                               ,@Id_v2 = @G_Id_v2
+                               ,@Id_vals = @G_Id_vals
+                               ,@TableId = @G_TableId_v
+                               ,@TableId_v1 = @G_TableId_v1
+                               ,@TableId_v2 = @G_TableId_v2
+                               ,@TableId_vals = @G_TableId_vals
+                               ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
+                               ,@Name_vals = @G_Name_vals
+        END ELSE BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_Name nvarchar(25)'
+                               ,@T_Id = @WT_Id
+                               ,@T_TableId = @WT_TableId
+                               ,@T_Name = @WT_Name
+        END
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN
+                DECLARE @Recno BIGINT
+                   ,@S_Id_comparator TINYINT
+                   ,@S_Id_v bigint
+                   ,@S_Id_vals NVARCHAR(MAX)
+                   ,@S_Id_v1 bigint
+                   ,@S_Id_v2 bigint
+                   ,@S_TableId_comparator TINYINT
+                   ,@S_TableId_v bigint
+                   ,@S_TableId_vals NVARCHAR(MAX)
+                   ,@S_TableId_v1 bigint
+                   ,@S_TableId_v2 bigint
+                   ,@S_Name_comparator TINYINT
+                   ,@S_Name_v nvarchar(25)
+                   ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
+
+                SELECT @S_Id_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Id') IS NOT NULL AND JSON_QUERY(@Search, '$.Id') IS NULL THEN 3 END
+                )
+                      ,@S_Id_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id') AS bigint)
+                )
+                      ,@S_Id_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Id.value'),
+                    JSON_QUERY(@Search, '$.Id')
+                )
+                SELECT @S_Id_v1 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[0]') AS bigint)
+                      ,@S_Id_v2 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[1]') AS bigint)
+                SELECT @S_TableId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.TableId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.TableId') IS NOT NULL AND JSON_QUERY(@Search, '$.TableId') IS NULL THEN 3 END
+                )
+                      ,@S_TableId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.TableId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.TableId') AS bigint)
+                )
+                      ,@S_TableId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.TableId.value'),
+                    JSON_QUERY(@Search, '$.TableId')
+                )
+                SELECT @S_TableId_v1 = TRY_CAST(JSON_VALUE(@S_TableId_vals, '$[0]') AS bigint)
+                      ,@S_TableId_v2 = TRY_CAST(JSON_VALUE(@S_TableId_vals, '$[1]') AS bigint)
+                SELECT @S_Name_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Name') IS NOT NULL AND JSON_QUERY(@Search, '$.Name') IS NULL THEN 9 END
+                )
+                      ,@S_Name_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name.value') AS nvarchar(25)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name') AS nvarchar(25))
+                )
+                      ,@S_Name_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Name.value'),
+                    JSON_QUERY(@Search, '$.Name')
+                )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
+
+                SET @Where = ''
+                IF @S_Id_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Id_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'TableId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[TableId], [O].[TableId]) IS NULL'
+                END ELSE
+                IF @S_TableId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@TableId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId_v1 AND @TableId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[TableId], [O].[TableId]) ' + [C].[SqlComparator] + ' @TableId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_TableId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_TableId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_TableId_v1 IS NOT NULL AND @S_TableId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_TableId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[Name], [O].[Name]) IS NULL'
+                END ELSE
+                IF @S_Name_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Name_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Expressions] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id_v
+                                       ,@Id_v1 = @S_Id_v1
+                                       ,@Id_v2 = @S_Id_v2
+                                       ,@Id_vals = @S_Id_vals
+                                       ,@TableId = @S_TableId_v
+                                       ,@TableId_v1 = @S_TableId_v1
+                                       ,@TableId_v2 = @S_TableId_v2
+                                       ,@TableId_vals = @S_TableId_vals
+                                       ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
+                                       ,@Name_vals = @S_Name_vals
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            ELSE IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS bigint) AS [TableId]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+            INTO [#result]
+        SET @sql = 'INSERT [#result]
+                        SELECT ''Expression'' AS [Kind]
+                              ,[#].[Recno]
+                              ,[T].[Id]
+                              ,[T].[TableId]
+                              ,[T].[Name]
+                            FROM [#tmpTable] [#]
+                                INNER JOIN [dbo].[Expressions] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Expression'' AS [Kind]
+                                  ,[#].[Recno]
+                                  ,[O].[Id]
+                                  ,[O].[TableId]
+                                  ,[O].[Name]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT DISTINCT 'Table' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[ParentTableId]
+              ,[R].[CurrentId]
+            INTO [#Tables]
+            FROM [#result] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
+        INSERT INTO [#Tables]
+            SELECT DISTINCT 'Table' AS [Kind]
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Alias]
+                  ,[R].[Description]
+                  ,[R].[ParentTableId]
+                  ,[R].[CurrentId]
+                FROM [#Tables] [T]
+                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[TableId]
+                      ,[Name]
+                    FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
+        SET @ReturnValue = @RowCount
+
+    RETURN 0
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConditionValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConditionValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConditionValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConditionValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
+        IF @TransactionId IS NULL
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@IsPendingCreate BIT = 0
+               ,@W_Id bigint
+
+        IF @Action = 'delete' BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        END ELSE BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        END
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Conditions] WHERE [Id] = @W_Id) AND @Action = 'create'
+            THROW 51000, 'Chave-primária já existe em Conditions', 1
+        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
+                                    FROM [dbo].[Operations]
+                                    WHERE [TransactionId] = @TransactionId
+                                          AND [TableName] = 'Conditions'
+                                          AND [IsConfirmed] IS NULL
+                                          AND [Action] = 'create'
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+            SET @IsPendingCreate = 1
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Conditions] WHERE [Id] = @W_Id)
+            THROW 51000, 'Chave-primária não existe em Conditions', 1
+        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Conditions]
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [ExpressionId] = JSON_VALUE(@LastRecord, '$.ExpressionId')
+                                  AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND [dbo].[IS_EQUAL]([Connector], JSON_VALUE(@LastRecord, '$.Connector'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([LeftParenthesis], JSON_VALUE(@LastRecord, '$.LeftParenthesis'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([LeftColumnId], JSON_VALUE(@LastRecord, '$.LeftColumnId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([ComparatorId], JSON_VALUE(@LastRecord, '$.ComparatorId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([RightColumnId], JSON_VALUE(@LastRecord, '$.RightColumnId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([RightValues], JSON_VALUE(@LastRecord, '$.RightValues'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([RightParenthesis], JSON_VALUE(@LastRecord, '$.RightParenthesis'), 'nvarchar') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Conditions'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ExpressionId') = JSON_VALUE(@LastRecord, '$.ExpressionId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') = JSON_VALUE(@LastRecord, '$.Sequence')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Connector'), JSON_VALUE(@LastRecord, '$.Connector'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.LeftParenthesis'), JSON_VALUE(@LastRecord, '$.LeftParenthesis'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.LeftColumnId'), JSON_VALUE(@LastRecord, '$.LeftColumnId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ComparatorId'), JSON_VALUE(@LastRecord, '$.ComparatorId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RightColumnId'), JSON_VALUE(@LastRecord, '$.RightColumnId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RightValues'), JSON_VALUE(@LastRecord, '$.RightValues'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RightParenthesis'), JSON_VALUE(@LastRecord, '$.RightParenthesis'), 'nvarchar') = 1)
+                THROW 51000, 'Registro de Conditions alterado por outro usuário', 1
+        END
+
+        IF @Action IN ('create', 'update') BEGIN
+
+            DECLARE @W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+                   ,@W_Connector nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Connector') AS nvarchar(15))
+                   ,@W_LeftParenthesis nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.LeftParenthesis') AS nvarchar(20))
+                   ,@W_LeftColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.LeftColumnId') AS bigint)
+                   ,@W_ComparatorId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ComparatorId') AS bigint)
+                   ,@W_RightColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.RightColumnId') AS bigint)
+                   ,@W_RightValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.RightValues') AS nvarchar(max))
+                   ,@W_RightParenthesis nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.RightParenthesis') AS nvarchar(20))
+
+            IF @W_ExpressionId IS NULL
+                THROW 51000, 'Valor de ExpressionId em @ActualRecord é requerido.', 1
+            IF @W_Sequence IS NULL
+                THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
+        END
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConditionPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConditionPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConditionPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConditionPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(255)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint
+
+    IF @Action = 'delete' BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+    END ELSE BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    END
+    EXEC @TransactionId = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Conditions'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[LastRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@OperationId
+                                             ,@TransactionId
+                                             ,'Conditions'
+                                             ,@Action
+                                             ,@LastRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        ELSE IF @ActionAux = 'create'
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[LastRecord] = @LastRecord
+                   ,[ActualRecord] = NULL
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+
+    RETURN CAST(@OperationId AS BIGINT)
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConditionCreate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConditionCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConditionCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConditionCreate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Conditions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_Connector nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Connector') AS nvarchar(15))
+               ,@W_LeftParenthesis nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.LeftParenthesis') AS nvarchar(20))
+               ,@W_LeftColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.LeftColumnId') AS bigint)
+               ,@W_ComparatorId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ComparatorId') AS bigint)
+               ,@W_RightColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.RightColumnId') AS bigint)
+               ,@W_RightValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.RightValues') AS nvarchar(max))
+               ,@W_RightParenthesis nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.RightParenthesis') AS nvarchar(20))
+
+        INSERT INTO [dbo].[Conditions] ([Id]
+                                            ,[ExpressionId]
+                                            ,[Sequence]
+                                            ,[Connector]
+                                            ,[LeftParenthesis]
+                                            ,[LeftColumnId]
+                                            ,[ComparatorId]
+                                            ,[RightColumnId]
+                                            ,[RightValues]
+                                            ,[RightParenthesis]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_ExpressionId
+                                             ,@W_Sequence
+                                             ,@W_Connector
+                                             ,@W_LeftParenthesis
+                                             ,@W_LeftColumnId
+                                             ,@W_ComparatorId
+                                             ,@W_RightColumnId
+                                             ,@W_RightValues
+                                             ,@W_RightParenthesis
+                                             ,GETDATE()
+                                             ,@UserName)
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConditionUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConditionUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConditionUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConditionUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Conditions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+               ,@W_Connector nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Connector') AS nvarchar(15))
+               ,@W_LeftParenthesis nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.LeftParenthesis') AS nvarchar(20))
+               ,@W_LeftColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.LeftColumnId') AS bigint)
+               ,@W_ComparatorId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ComparatorId') AS bigint)
+               ,@W_RightColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.RightColumnId') AS bigint)
+               ,@W_RightValues nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.RightValues') AS nvarchar(max))
+               ,@W_RightParenthesis nvarchar(20) = CAST(JSON_VALUE(@ActualRecord, '$.RightParenthesis') AS nvarchar(20))
+
+        UPDATE [dbo].[Conditions] SET [Id] = @W_Id
+                                          ,[ExpressionId] = @W_ExpressionId
+                                          ,[Sequence] = @W_Sequence
+                                          ,[Connector] = @W_Connector
+                                          ,[LeftParenthesis] = @W_LeftParenthesis
+                                          ,[LeftColumnId] = @W_LeftColumnId
+                                          ,[ComparatorId] = @W_ComparatorId
+                                          ,[RightColumnId] = @W_RightColumnId
+                                          ,[RightValues] = @W_RightValues
+                                          ,[RightParenthesis] = @W_RightParenthesis
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConditionDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConditionDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConditionDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConditionDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Conditions'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Conditions] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ConditionsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ConditionsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConditionsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ConditionsRead](@Login NVARCHAR(MAX)
+                                          ,@Filter NVARCHAR(MAX)
+                                          ,@Search NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+        IF @Filter IS NULL
+            SET @Filter = '{}'
+        ELSE IF ISJSON(@Filter) = 0
+            THROW 51000, 'Valor de @Filter não está no formato JSON', 1
+        IF @Search IS NULL
+            SET @Search = '{}'
+        ELSE IF ISJSON(@Search) = 0
+            THROW 51000, 'Valor de @Search não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[T].[Id] ASC'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Conditions') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ExpressionId') AS bigint) AS [ExpressionId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') AS smallint) AS [Sequence]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Connector') AS nvarchar(15)) AS [Connector]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.LeftParenthesis') AS nvarchar(20)) AS [LeftParenthesis]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.LeftColumnId') AS bigint) AS [LeftColumnId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ComparatorId') AS bigint) AS [ComparatorId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RightColumnId') AS bigint) AS [RightColumnId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RightValues') AS nvarchar(max)) AS [RightValues]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.RightParenthesis') AS nvarchar(20)) AS [RightParenthesis]
+            INTO [#tmpOperations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Conditions'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@ComparatorPredicate NVARCHAR(MAX)
+               ,@sql NVARCHAR(MAX)
+
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+               ,@WT_ExpressionId bigint = CAST(JSON_VALUE(@Filter, '$.ExpressionId') AS bigint)
+               ,@WT_Sequence smallint = CAST(JSON_VALUE(@Filter, '$.Sequence') AS smallint)
+               ,@WT_Connector nvarchar(15) = CAST(JSON_VALUE(@Filter, '$.Connector') AS nvarchar(15))
+               ,@WT_LeftParenthesis nvarchar(20) = CAST(JSON_VALUE(@Filter, '$.LeftParenthesis') AS nvarchar(20))
+               ,@WT_LeftColumnId bigint = CAST(JSON_VALUE(@Filter, '$.LeftColumnId') AS bigint)
+               ,@WT_ComparatorId bigint = CAST(JSON_VALUE(@Filter, '$.ComparatorId') AS bigint)
+               ,@WT_RightColumnId bigint = CAST(JSON_VALUE(@Filter, '$.RightColumnId') AS bigint)
+               ,@WT_RightValues nvarchar(max) = CAST(JSON_VALUE(@Filter, '$.RightValues') AS nvarchar(max))
+               ,@WT_RightParenthesis nvarchar(20) = CAST(JSON_VALUE(@Filter, '$.RightParenthesis') AS nvarchar(20))
+
+        IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ExpressionId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ExpressionId] IS NULL'
+        ELSE IF @WT_ExpressionId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ExpressionId] = @T_ExpressionId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Sequence' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Sequence] IS NULL'
+        ELSE IF @WT_Sequence IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Sequence] = @T_Sequence'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Connector' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Connector] IS NULL'
+        ELSE IF @WT_Connector IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Connector] = @T_Connector'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'LeftParenthesis' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[LeftParenthesis] IS NULL'
+        ELSE IF @WT_LeftParenthesis IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[LeftParenthesis] = @T_LeftParenthesis'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'LeftColumnId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[LeftColumnId] IS NULL'
+        ELSE IF @WT_LeftColumnId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[LeftColumnId] = @T_LeftColumnId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ComparatorId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ComparatorId] IS NULL'
+        ELSE IF @WT_ComparatorId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ComparatorId] = @T_ComparatorId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'RightColumnId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[RightColumnId] IS NULL'
+        ELSE IF @WT_RightColumnId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[RightColumnId] = @T_RightColumnId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'RightValues' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[RightValues] IS NULL'
+        ELSE IF @WT_RightValues IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[RightValues] = @T_RightValues'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'RightParenthesis' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[RightParenthesis] IS NULL'
+        ELSE IF @WT_RightParenthesis IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[RightParenthesis] = @T_RightParenthesis'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @G_Id_comparator TINYINT
+                   ,@G_Id_v bigint
+                   ,@G_Id_vals NVARCHAR(MAX)
+                   ,@G_Id_v1 bigint
+                   ,@G_Id_v2 bigint
+                   ,@G_ExpressionId_comparator TINYINT
+                   ,@G_ExpressionId_v bigint
+                   ,@G_ExpressionId_vals NVARCHAR(MAX)
+                   ,@G_ExpressionId_v1 bigint
+                   ,@G_ExpressionId_v2 bigint
+                   ,@G_Sequence_comparator TINYINT
+                   ,@G_Sequence_v smallint
+                   ,@G_Sequence_vals NVARCHAR(MAX)
+                   ,@G_Sequence_v1 smallint
+                   ,@G_Sequence_v2 smallint
+                   ,@G_Connector_comparator TINYINT
+                   ,@G_Connector_v nvarchar(15)
+                   ,@G_Connector_vals NVARCHAR(MAX)
+                   ,@G_Connector_v1 nvarchar(15)
+                   ,@G_Connector_v2 nvarchar(15)
+                   ,@G_LeftParenthesis_comparator TINYINT
+                   ,@G_LeftParenthesis_v nvarchar(20)
+                   ,@G_LeftParenthesis_vals NVARCHAR(MAX)
+                   ,@G_LeftParenthesis_v1 nvarchar(20)
+                   ,@G_LeftParenthesis_v2 nvarchar(20)
+                   ,@G_LeftColumnId_comparator TINYINT
+                   ,@G_LeftColumnId_v bigint
+                   ,@G_LeftColumnId_vals NVARCHAR(MAX)
+                   ,@G_LeftColumnId_v1 bigint
+                   ,@G_LeftColumnId_v2 bigint
+                   ,@G_ComparatorId_comparator TINYINT
+                   ,@G_ComparatorId_v bigint
+                   ,@G_ComparatorId_vals NVARCHAR(MAX)
+                   ,@G_ComparatorId_v1 bigint
+                   ,@G_ComparatorId_v2 bigint
+                   ,@G_RightColumnId_comparator TINYINT
+                   ,@G_RightColumnId_v bigint
+                   ,@G_RightColumnId_vals NVARCHAR(MAX)
+                   ,@G_RightColumnId_v1 bigint
+                   ,@G_RightColumnId_v2 bigint
+                   ,@G_RightValues_comparator TINYINT
+                   ,@G_RightValues_v nvarchar(max)
+                   ,@G_RightValues_vals NVARCHAR(MAX)
+                   ,@G_RightParenthesis_comparator TINYINT
+                   ,@G_RightParenthesis_v nvarchar(20)
+                   ,@G_RightParenthesis_vals NVARCHAR(MAX)
+                   ,@G_RightParenthesis_v1 nvarchar(20)
+                   ,@G_RightParenthesis_v2 nvarchar(20)
+
+            SELECT @G_Id_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Id') IS NOT NULL AND JSON_QUERY(@Filter, '$.Id') IS NULL THEN 3 END
+            )
+                  ,@G_Id_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+            )
+                  ,@G_Id_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Id.value'),
+                JSON_QUERY(@Filter, '$.Id')
+            )
+            SELECT @G_Id_v1 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[0]') AS bigint)
+                  ,@G_Id_v2 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[1]') AS bigint)
+            SELECT @G_ExpressionId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ExpressionId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.ExpressionId') IS NOT NULL AND JSON_QUERY(@Filter, '$.ExpressionId') IS NULL THEN 3 END
+            )
+                  ,@G_ExpressionId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ExpressionId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.ExpressionId') AS bigint)
+            )
+                  ,@G_ExpressionId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.ExpressionId.value'),
+                JSON_QUERY(@Filter, '$.ExpressionId')
+            )
+            SELECT @G_ExpressionId_v1 = TRY_CAST(JSON_VALUE(@G_ExpressionId_vals, '$[0]') AS bigint)
+                  ,@G_ExpressionId_v2 = TRY_CAST(JSON_VALUE(@G_ExpressionId_vals, '$[1]') AS bigint)
+            SELECT @G_Sequence_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Sequence.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Sequence') IS NOT NULL AND JSON_QUERY(@Filter, '$.Sequence') IS NULL THEN 3 END
+            )
+                  ,@G_Sequence_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Sequence.value') AS smallint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Sequence') AS smallint)
+            )
+                  ,@G_Sequence_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Sequence.value'),
+                JSON_QUERY(@Filter, '$.Sequence')
+            )
+            SELECT @G_Sequence_v1 = TRY_CAST(JSON_VALUE(@G_Sequence_vals, '$[0]') AS smallint)
+                  ,@G_Sequence_v2 = TRY_CAST(JSON_VALUE(@G_Sequence_vals, '$[1]') AS smallint)
+            SELECT @G_Connector_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Connector.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Connector') IS NOT NULL AND JSON_QUERY(@Filter, '$.Connector') IS NULL THEN 3 END
+            )
+                  ,@G_Connector_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Connector.value') AS nvarchar(15)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Connector') AS nvarchar(15))
+            )
+                  ,@G_Connector_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Connector.value'),
+                JSON_QUERY(@Filter, '$.Connector')
+            )
+            SELECT @G_Connector_v1 = TRY_CAST(JSON_VALUE(@G_Connector_vals, '$[0]') AS nvarchar(15))
+                  ,@G_Connector_v2 = TRY_CAST(JSON_VALUE(@G_Connector_vals, '$[1]') AS nvarchar(15))
+            SELECT @G_LeftParenthesis_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.LeftParenthesis.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.LeftParenthesis') IS NOT NULL AND JSON_QUERY(@Filter, '$.LeftParenthesis') IS NULL THEN 3 END
+            )
+                  ,@G_LeftParenthesis_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.LeftParenthesis.value') AS nvarchar(20)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.LeftParenthesis') AS nvarchar(20))
+            )
+                  ,@G_LeftParenthesis_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.LeftParenthesis.value'),
+                JSON_QUERY(@Filter, '$.LeftParenthesis')
+            )
+            SELECT @G_LeftParenthesis_v1 = TRY_CAST(JSON_VALUE(@G_LeftParenthesis_vals, '$[0]') AS nvarchar(20))
+                  ,@G_LeftParenthesis_v2 = TRY_CAST(JSON_VALUE(@G_LeftParenthesis_vals, '$[1]') AS nvarchar(20))
+            SELECT @G_LeftColumnId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.LeftColumnId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.LeftColumnId') IS NOT NULL AND JSON_QUERY(@Filter, '$.LeftColumnId') IS NULL THEN 3 END
+            )
+                  ,@G_LeftColumnId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.LeftColumnId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.LeftColumnId') AS bigint)
+            )
+                  ,@G_LeftColumnId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.LeftColumnId.value'),
+                JSON_QUERY(@Filter, '$.LeftColumnId')
+            )
+            SELECT @G_LeftColumnId_v1 = TRY_CAST(JSON_VALUE(@G_LeftColumnId_vals, '$[0]') AS bigint)
+                  ,@G_LeftColumnId_v2 = TRY_CAST(JSON_VALUE(@G_LeftColumnId_vals, '$[1]') AS bigint)
+            SELECT @G_ComparatorId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ComparatorId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.ComparatorId') IS NOT NULL AND JSON_QUERY(@Filter, '$.ComparatorId') IS NULL THEN 3 END
+            )
+                  ,@G_ComparatorId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ComparatorId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.ComparatorId') AS bigint)
+            )
+                  ,@G_ComparatorId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.ComparatorId.value'),
+                JSON_QUERY(@Filter, '$.ComparatorId')
+            )
+            SELECT @G_ComparatorId_v1 = TRY_CAST(JSON_VALUE(@G_ComparatorId_vals, '$[0]') AS bigint)
+                  ,@G_ComparatorId_v2 = TRY_CAST(JSON_VALUE(@G_ComparatorId_vals, '$[1]') AS bigint)
+            SELECT @G_RightColumnId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightColumnId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.RightColumnId') IS NOT NULL AND JSON_QUERY(@Filter, '$.RightColumnId') IS NULL THEN 3 END
+            )
+                  ,@G_RightColumnId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightColumnId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightColumnId') AS bigint)
+            )
+                  ,@G_RightColumnId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.RightColumnId.value'),
+                JSON_QUERY(@Filter, '$.RightColumnId')
+            )
+            SELECT @G_RightColumnId_v1 = TRY_CAST(JSON_VALUE(@G_RightColumnId_vals, '$[0]') AS bigint)
+                  ,@G_RightColumnId_v2 = TRY_CAST(JSON_VALUE(@G_RightColumnId_vals, '$[1]') AS bigint)
+            SELECT @G_RightValues_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightValues.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.RightValues') IS NOT NULL AND JSON_QUERY(@Filter, '$.RightValues') IS NULL THEN 3 END
+            )
+                  ,@G_RightValues_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightValues.value') AS nvarchar(max)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightValues') AS nvarchar(max))
+            )
+                  ,@G_RightValues_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.RightValues.value'),
+                JSON_QUERY(@Filter, '$.RightValues')
+            )
+            SELECT @G_RightParenthesis_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightParenthesis.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.RightParenthesis') IS NOT NULL AND JSON_QUERY(@Filter, '$.RightParenthesis') IS NULL THEN 3 END
+            )
+                  ,@G_RightParenthesis_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightParenthesis.value') AS nvarchar(20)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.RightParenthesis') AS nvarchar(20))
+            )
+                  ,@G_RightParenthesis_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.RightParenthesis.value'),
+                JSON_QUERY(@Filter, '$.RightParenthesis')
+            )
+            SELECT @G_RightParenthesis_v1 = TRY_CAST(JSON_VALUE(@G_RightParenthesis_vals, '$[0]') AS nvarchar(20))
+                  ,@G_RightParenthesis_v2 = TRY_CAST(JSON_VALUE(@G_RightParenthesis_vals, '$[1]') AS nvarchar(20))
+
+            IF @G_Id_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Id_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ExpressionId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[ExpressionId] IS NULL'
+            ELSE
+            IF @G_ExpressionId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[ExpressionId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ExpressionId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ExpressionId] ' + [C].[SqlComparator] + ' @ExpressionId_v1 AND @ExpressionId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ExpressionId] ' + [C].[SqlComparator]
+        ELSE '[T].[ExpressionId] ' + [C].[SqlComparator] + ' @ExpressionId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_ExpressionId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_ExpressionId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_ExpressionId_v1 IS NOT NULL AND @G_ExpressionId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_ExpressionId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Sequence' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[Sequence] IS NULL'
+            ELSE
+            IF @G_Sequence_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Sequence] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS smallint) FROM OPENJSON(@Sequence_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Sequence] ' + [C].[SqlComparator] + ' @Sequence_v1 AND @Sequence_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Sequence] ' + [C].[SqlComparator]
+        ELSE '[T].[Sequence] ' + [C].[SqlComparator] + ' @Sequence'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Sequence_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Sequence_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Sequence_v1 IS NOT NULL AND @G_Sequence_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Sequence_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Connector' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[Connector] IS NULL'
+            ELSE
+            IF @G_Connector_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Connector] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@Connector_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Connector] ' + [C].[SqlComparator] + ' @Connector_v1 AND @Connector_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Connector] ' + [C].[SqlComparator]
+        ELSE '[T].[Connector] ' + [C].[SqlComparator] + ' @Connector'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Connector_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Connector_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Connector_v1 IS NOT NULL AND @G_Connector_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Connector_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'LeftParenthesis' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[LeftParenthesis] IS NULL'
+            ELSE
+            IF @G_LeftParenthesis_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[LeftParenthesis] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@LeftParenthesis_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[LeftParenthesis] ' + [C].[SqlComparator] + ' @LeftParenthesis_v1 AND @LeftParenthesis_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[LeftParenthesis] ' + [C].[SqlComparator]
+        ELSE '[T].[LeftParenthesis] ' + [C].[SqlComparator] + ' @LeftParenthesis'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_LeftParenthesis_comparator
+                          AND (([C].[Arity] IS NULL AND @G_LeftParenthesis_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_LeftParenthesis_v1 IS NOT NULL AND @G_LeftParenthesis_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_LeftParenthesis_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'LeftColumnId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[LeftColumnId] IS NULL'
+            ELSE
+            IF @G_LeftColumnId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[LeftColumnId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@LeftColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[LeftColumnId] ' + [C].[SqlComparator] + ' @LeftColumnId_v1 AND @LeftColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[LeftColumnId] ' + [C].[SqlComparator]
+        ELSE '[T].[LeftColumnId] ' + [C].[SqlComparator] + ' @LeftColumnId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_LeftColumnId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_LeftColumnId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_LeftColumnId_v1 IS NOT NULL AND @G_LeftColumnId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_LeftColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ComparatorId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[ComparatorId] IS NULL'
+            ELSE
+            IF @G_ComparatorId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[ComparatorId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ComparatorId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ComparatorId] ' + [C].[SqlComparator] + ' @ComparatorId_v1 AND @ComparatorId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ComparatorId] ' + [C].[SqlComparator]
+        ELSE '[T].[ComparatorId] ' + [C].[SqlComparator] + ' @ComparatorId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_ComparatorId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_ComparatorId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_ComparatorId_v1 IS NOT NULL AND @G_ComparatorId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_ComparatorId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'RightColumnId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[RightColumnId] IS NULL'
+            ELSE
+            IF @G_RightColumnId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[RightColumnId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@RightColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[RightColumnId] ' + [C].[SqlComparator] + ' @RightColumnId_v1 AND @RightColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[RightColumnId] ' + [C].[SqlComparator]
+        ELSE '[T].[RightColumnId] ' + [C].[SqlComparator] + ' @RightColumnId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_RightColumnId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_RightColumnId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_RightColumnId_v1 IS NOT NULL AND @G_RightColumnId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_RightColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'RightValues' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[RightValues] IS NULL'
+            ELSE
+            IF @G_RightValues_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[RightValues] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@RightValues_vals))'
+        WHEN [C].[Arity] = 1 THEN '[T].[RightValues] ' + [C].[SqlComparator]
+        ELSE '[T].[RightValues] ' + [C].[SqlComparator] + ' @RightValues'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_RightValues_comparator
+                          AND (([C].[Arity] IS NULL AND @G_RightValues_vals IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_RightValues_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'RightParenthesis' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[RightParenthesis] IS NULL'
+            ELSE
+            IF @G_RightParenthesis_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[RightParenthesis] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@RightParenthesis_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[RightParenthesis] ' + [C].[SqlComparator] + ' @RightParenthesis_v1 AND @RightParenthesis_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[RightParenthesis] ' + [C].[SqlComparator]
+        ELSE '[T].[RightParenthesis] ' + [C].[SqlComparator] + ' @RightParenthesis'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_RightParenthesis_comparator
+                          AND (([C].[Arity] IS NULL AND @G_RightParenthesis_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_RightParenthesis_v1 IS NOT NULL AND @G_RightParenthesis_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_RightParenthesis_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+        END ELSE
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[U].[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [dbo].[Conditions] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ExpressionId bigint,@T_Sequence smallint,@T_Connector nvarchar(15),@T_LeftParenthesis nvarchar(20),@T_LeftColumnId bigint,@T_ComparatorId bigint,@T_RightColumnId bigint,@T_RightValues nvarchar(max),@T_RightParenthesis nvarchar(20),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@Sequence smallint,@Sequence_v1 smallint,@Sequence_v2 smallint,@Sequence_vals NVARCHAR(MAX),@Connector nvarchar(15),@Connector_v1 nvarchar(15),@Connector_v2 nvarchar(15),@Connector_vals NVARCHAR(MAX),@LeftParenthesis nvarchar(20),@LeftParenthesis_v1 nvarchar(20),@LeftParenthesis_v2 nvarchar(20),@LeftParenthesis_vals NVARCHAR(MAX),@LeftColumnId bigint,@LeftColumnId_v1 bigint,@LeftColumnId_v2 bigint,@LeftColumnId_vals NVARCHAR(MAX),@ComparatorId bigint,@ComparatorId_v1 bigint,@ComparatorId_v2 bigint,@ComparatorId_vals NVARCHAR(MAX),@RightColumnId bigint,@RightColumnId_v1 bigint,@RightColumnId_v2 bigint,@RightColumnId_vals NVARCHAR(MAX),@RightValues nvarchar(max),@RightValues_vals NVARCHAR(MAX),@RightParenthesis nvarchar(20),@RightParenthesis_v1 nvarchar(20),@RightParenthesis_v2 nvarchar(20),@RightParenthesis_vals NVARCHAR(MAX)'
+                               ,@T_Id = @WT_Id
+                               ,@T_ExpressionId = @WT_ExpressionId
+                               ,@T_Sequence = @WT_Sequence
+                               ,@T_Connector = @WT_Connector
+                               ,@T_LeftParenthesis = @WT_LeftParenthesis
+                               ,@T_LeftColumnId = @WT_LeftColumnId
+                               ,@T_ComparatorId = @WT_ComparatorId
+                               ,@T_RightColumnId = @WT_RightColumnId
+                               ,@T_RightValues = @WT_RightValues
+                               ,@T_RightParenthesis = @WT_RightParenthesis
+                               ,@Id = @G_Id_v
+                               ,@Id_v1 = @G_Id_v1
+                               ,@Id_v2 = @G_Id_v2
+                               ,@Id_vals = @G_Id_vals
+                               ,@ExpressionId = @G_ExpressionId_v
+                               ,@ExpressionId_v1 = @G_ExpressionId_v1
+                               ,@ExpressionId_v2 = @G_ExpressionId_v2
+                               ,@ExpressionId_vals = @G_ExpressionId_vals
+                               ,@Sequence = @G_Sequence_v
+                               ,@Sequence_v1 = @G_Sequence_v1
+                               ,@Sequence_v2 = @G_Sequence_v2
+                               ,@Sequence_vals = @G_Sequence_vals
+                               ,@Connector = @G_Connector_v
+                               ,@Connector_v1 = @G_Connector_v1
+                               ,@Connector_v2 = @G_Connector_v2
+                               ,@Connector_vals = @G_Connector_vals
+                               ,@LeftParenthesis = @G_LeftParenthesis_v
+                               ,@LeftParenthesis_v1 = @G_LeftParenthesis_v1
+                               ,@LeftParenthesis_v2 = @G_LeftParenthesis_v2
+                               ,@LeftParenthesis_vals = @G_LeftParenthesis_vals
+                               ,@LeftColumnId = @G_LeftColumnId_v
+                               ,@LeftColumnId_v1 = @G_LeftColumnId_v1
+                               ,@LeftColumnId_v2 = @G_LeftColumnId_v2
+                               ,@LeftColumnId_vals = @G_LeftColumnId_vals
+                               ,@ComparatorId = @G_ComparatorId_v
+                               ,@ComparatorId_v1 = @G_ComparatorId_v1
+                               ,@ComparatorId_v2 = @G_ComparatorId_v2
+                               ,@ComparatorId_vals = @G_ComparatorId_vals
+                               ,@RightColumnId = @G_RightColumnId_v
+                               ,@RightColumnId_v1 = @G_RightColumnId_v1
+                               ,@RightColumnId_v2 = @G_RightColumnId_v2
+                               ,@RightColumnId_vals = @G_RightColumnId_vals
+                               ,@RightValues = @G_RightValues_v
+                               ,@RightValues_vals = @G_RightValues_vals
+                               ,@RightParenthesis = @G_RightParenthesis_v
+                               ,@RightParenthesis_v1 = @G_RightParenthesis_v1
+                               ,@RightParenthesis_v2 = @G_RightParenthesis_v2
+                               ,@RightParenthesis_vals = @G_RightParenthesis_vals
+        END ELSE BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ExpressionId bigint,@T_Sequence smallint,@T_Connector nvarchar(15),@T_LeftParenthesis nvarchar(20),@T_LeftColumnId bigint,@T_ComparatorId bigint,@T_RightColumnId bigint,@T_RightValues nvarchar(max),@T_RightParenthesis nvarchar(20)'
+                               ,@T_Id = @WT_Id
+                               ,@T_ExpressionId = @WT_ExpressionId
+                               ,@T_Sequence = @WT_Sequence
+                               ,@T_Connector = @WT_Connector
+                               ,@T_LeftParenthesis = @WT_LeftParenthesis
+                               ,@T_LeftColumnId = @WT_LeftColumnId
+                               ,@T_ComparatorId = @WT_ComparatorId
+                               ,@T_RightColumnId = @WT_RightColumnId
+                               ,@T_RightValues = @WT_RightValues
+                               ,@T_RightParenthesis = @WT_RightParenthesis
+        END
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN
+                DECLARE @Recno BIGINT
+                   ,@S_Id_comparator TINYINT
+                   ,@S_Id_v bigint
+                   ,@S_Id_vals NVARCHAR(MAX)
+                   ,@S_Id_v1 bigint
+                   ,@S_Id_v2 bigint
+                   ,@S_ExpressionId_comparator TINYINT
+                   ,@S_ExpressionId_v bigint
+                   ,@S_ExpressionId_vals NVARCHAR(MAX)
+                   ,@S_ExpressionId_v1 bigint
+                   ,@S_ExpressionId_v2 bigint
+                   ,@S_Sequence_comparator TINYINT
+                   ,@S_Sequence_v smallint
+                   ,@S_Sequence_vals NVARCHAR(MAX)
+                   ,@S_Sequence_v1 smallint
+                   ,@S_Sequence_v2 smallint
+                   ,@S_Connector_comparator TINYINT
+                   ,@S_Connector_v nvarchar(15)
+                   ,@S_Connector_vals NVARCHAR(MAX)
+                   ,@S_Connector_v1 nvarchar(15)
+                   ,@S_Connector_v2 nvarchar(15)
+                   ,@S_LeftParenthesis_comparator TINYINT
+                   ,@S_LeftParenthesis_v nvarchar(20)
+                   ,@S_LeftParenthesis_vals NVARCHAR(MAX)
+                   ,@S_LeftParenthesis_v1 nvarchar(20)
+                   ,@S_LeftParenthesis_v2 nvarchar(20)
+                   ,@S_LeftColumnId_comparator TINYINT
+                   ,@S_LeftColumnId_v bigint
+                   ,@S_LeftColumnId_vals NVARCHAR(MAX)
+                   ,@S_LeftColumnId_v1 bigint
+                   ,@S_LeftColumnId_v2 bigint
+                   ,@S_ComparatorId_comparator TINYINT
+                   ,@S_ComparatorId_v bigint
+                   ,@S_ComparatorId_vals NVARCHAR(MAX)
+                   ,@S_ComparatorId_v1 bigint
+                   ,@S_ComparatorId_v2 bigint
+                   ,@S_RightColumnId_comparator TINYINT
+                   ,@S_RightColumnId_v bigint
+                   ,@S_RightColumnId_vals NVARCHAR(MAX)
+                   ,@S_RightColumnId_v1 bigint
+                   ,@S_RightColumnId_v2 bigint
+                   ,@S_RightValues_comparator TINYINT
+                   ,@S_RightValues_v nvarchar(max)
+                   ,@S_RightValues_vals NVARCHAR(MAX)
+                   ,@S_RightParenthesis_comparator TINYINT
+                   ,@S_RightParenthesis_v nvarchar(20)
+                   ,@S_RightParenthesis_vals NVARCHAR(MAX)
+                   ,@S_RightParenthesis_v1 nvarchar(20)
+                   ,@S_RightParenthesis_v2 nvarchar(20)
+
+                SELECT @S_Id_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Id') IS NOT NULL AND JSON_QUERY(@Search, '$.Id') IS NULL THEN 3 END
+                )
+                      ,@S_Id_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id') AS bigint)
+                )
+                      ,@S_Id_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Id.value'),
+                    JSON_QUERY(@Search, '$.Id')
+                )
+                SELECT @S_Id_v1 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[0]') AS bigint)
+                      ,@S_Id_v2 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[1]') AS bigint)
+                SELECT @S_ExpressionId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ExpressionId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.ExpressionId') IS NOT NULL AND JSON_QUERY(@Search, '$.ExpressionId') IS NULL THEN 3 END
+                )
+                      ,@S_ExpressionId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ExpressionId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.ExpressionId') AS bigint)
+                )
+                      ,@S_ExpressionId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.ExpressionId.value'),
+                    JSON_QUERY(@Search, '$.ExpressionId')
+                )
+                SELECT @S_ExpressionId_v1 = TRY_CAST(JSON_VALUE(@S_ExpressionId_vals, '$[0]') AS bigint)
+                      ,@S_ExpressionId_v2 = TRY_CAST(JSON_VALUE(@S_ExpressionId_vals, '$[1]') AS bigint)
+                SELECT @S_Sequence_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Sequence.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Sequence') IS NOT NULL AND JSON_QUERY(@Search, '$.Sequence') IS NULL THEN 3 END
+                )
+                      ,@S_Sequence_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Sequence.value') AS smallint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Sequence') AS smallint)
+                )
+                      ,@S_Sequence_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Sequence.value'),
+                    JSON_QUERY(@Search, '$.Sequence')
+                )
+                SELECT @S_Sequence_v1 = TRY_CAST(JSON_VALUE(@S_Sequence_vals, '$[0]') AS smallint)
+                      ,@S_Sequence_v2 = TRY_CAST(JSON_VALUE(@S_Sequence_vals, '$[1]') AS smallint)
+                SELECT @S_Connector_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Connector.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Connector') IS NOT NULL AND JSON_QUERY(@Search, '$.Connector') IS NULL THEN 9 END
+                )
+                      ,@S_Connector_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Connector.value') AS nvarchar(15)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Connector') AS nvarchar(15))
+                )
+                      ,@S_Connector_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Connector.value'),
+                    JSON_QUERY(@Search, '$.Connector')
+                )
+                SELECT @S_Connector_v1 = TRY_CAST(JSON_VALUE(@S_Connector_vals, '$[0]') AS nvarchar(15))
+                      ,@S_Connector_v2 = TRY_CAST(JSON_VALUE(@S_Connector_vals, '$[1]') AS nvarchar(15))
+                SELECT @S_LeftParenthesis_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.LeftParenthesis.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.LeftParenthesis') IS NOT NULL AND JSON_QUERY(@Search, '$.LeftParenthesis') IS NULL THEN 9 END
+                )
+                      ,@S_LeftParenthesis_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.LeftParenthesis.value') AS nvarchar(20)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.LeftParenthesis') AS nvarchar(20))
+                )
+                      ,@S_LeftParenthesis_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.LeftParenthesis.value'),
+                    JSON_QUERY(@Search, '$.LeftParenthesis')
+                )
+                SELECT @S_LeftParenthesis_v1 = TRY_CAST(JSON_VALUE(@S_LeftParenthesis_vals, '$[0]') AS nvarchar(20))
+                      ,@S_LeftParenthesis_v2 = TRY_CAST(JSON_VALUE(@S_LeftParenthesis_vals, '$[1]') AS nvarchar(20))
+                SELECT @S_LeftColumnId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.LeftColumnId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.LeftColumnId') IS NOT NULL AND JSON_QUERY(@Search, '$.LeftColumnId') IS NULL THEN 3 END
+                )
+                      ,@S_LeftColumnId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.LeftColumnId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.LeftColumnId') AS bigint)
+                )
+                      ,@S_LeftColumnId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.LeftColumnId.value'),
+                    JSON_QUERY(@Search, '$.LeftColumnId')
+                )
+                SELECT @S_LeftColumnId_v1 = TRY_CAST(JSON_VALUE(@S_LeftColumnId_vals, '$[0]') AS bigint)
+                      ,@S_LeftColumnId_v2 = TRY_CAST(JSON_VALUE(@S_LeftColumnId_vals, '$[1]') AS bigint)
+                SELECT @S_ComparatorId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ComparatorId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.ComparatorId') IS NOT NULL AND JSON_QUERY(@Search, '$.ComparatorId') IS NULL THEN 3 END
+                )
+                      ,@S_ComparatorId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ComparatorId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.ComparatorId') AS bigint)
+                )
+                      ,@S_ComparatorId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.ComparatorId.value'),
+                    JSON_QUERY(@Search, '$.ComparatorId')
+                )
+                SELECT @S_ComparatorId_v1 = TRY_CAST(JSON_VALUE(@S_ComparatorId_vals, '$[0]') AS bigint)
+                      ,@S_ComparatorId_v2 = TRY_CAST(JSON_VALUE(@S_ComparatorId_vals, '$[1]') AS bigint)
+                SELECT @S_RightColumnId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightColumnId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.RightColumnId') IS NOT NULL AND JSON_QUERY(@Search, '$.RightColumnId') IS NULL THEN 3 END
+                )
+                      ,@S_RightColumnId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightColumnId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightColumnId') AS bigint)
+                )
+                      ,@S_RightColumnId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.RightColumnId.value'),
+                    JSON_QUERY(@Search, '$.RightColumnId')
+                )
+                SELECT @S_RightColumnId_v1 = TRY_CAST(JSON_VALUE(@S_RightColumnId_vals, '$[0]') AS bigint)
+                      ,@S_RightColumnId_v2 = TRY_CAST(JSON_VALUE(@S_RightColumnId_vals, '$[1]') AS bigint)
+                SELECT @S_RightValues_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightValues.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.RightValues') IS NOT NULL AND JSON_QUERY(@Search, '$.RightValues') IS NULL THEN 9 END
+                )
+                      ,@S_RightValues_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightValues.value') AS nvarchar(max)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightValues') AS nvarchar(max))
+                )
+                      ,@S_RightValues_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.RightValues.value'),
+                    JSON_QUERY(@Search, '$.RightValues')
+                )
+                SELECT @S_RightParenthesis_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightParenthesis.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.RightParenthesis') IS NOT NULL AND JSON_QUERY(@Search, '$.RightParenthesis') IS NULL THEN 9 END
+                )
+                      ,@S_RightParenthesis_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightParenthesis.value') AS nvarchar(20)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.RightParenthesis') AS nvarchar(20))
+                )
+                      ,@S_RightParenthesis_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.RightParenthesis.value'),
+                    JSON_QUERY(@Search, '$.RightParenthesis')
+                )
+                SELECT @S_RightParenthesis_v1 = TRY_CAST(JSON_VALUE(@S_RightParenthesis_vals, '$[0]') AS nvarchar(20))
+                      ,@S_RightParenthesis_v2 = TRY_CAST(JSON_VALUE(@S_RightParenthesis_vals, '$[1]') AS nvarchar(20))
+
+                SET @Where = ''
+                IF @S_Id_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Id_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ExpressionId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) IS NULL'
+                END ELSE
+                IF @S_ExpressionId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ExpressionId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator] + ' @ExpressionId_v1 AND @ExpressionId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator] + ' @ExpressionId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_ExpressionId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_ExpressionId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_ExpressionId_v1 IS NOT NULL AND @S_ExpressionId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_ExpressionId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Sequence' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[Sequence], [O].[Sequence]) IS NULL'
+                END ELSE
+                IF @S_Sequence_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Sequence], [O].[Sequence]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS smallint) FROM OPENJSON(@Sequence_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Sequence], [O].[Sequence]) ' + [C].[SqlComparator] + ' @Sequence_v1 AND @Sequence_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Sequence], [O].[Sequence]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Sequence], [O].[Sequence]) ' + [C].[SqlComparator] + ' @Sequence'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Sequence_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Sequence_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Sequence_v1 IS NOT NULL AND @S_Sequence_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Sequence_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Connector' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[Connector], [O].[Connector]) IS NULL'
+                END ELSE
+                IF @S_Connector_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Connector], [O].[Connector]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@Connector_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Connector], [O].[Connector]) ' + [C].[SqlComparator] + ' @Connector_v1 AND @Connector_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Connector], [O].[Connector]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Connector], [O].[Connector]) ' + [C].[SqlComparator] + ' @Connector'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Connector_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Connector_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Connector_v1 IS NOT NULL AND @S_Connector_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Connector_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'LeftParenthesis' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[LeftParenthesis], [O].[LeftParenthesis]) IS NULL'
+                END ELSE
+                IF @S_LeftParenthesis_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[LeftParenthesis], [O].[LeftParenthesis]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@LeftParenthesis_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[LeftParenthesis], [O].[LeftParenthesis]) ' + [C].[SqlComparator] + ' @LeftParenthesis_v1 AND @LeftParenthesis_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[LeftParenthesis], [O].[LeftParenthesis]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[LeftParenthesis], [O].[LeftParenthesis]) ' + [C].[SqlComparator] + ' @LeftParenthesis'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_LeftParenthesis_comparator
+                              AND (([C].[Arity] IS NULL AND @S_LeftParenthesis_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_LeftParenthesis_v1 IS NOT NULL AND @S_LeftParenthesis_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_LeftParenthesis_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'LeftColumnId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[LeftColumnId], [O].[LeftColumnId]) IS NULL'
+                END ELSE
+                IF @S_LeftColumnId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[LeftColumnId], [O].[LeftColumnId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@LeftColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[LeftColumnId], [O].[LeftColumnId]) ' + [C].[SqlComparator] + ' @LeftColumnId_v1 AND @LeftColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[LeftColumnId], [O].[LeftColumnId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[LeftColumnId], [O].[LeftColumnId]) ' + [C].[SqlComparator] + ' @LeftColumnId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_LeftColumnId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_LeftColumnId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_LeftColumnId_v1 IS NOT NULL AND @S_LeftColumnId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_LeftColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ComparatorId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) IS NULL'
+                END ELSE
+                IF @S_ComparatorId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ComparatorId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator] + ' @ComparatorId_v1 AND @ComparatorId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ComparatorId], [O].[ComparatorId]) ' + [C].[SqlComparator] + ' @ComparatorId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_ComparatorId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_ComparatorId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_ComparatorId_v1 IS NOT NULL AND @S_ComparatorId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_ComparatorId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'RightColumnId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[RightColumnId], [O].[RightColumnId]) IS NULL'
+                END ELSE
+                IF @S_RightColumnId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[RightColumnId], [O].[RightColumnId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@RightColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[RightColumnId], [O].[RightColumnId]) ' + [C].[SqlComparator] + ' @RightColumnId_v1 AND @RightColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[RightColumnId], [O].[RightColumnId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[RightColumnId], [O].[RightColumnId]) ' + [C].[SqlComparator] + ' @RightColumnId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_RightColumnId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_RightColumnId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_RightColumnId_v1 IS NOT NULL AND @S_RightColumnId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_RightColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'RightValues' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[RightValues], [O].[RightValues]) IS NULL'
+                END ELSE
+                IF @S_RightValues_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[RightValues], [O].[RightValues]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@RightValues_vals))'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[RightValues], [O].[RightValues]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[RightValues], [O].[RightValues]) ' + [C].[SqlComparator] + ' @RightValues'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_RightValues_comparator
+                              AND (([C].[Arity] IS NULL AND @S_RightValues_vals IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_RightValues_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'RightParenthesis' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[RightParenthesis], [O].[RightParenthesis]) IS NULL'
+                END ELSE
+                IF @S_RightParenthesis_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[RightParenthesis], [O].[RightParenthesis]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(20)) FROM OPENJSON(@RightParenthesis_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[RightParenthesis], [O].[RightParenthesis]) ' + [C].[SqlComparator] + ' @RightParenthesis_v1 AND @RightParenthesis_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[RightParenthesis], [O].[RightParenthesis]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[RightParenthesis], [O].[RightParenthesis]) ' + [C].[SqlComparator] + ' @RightParenthesis'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_RightParenthesis_comparator
+                              AND (([C].[Arity] IS NULL AND @S_RightParenthesis_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_RightParenthesis_v1 IS NOT NULL AND @S_RightParenthesis_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_RightParenthesis_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Conditions] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@Sequence smallint,@Sequence_v1 smallint,@Sequence_v2 smallint,@Sequence_vals NVARCHAR(MAX),@Connector nvarchar(15),@Connector_v1 nvarchar(15),@Connector_v2 nvarchar(15),@Connector_vals NVARCHAR(MAX),@LeftParenthesis nvarchar(20),@LeftParenthesis_v1 nvarchar(20),@LeftParenthesis_v2 nvarchar(20),@LeftParenthesis_vals NVARCHAR(MAX),@LeftColumnId bigint,@LeftColumnId_v1 bigint,@LeftColumnId_v2 bigint,@LeftColumnId_vals NVARCHAR(MAX),@ComparatorId bigint,@ComparatorId_v1 bigint,@ComparatorId_v2 bigint,@ComparatorId_vals NVARCHAR(MAX),@RightColumnId bigint,@RightColumnId_v1 bigint,@RightColumnId_v2 bigint,@RightColumnId_vals NVARCHAR(MAX),@RightValues nvarchar(max),@RightValues_vals NVARCHAR(MAX),@RightParenthesis nvarchar(20),@RightParenthesis_v1 nvarchar(20),@RightParenthesis_v2 nvarchar(20),@RightParenthesis_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id_v
+                                       ,@Id_v1 = @S_Id_v1
+                                       ,@Id_v2 = @S_Id_v2
+                                       ,@Id_vals = @S_Id_vals
+                                       ,@ExpressionId = @S_ExpressionId_v
+                                       ,@ExpressionId_v1 = @S_ExpressionId_v1
+                                       ,@ExpressionId_v2 = @S_ExpressionId_v2
+                                       ,@ExpressionId_vals = @S_ExpressionId_vals
+                                       ,@Sequence = @S_Sequence_v
+                                       ,@Sequence_v1 = @S_Sequence_v1
+                                       ,@Sequence_v2 = @S_Sequence_v2
+                                       ,@Sequence_vals = @S_Sequence_vals
+                                       ,@Connector = @S_Connector_v
+                                       ,@Connector_v1 = @S_Connector_v1
+                                       ,@Connector_v2 = @S_Connector_v2
+                                       ,@Connector_vals = @S_Connector_vals
+                                       ,@LeftParenthesis = @S_LeftParenthesis_v
+                                       ,@LeftParenthesis_v1 = @S_LeftParenthesis_v1
+                                       ,@LeftParenthesis_v2 = @S_LeftParenthesis_v2
+                                       ,@LeftParenthesis_vals = @S_LeftParenthesis_vals
+                                       ,@LeftColumnId = @S_LeftColumnId_v
+                                       ,@LeftColumnId_v1 = @S_LeftColumnId_v1
+                                       ,@LeftColumnId_v2 = @S_LeftColumnId_v2
+                                       ,@LeftColumnId_vals = @S_LeftColumnId_vals
+                                       ,@ComparatorId = @S_ComparatorId_v
+                                       ,@ComparatorId_v1 = @S_ComparatorId_v1
+                                       ,@ComparatorId_v2 = @S_ComparatorId_v2
+                                       ,@ComparatorId_vals = @S_ComparatorId_vals
+                                       ,@RightColumnId = @S_RightColumnId_v
+                                       ,@RightColumnId_v1 = @S_RightColumnId_v1
+                                       ,@RightColumnId_v2 = @S_RightColumnId_v2
+                                       ,@RightColumnId_vals = @S_RightColumnId_vals
+                                       ,@RightValues = @S_RightValues_v
+                                       ,@RightValues_vals = @S_RightValues_vals
+                                       ,@RightParenthesis = @S_RightParenthesis_v
+                                       ,@RightParenthesis_v1 = @S_RightParenthesis_v1
+                                       ,@RightParenthesis_v2 = @S_RightParenthesis_v2
+                                       ,@RightParenthesis_vals = @S_RightParenthesis_vals
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            ELSE IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS bigint) AS [ExpressionId]
+                    ,CAST(NULL AS smallint) AS [Sequence]
+                    ,CAST(NULL AS nvarchar(15)) AS [Connector]
+                    ,CAST(NULL AS nvarchar(20)) AS [LeftParenthesis]
+                    ,CAST(NULL AS bigint) AS [LeftColumnId]
+                    ,CAST(NULL AS bigint) AS [ComparatorId]
+                    ,CAST(NULL AS bigint) AS [RightColumnId]
+                    ,CAST(NULL AS nvarchar(max)) AS [RightValues]
+                    ,CAST(NULL AS nvarchar(20)) AS [RightParenthesis]
+            INTO [#result]
+        SET @sql = 'INSERT [#result]
+                        SELECT ''Condition'' AS [Kind]
+                              ,[#].[Recno]
+                              ,[T].[Id]
+                              ,[T].[ExpressionId]
+                              ,[T].[Sequence]
+                              ,[T].[Connector]
+                              ,[T].[LeftParenthesis]
+                              ,[T].[LeftColumnId]
+                              ,[T].[ComparatorId]
+                              ,[T].[RightColumnId]
+                              ,[T].[RightValues]
+                              ,[T].[RightParenthesis]
+                            FROM [#tmpTable] [#]
+                                INNER JOIN [dbo].[Conditions] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Condition'' AS [Kind]
+                                  ,[#].[Recno]
+                                  ,[O].[Id]
+                                  ,[O].[ExpressionId]
+                                  ,[O].[Sequence]
+                                  ,[O].[Connector]
+                                  ,[O].[LeftParenthesis]
+                                  ,[O].[LeftColumnId]
+                                  ,[O].[ComparatorId]
+                                  ,[O].[RightColumnId]
+                                  ,[O].[RightValues]
+                                  ,[O].[RightParenthesis]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[ExpressionId]
+                      ,[Sequence]
+                      ,[Connector]
+                      ,[LeftParenthesis]
+                      ,[LeftColumnId]
+                      ,[ComparatorId]
+                      ,[RightColumnId]
+                      ,[RightValues]
+                      ,[RightParenthesis]
+                    FROM [#result] FOR JSON PATH) AS [result]
+        SET @ReturnValue = @RowCount
+
+    RETURN 0
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[PropertyValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[PropertyValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PropertyValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[PropertyValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
+        IF @TransactionId IS NULL
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@IsPendingCreate BIT = 0
+               ,@W_Id bigint
+
+        IF @Action = 'delete' BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        END ELSE BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        END
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Properties] WHERE [Id] = @W_Id) AND @Action = 'create'
+            THROW 51000, 'Chave-primária já existe em Properties', 1
+        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
+                                    FROM [dbo].[Operations]
+                                    WHERE [TransactionId] = @TransactionId
+                                          AND [TableName] = 'Properties'
+                                          AND [IsConfirmed] IS NULL
+                                          AND [Action] = 'create'
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+            SET @IsPendingCreate = 1
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Properties] WHERE [Id] = @W_Id)
+            THROW 51000, 'Chave-primária não existe em Properties', 1
+        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Properties]
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [dbo].[IS_EQUAL]([CategoryId], JSON_VALUE(@LastRecord, '$.CategoryId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([Description], JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([IsActive], JSON_VALUE(@LastRecord, '$.IsActive'), 'bit') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Properties'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CategoryId'), JSON_VALUE(@LastRecord, '$.CategoryId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description'), JSON_VALUE(@LastRecord, '$.Description'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsActive'), JSON_VALUE(@LastRecord, '$.IsActive'), 'bit') = 1)
+                THROW 51000, 'Registro de Properties alterado por outro usuário', 1
+        END
+
+        IF @Action IN ('create', 'update') BEGIN
+
+            DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+                   ,@W_CategoryId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS bigint)
+                   ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+                   ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
+
+            IF @W_Name IS NULL
+                THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+        END
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[PropertyPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[PropertyPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PropertyPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[PropertyPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(255)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint
+
+    IF @Action = 'delete' BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+    END ELSE BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    END
+    EXEC @TransactionId = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Properties'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[LastRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@OperationId
+                                             ,@TransactionId
+                                             ,'Properties'
+                                             ,@Action
+                                             ,@LastRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        ELSE IF @ActionAux = 'create'
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[LastRecord] = @LastRecord
+                   ,[ActualRecord] = NULL
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+
+    RETURN CAST(@OperationId AS BIGINT)
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[PropertyCreate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[PropertyCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PropertyCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[PropertyCreate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Properties'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_CategoryId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS bigint)
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
+
+        INSERT INTO [dbo].[Properties] ([Id]
+                                            ,[Name]
+                                            ,[CategoryId]
+                                            ,[Description]
+                                            ,[IsActive]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_Name
+                                             ,@W_CategoryId
+                                             ,@W_Description
+                                             ,@W_IsActive
+                                             ,GETDATE()
+                                             ,@UserName)
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[PropertyUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[PropertyUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PropertyUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[PropertyUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Properties'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
+               ,@W_CategoryId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CategoryId') AS bigint)
+               ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
+               ,@W_IsActive bit = CAST(JSON_VALUE(@ActualRecord, '$.IsActive') AS bit)
+
+        UPDATE [dbo].[Properties] SET [Id] = @W_Id
+                                          ,[Name] = @W_Name
+                                          ,[CategoryId] = @W_CategoryId
+                                          ,[Description] = @W_Description
+                                          ,[IsActive] = @W_IsActive
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[PropertyDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[PropertyDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PropertyDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[PropertyDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Properties'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Properties] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[PropertiesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[PropertiesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PropertiesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[PropertiesRead](@Login NVARCHAR(MAX)
+                                          ,@Filter NVARCHAR(MAX)
+                                          ,@Search NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+        IF @Filter IS NULL
+            SET @Filter = '{}'
+        ELSE IF ISJSON(@Filter) = 0
+            THROW 51000, 'Valor de @Filter não está no formato JSON', 1
+        IF @Search IS NULL
+            SET @Search = '{}'
+        ELSE IF ISJSON(@Search) = 0
+            THROW 51000, 'Valor de @Search não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[T].[Id] ASC'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Properties') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CategoryId') AS bigint) AS [CategoryId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsActive') AS bit) AS [IsActive]
+            INTO [#tmpOperations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Properties'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@ComparatorPredicate NVARCHAR(MAX)
+               ,@sql NVARCHAR(MAX)
+
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+               ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.Name') AS nvarchar(25))
+               ,@WT_CategoryId bigint = CAST(JSON_VALUE(@Filter, '$.CategoryId') AS bigint)
+               ,@WT_Description nvarchar(50) = CAST(JSON_VALUE(@Filter, '$.Description') AS nvarchar(50))
+               ,@WT_IsActive bit = CAST(JSON_VALUE(@Filter, '$.IsActive') AS bit)
+
+        IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'CategoryId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[CategoryId] IS NULL'
+        ELSE IF @WT_CategoryId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[CategoryId] = @T_CategoryId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Description' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Description] IS NULL'
+        ELSE IF @WT_Description IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Description] = @T_Description'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsActive' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsActive] IS NULL'
+        ELSE IF @WT_IsActive IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsActive] = @T_IsActive'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @G_Id_comparator TINYINT
+                   ,@G_Id_v bigint
+                   ,@G_Id_vals NVARCHAR(MAX)
+                   ,@G_Id_v1 bigint
+                   ,@G_Id_v2 bigint
+                   ,@G_Name_comparator TINYINT
+                   ,@G_Name_v nvarchar(25)
+                   ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(25)
+                   ,@G_Name_v2 nvarchar(25)
+                   ,@G_CategoryId_comparator TINYINT
+                   ,@G_CategoryId_v bigint
+                   ,@G_CategoryId_vals NVARCHAR(MAX)
+                   ,@G_CategoryId_v1 bigint
+                   ,@G_CategoryId_v2 bigint
+                   ,@G_Description_comparator TINYINT
+                   ,@G_Description_v nvarchar(50)
+                   ,@G_Description_vals NVARCHAR(MAX)
+                   ,@G_Description_v1 nvarchar(50)
+                   ,@G_Description_v2 nvarchar(50)
+                   ,@G_IsActive_comparator TINYINT
+                   ,@G_IsActive_v bit
+                   ,@G_IsActive_vals NVARCHAR(MAX)
+                   ,@G_IsActive_v1 bit
+                   ,@G_IsActive_v2 bit
+
+            SELECT @G_Id_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Id') IS NOT NULL AND JSON_QUERY(@Filter, '$.Id') IS NULL THEN 3 END
+            )
+                  ,@G_Id_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+            )
+                  ,@G_Id_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Id.value'),
+                JSON_QUERY(@Filter, '$.Id')
+            )
+            SELECT @G_Id_v1 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[0]') AS bigint)
+                  ,@G_Id_v2 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[1]') AS bigint)
+            SELECT @G_Name_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Name') IS NOT NULL AND JSON_QUERY(@Filter, '$.Name') IS NULL THEN 3 END
+            )
+                  ,@G_Name_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name.value') AS nvarchar(25)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name') AS nvarchar(25))
+            )
+                  ,@G_Name_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Name.value'),
+                JSON_QUERY(@Filter, '$.Name')
+            )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(25))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(25))
+            SELECT @G_CategoryId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.CategoryId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.CategoryId') IS NOT NULL AND JSON_QUERY(@Filter, '$.CategoryId') IS NULL THEN 3 END
+            )
+                  ,@G_CategoryId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.CategoryId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.CategoryId') AS bigint)
+            )
+                  ,@G_CategoryId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.CategoryId.value'),
+                JSON_QUERY(@Filter, '$.CategoryId')
+            )
+            SELECT @G_CategoryId_v1 = TRY_CAST(JSON_VALUE(@G_CategoryId_vals, '$[0]') AS bigint)
+                  ,@G_CategoryId_v2 = TRY_CAST(JSON_VALUE(@G_CategoryId_vals, '$[1]') AS bigint)
+            SELECT @G_Description_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Description.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Description') IS NOT NULL AND JSON_QUERY(@Filter, '$.Description') IS NULL THEN 3 END
+            )
+                  ,@G_Description_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Description.value') AS nvarchar(50)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Description') AS nvarchar(50))
+            )
+                  ,@G_Description_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Description.value'),
+                JSON_QUERY(@Filter, '$.Description')
+            )
+            SELECT @G_Description_v1 = TRY_CAST(JSON_VALUE(@G_Description_vals, '$[0]') AS nvarchar(50))
+                  ,@G_Description_v2 = TRY_CAST(JSON_VALUE(@G_Description_vals, '$[1]') AS nvarchar(50))
+            SELECT @G_IsActive_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.IsActive.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.IsActive') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsActive') IS NULL THEN 3 END
+            )
+                  ,@G_IsActive_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.IsActive.value') AS bit),
+                TRY_CAST(JSON_VALUE(@Filter, '$.IsActive') AS bit)
+            )
+                  ,@G_IsActive_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.IsActive.value'),
+                JSON_QUERY(@Filter, '$.IsActive')
+            )
+            SELECT @G_IsActive_v1 = TRY_CAST(JSON_VALUE(@G_IsActive_vals, '$[0]') AS bit)
+                  ,@G_IsActive_v2 = TRY_CAST(JSON_VALUE(@G_IsActive_vals, '$[1]') AS bit)
+
+            IF @G_Id_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Id_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[Name] IS NULL'
+            ELSE
+            IF @G_Name_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Name] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Name] ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Name] ' + [C].[SqlComparator]
+        ELSE '[T].[Name] ' + [C].[SqlComparator] + ' @Name'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Name_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Name_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'CategoryId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[CategoryId] IS NULL'
+            ELSE
+            IF @G_CategoryId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[CategoryId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@CategoryId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[CategoryId] ' + [C].[SqlComparator] + ' @CategoryId_v1 AND @CategoryId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[CategoryId] ' + [C].[SqlComparator]
+        ELSE '[T].[CategoryId] ' + [C].[SqlComparator] + ' @CategoryId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_CategoryId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_CategoryId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_CategoryId_v1 IS NOT NULL AND @G_CategoryId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_CategoryId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Description' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[Description] IS NULL'
+            ELSE
+            IF @G_Description_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Description] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Description_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Description] ' + [C].[SqlComparator] + ' @Description_v1 AND @Description_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Description] ' + [C].[SqlComparator]
+        ELSE '[T].[Description] ' + [C].[SqlComparator] + ' @Description'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Description_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Description_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Description_v1 IS NOT NULL AND @G_Description_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Description_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsActive' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[IsActive] IS NULL'
+            ELSE
+            IF @G_IsActive_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[IsActive] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[IsActive] ' + [C].[SqlComparator] + ' @IsActive_v1 AND @IsActive_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[IsActive] ' + [C].[SqlComparator]
+        ELSE '[T].[IsActive] ' + [C].[SqlComparator] + ' @IsActive'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_IsActive_comparator
+                          AND (([C].[Arity] IS NULL AND @G_IsActive_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_IsActive_v1 IS NOT NULL AND @G_IsActive_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_IsActive_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+        END ELSE
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[U].[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [dbo].[Properties] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_CategoryId bigint,@T_Description nvarchar(50),@T_IsActive bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@CategoryId bigint,@CategoryId_v1 bigint,@CategoryId_v2 bigint,@CategoryId_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@IsActive bit,@IsActive_v1 bit,@IsActive_v2 bit,@IsActive_vals NVARCHAR(MAX)'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_CategoryId = @WT_CategoryId
+                               ,@T_Description = @WT_Description
+                               ,@T_IsActive = @WT_IsActive
+                               ,@Id = @G_Id_v
+                               ,@Id_v1 = @G_Id_v1
+                               ,@Id_v2 = @G_Id_v2
+                               ,@Id_vals = @G_Id_vals
+                               ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
+                               ,@Name_vals = @G_Name_vals
+                               ,@CategoryId = @G_CategoryId_v
+                               ,@CategoryId_v1 = @G_CategoryId_v1
+                               ,@CategoryId_v2 = @G_CategoryId_v2
+                               ,@CategoryId_vals = @G_CategoryId_vals
+                               ,@Description = @G_Description_v
+                               ,@Description_v1 = @G_Description_v1
+                               ,@Description_v2 = @G_Description_v2
+                               ,@Description_vals = @G_Description_vals
+                               ,@IsActive = @G_IsActive_v
+                               ,@IsActive_v1 = @G_IsActive_v1
+                               ,@IsActive_v2 = @G_IsActive_v2
+                               ,@IsActive_vals = @G_IsActive_vals
+        END ELSE BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_Name nvarchar(25),@T_CategoryId bigint,@T_Description nvarchar(50),@T_IsActive bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_Name = @WT_Name
+                               ,@T_CategoryId = @WT_CategoryId
+                               ,@T_Description = @WT_Description
+                               ,@T_IsActive = @WT_IsActive
+        END
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN
+                DECLARE @Recno BIGINT
+                   ,@S_Id_comparator TINYINT
+                   ,@S_Id_v bigint
+                   ,@S_Id_vals NVARCHAR(MAX)
+                   ,@S_Id_v1 bigint
+                   ,@S_Id_v2 bigint
+                   ,@S_Name_comparator TINYINT
+                   ,@S_Name_v nvarchar(25)
+                   ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(25)
+                   ,@S_Name_v2 nvarchar(25)
+                   ,@S_CategoryId_comparator TINYINT
+                   ,@S_CategoryId_v bigint
+                   ,@S_CategoryId_vals NVARCHAR(MAX)
+                   ,@S_CategoryId_v1 bigint
+                   ,@S_CategoryId_v2 bigint
+                   ,@S_Description_comparator TINYINT
+                   ,@S_Description_v nvarchar(50)
+                   ,@S_Description_vals NVARCHAR(MAX)
+                   ,@S_Description_v1 nvarchar(50)
+                   ,@S_Description_v2 nvarchar(50)
+                   ,@S_IsActive_comparator TINYINT
+                   ,@S_IsActive_v bit
+                   ,@S_IsActive_vals NVARCHAR(MAX)
+                   ,@S_IsActive_v1 bit
+                   ,@S_IsActive_v2 bit
+
+                SELECT @S_Id_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Id') IS NOT NULL AND JSON_QUERY(@Search, '$.Id') IS NULL THEN 3 END
+                )
+                      ,@S_Id_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id') AS bigint)
+                )
+                      ,@S_Id_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Id.value'),
+                    JSON_QUERY(@Search, '$.Id')
+                )
+                SELECT @S_Id_v1 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[0]') AS bigint)
+                      ,@S_Id_v2 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[1]') AS bigint)
+                SELECT @S_Name_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Name') IS NOT NULL AND JSON_QUERY(@Search, '$.Name') IS NULL THEN 9 END
+                )
+                      ,@S_Name_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name.value') AS nvarchar(25)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name') AS nvarchar(25))
+                )
+                      ,@S_Name_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Name.value'),
+                    JSON_QUERY(@Search, '$.Name')
+                )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(25))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(25))
+                SELECT @S_CategoryId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.CategoryId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.CategoryId') IS NOT NULL AND JSON_QUERY(@Search, '$.CategoryId') IS NULL THEN 3 END
+                )
+                      ,@S_CategoryId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.CategoryId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.CategoryId') AS bigint)
+                )
+                      ,@S_CategoryId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.CategoryId.value'),
+                    JSON_QUERY(@Search, '$.CategoryId')
+                )
+                SELECT @S_CategoryId_v1 = TRY_CAST(JSON_VALUE(@S_CategoryId_vals, '$[0]') AS bigint)
+                      ,@S_CategoryId_v2 = TRY_CAST(JSON_VALUE(@S_CategoryId_vals, '$[1]') AS bigint)
+                SELECT @S_Description_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Description.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Description') IS NOT NULL AND JSON_QUERY(@Search, '$.Description') IS NULL THEN 9 END
+                )
+                      ,@S_Description_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Description.value') AS nvarchar(50)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Description') AS nvarchar(50))
+                )
+                      ,@S_Description_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Description.value'),
+                    JSON_QUERY(@Search, '$.Description')
+                )
+                SELECT @S_Description_v1 = TRY_CAST(JSON_VALUE(@S_Description_vals, '$[0]') AS nvarchar(50))
+                      ,@S_Description_v2 = TRY_CAST(JSON_VALUE(@S_Description_vals, '$[1]') AS nvarchar(50))
+                SELECT @S_IsActive_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.IsActive.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.IsActive') IS NOT NULL AND JSON_QUERY(@Search, '$.IsActive') IS NULL THEN 3 END
+                )
+                      ,@S_IsActive_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.IsActive.value') AS bit),
+                    TRY_CAST(JSON_VALUE(@Search, '$.IsActive') AS bit)
+                )
+                      ,@S_IsActive_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.IsActive.value'),
+                    JSON_QUERY(@Search, '$.IsActive')
+                )
+                SELECT @S_IsActive_v1 = TRY_CAST(JSON_VALUE(@S_IsActive_vals, '$[0]') AS bit)
+                      ,@S_IsActive_v2 = TRY_CAST(JSON_VALUE(@S_IsActive_vals, '$[1]') AS bit)
+
+                SET @Where = ''
+                IF @S_Id_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Id_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[Name], [O].[Name]) IS NULL'
+                END ELSE
+                IF @S_Name_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@Name_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name_v1 AND @Name_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Name], [O].[Name]) ' + [C].[SqlComparator] + ' @Name'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Name_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Name_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Name_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'CategoryId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[CategoryId], [O].[CategoryId]) IS NULL'
+                END ELSE
+                IF @S_CategoryId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@CategoryId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator] + ' @CategoryId_v1 AND @CategoryId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[CategoryId], [O].[CategoryId]) ' + [C].[SqlComparator] + ' @CategoryId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_CategoryId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_CategoryId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_CategoryId_v1 IS NOT NULL AND @S_CategoryId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_CategoryId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Description' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[Description], [O].[Description]) IS NULL'
+                END ELSE
+                IF @S_Description_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Description_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator] + ' @Description_v1 AND @Description_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Description], [O].[Description]) ' + [C].[SqlComparator] + ' @Description'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Description_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Description_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Description_v1 IS NOT NULL AND @S_Description_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Description_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsActive' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[IsActive], [O].[IsActive]) IS NULL'
+                END ELSE
+                IF @S_IsActive_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bit) FROM OPENJSON(@IsActive_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' @IsActive_v1 AND @IsActive_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[IsActive], [O].[IsActive]) ' + [C].[SqlComparator] + ' @IsActive'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_IsActive_comparator
+                              AND (([C].[Arity] IS NULL AND @S_IsActive_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_IsActive_v1 IS NOT NULL AND @S_IsActive_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_IsActive_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Properties] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@CategoryId bigint,@CategoryId_v1 bigint,@CategoryId_v2 bigint,@CategoryId_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@IsActive bit,@IsActive_v1 bit,@IsActive_v2 bit,@IsActive_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id_v
+                                       ,@Id_v1 = @S_Id_v1
+                                       ,@Id_v2 = @S_Id_v2
+                                       ,@Id_vals = @S_Id_vals
+                                       ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
+                                       ,@Name_vals = @S_Name_vals
+                                       ,@CategoryId = @S_CategoryId_v
+                                       ,@CategoryId_v1 = @S_CategoryId_v1
+                                       ,@CategoryId_v2 = @S_CategoryId_v2
+                                       ,@CategoryId_vals = @S_CategoryId_vals
+                                       ,@Description = @S_Description_v
+                                       ,@Description_v1 = @S_Description_v1
+                                       ,@Description_v2 = @S_Description_v2
+                                       ,@Description_vals = @S_Description_vals
+                                       ,@IsActive = @S_IsActive_v
+                                       ,@IsActive_v1 = @S_IsActive_v1
+                                       ,@IsActive_v2 = @S_IsActive_v2
+                                       ,@IsActive_vals = @S_IsActive_vals
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            ELSE IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [Name]
+                    ,CAST(NULL AS bigint) AS [CategoryId]
+                    ,CAST(NULL AS nvarchar(50)) AS [Description]
+                    ,CAST(NULL AS bit) AS [IsActive]
+            INTO [#result]
+        SET @sql = 'INSERT [#result]
+                        SELECT ''Property'' AS [Kind]
+                              ,[#].[Recno]
+                              ,[T].[Id]
+                              ,[T].[Name]
+                              ,[T].[CategoryId]
+                              ,[T].[Description]
+                              ,[T].[IsActive]
+                            FROM [#tmpTable] [#]
+                                INNER JOIN [dbo].[Properties] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Property'' AS [Kind]
+                                  ,[#].[Recno]
+                                  ,[O].[Id]
+                                  ,[O].[Name]
+                                  ,[O].[CategoryId]
+                                  ,[O].[Description]
+                                  ,[O].[IsActive]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[Name]
+                      ,[CategoryId]
+                      ,[Description]
+                      ,[IsActive]
+                    FROM [#result] FOR JSON PATH) AS [result]
+        SET @ReturnValue = @RowCount
+
+    RETURN 0
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[BehaviorValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[BehaviorValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BehaviorValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[BehaviorValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
+        IF @TransactionId IS NULL
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@IsPendingCreate BIT = 0
+               ,@W_Id bigint
+
+        IF @Action = 'delete' BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        END ELSE BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        END
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF EXISTS(SELECT 1 FROM [dbo].[Behaviors] WHERE [Id] = @W_Id) AND @Action = 'create'
+            THROW 51000, 'Chave-primária já existe em Behaviors', 1
+        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
+                                    FROM [dbo].[Operations]
+                                    WHERE [TransactionId] = @TransactionId
+                                          AND [TableName] = 'Behaviors'
+                                          AND [IsConfirmed] IS NULL
+                                          AND [Action] = 'create'
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+            SET @IsPendingCreate = 1
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Behaviors] WHERE [Id] = @W_Id)
+            THROW 51000, 'Chave-primária não existe em Behaviors', 1
+        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Behaviors]
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [ColumnId] = JSON_VALUE(@LastRecord, '$.ColumnId')
+                                  AND [ExpressionId] = JSON_VALUE(@LastRecord, '$.ExpressionId')
+                                  AND [PropertyId] = JSON_VALUE(@LastRecord, '$.PropertyId')
+                                  AND [dbo].[IS_EQUAL]([Value], JSON_VALUE(@LastRecord, '$.Value'), 'nvarchar(max)') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Behaviors'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId') = JSON_VALUE(@LastRecord, '$.ColumnId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ExpressionId') = JSON_VALUE(@LastRecord, '$.ExpressionId')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PropertyId') = JSON_VALUE(@LastRecord, '$.PropertyId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Value'), JSON_VALUE(@LastRecord, '$.Value'), 'nvarchar(max)') = 1)
+                THROW 51000, 'Registro de Behaviors alterado por outro usuário', 1
+        END
+
+        IF @Action IN ('create', 'update') BEGIN
+
+            DECLARE @W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+                   ,@W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
+                   ,@W_PropertyId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PropertyId') AS bigint)
+                   ,@W_Value nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Value') AS nvarchar(max))
+
+            IF @W_ColumnId IS NULL
+                THROW 51000, 'Valor de ColumnId em @ActualRecord é requerido.', 1
+            IF @W_ExpressionId IS NULL
+                THROW 51000, 'Valor de ExpressionId em @ActualRecord é requerido.', 1
+            IF @W_PropertyId IS NULL
+                THROW 51000, 'Valor de PropertyId em @ActualRecord é requerido.', 1
+        END
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[BehaviorPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[BehaviorPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BehaviorPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[BehaviorPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(255)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint
+
+    IF @Action = 'delete' BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+    END ELSE BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    END
+    EXEC @TransactionId = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Behaviors'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[LastRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@OperationId
+                                             ,@TransactionId
+                                             ,'Behaviors'
+                                             ,@Action
+                                             ,@LastRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        ELSE IF @ActionAux = 'create'
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[LastRecord] = @LastRecord
+                   ,[ActualRecord] = NULL
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+
+    RETURN CAST(@OperationId AS BIGINT)
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[BehaviorCreate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[BehaviorCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BehaviorCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[BehaviorCreate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Behaviors'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+               ,@W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
+               ,@W_PropertyId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PropertyId') AS bigint)
+               ,@W_Value nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Value') AS nvarchar(max))
+
+        INSERT INTO [dbo].[Behaviors] ([Id]
+                                            ,[ColumnId]
+                                            ,[ExpressionId]
+                                            ,[PropertyId]
+                                            ,[Value]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_ColumnId
+                                             ,@W_ExpressionId
+                                             ,@W_PropertyId
+                                             ,@W_Value
+                                             ,GETDATE()
+                                             ,@UserName)
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[BehaviorUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[BehaviorUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BehaviorUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[BehaviorUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Behaviors'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ColumnId') AS bigint)
+               ,@W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
+               ,@W_PropertyId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PropertyId') AS bigint)
+               ,@W_Value nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Value') AS nvarchar(max))
+
+        UPDATE [dbo].[Behaviors] SET [Id] = @W_Id
+                                          ,[ColumnId] = @W_ColumnId
+                                          ,[ExpressionId] = @W_ExpressionId
+                                          ,[PropertyId] = @W_PropertyId
+                                          ,[Value] = @W_Value
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[BehaviorDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[BehaviorDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BehaviorDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[BehaviorDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Behaviors'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Behaviors] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[BehaviorsRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[BehaviorsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BehaviorsRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
+                                          ,@Filter NVARCHAR(MAX)
+                                          ,@Search NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+        IF @Filter IS NULL
+            SET @Filter = '{}'
+        ELSE IF ISJSON(@Filter) = 0
+            THROW 51000, 'Valor de @Filter não está no formato JSON', 1
+        IF @Search IS NULL
+            SET @Search = '{}'
+        ELSE IF ISJSON(@Search) = 0
+            THROW 51000, 'Valor de @Search não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[T].[Id] ASC'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Behaviors') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId') AS bigint) AS [ColumnId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ExpressionId') AS bigint) AS [ExpressionId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PropertyId') AS bigint) AS [PropertyId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Value') AS nvarchar(max)) AS [Value]
+            INTO [#tmpOperations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Behaviors'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@ComparatorPredicate NVARCHAR(MAX)
+               ,@sql NVARCHAR(MAX)
+
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+               ,@WT_ColumnId bigint = CAST(JSON_VALUE(@Filter, '$.ColumnId') AS bigint)
+               ,@WT_ExpressionId bigint = CAST(JSON_VALUE(@Filter, '$.ExpressionId') AS bigint)
+               ,@WT_PropertyId bigint = CAST(JSON_VALUE(@Filter, '$.PropertyId') AS bigint)
+               ,@WT_Value nvarchar(max) = CAST(JSON_VALUE(@Filter, '$.Value') AS nvarchar(max))
+
+        IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ColumnId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ColumnId] IS NULL'
+        ELSE IF @WT_ColumnId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ColumnId] = @T_ColumnId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ExpressionId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ExpressionId] IS NULL'
+        ELSE IF @WT_ExpressionId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ExpressionId] = @T_ExpressionId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'PropertyId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[PropertyId] IS NULL'
+        ELSE IF @WT_PropertyId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[PropertyId] = @T_PropertyId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Value' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Value] IS NULL'
+        ELSE IF @WT_Value IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Value] = @T_Value'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @G_Id_comparator TINYINT
+                   ,@G_Id_v bigint
+                   ,@G_Id_vals NVARCHAR(MAX)
+                   ,@G_Id_v1 bigint
+                   ,@G_Id_v2 bigint
+                   ,@G_ColumnId_comparator TINYINT
+                   ,@G_ColumnId_v bigint
+                   ,@G_ColumnId_vals NVARCHAR(MAX)
+                   ,@G_ColumnId_v1 bigint
+                   ,@G_ColumnId_v2 bigint
+                   ,@G_ExpressionId_comparator TINYINT
+                   ,@G_ExpressionId_v bigint
+                   ,@G_ExpressionId_vals NVARCHAR(MAX)
+                   ,@G_ExpressionId_v1 bigint
+                   ,@G_ExpressionId_v2 bigint
+                   ,@G_PropertyId_comparator TINYINT
+                   ,@G_PropertyId_v bigint
+                   ,@G_PropertyId_vals NVARCHAR(MAX)
+                   ,@G_PropertyId_v1 bigint
+                   ,@G_PropertyId_v2 bigint
+                   ,@G_Value_comparator TINYINT
+                   ,@G_Value_v nvarchar(max)
+                   ,@G_Value_vals NVARCHAR(MAX)
+
+            SELECT @G_Id_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Id') IS NOT NULL AND JSON_QUERY(@Filter, '$.Id') IS NULL THEN 3 END
+            )
+                  ,@G_Id_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+            )
+                  ,@G_Id_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Id.value'),
+                JSON_QUERY(@Filter, '$.Id')
+            )
+            SELECT @G_Id_v1 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[0]') AS bigint)
+                  ,@G_Id_v2 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[1]') AS bigint)
+            SELECT @G_ColumnId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ColumnId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.ColumnId') IS NOT NULL AND JSON_QUERY(@Filter, '$.ColumnId') IS NULL THEN 3 END
+            )
+                  ,@G_ColumnId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ColumnId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.ColumnId') AS bigint)
+            )
+                  ,@G_ColumnId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.ColumnId.value'),
+                JSON_QUERY(@Filter, '$.ColumnId')
+            )
+            SELECT @G_ColumnId_v1 = TRY_CAST(JSON_VALUE(@G_ColumnId_vals, '$[0]') AS bigint)
+                  ,@G_ColumnId_v2 = TRY_CAST(JSON_VALUE(@G_ColumnId_vals, '$[1]') AS bigint)
+            SELECT @G_ExpressionId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ExpressionId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.ExpressionId') IS NOT NULL AND JSON_QUERY(@Filter, '$.ExpressionId') IS NULL THEN 3 END
+            )
+                  ,@G_ExpressionId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ExpressionId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.ExpressionId') AS bigint)
+            )
+                  ,@G_ExpressionId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.ExpressionId.value'),
+                JSON_QUERY(@Filter, '$.ExpressionId')
+            )
+            SELECT @G_ExpressionId_v1 = TRY_CAST(JSON_VALUE(@G_ExpressionId_vals, '$[0]') AS bigint)
+                  ,@G_ExpressionId_v2 = TRY_CAST(JSON_VALUE(@G_ExpressionId_vals, '$[1]') AS bigint)
+            SELECT @G_PropertyId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.PropertyId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.PropertyId') IS NOT NULL AND JSON_QUERY(@Filter, '$.PropertyId') IS NULL THEN 3 END
+            )
+                  ,@G_PropertyId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.PropertyId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.PropertyId') AS bigint)
+            )
+                  ,@G_PropertyId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.PropertyId.value'),
+                JSON_QUERY(@Filter, '$.PropertyId')
+            )
+            SELECT @G_PropertyId_v1 = TRY_CAST(JSON_VALUE(@G_PropertyId_vals, '$[0]') AS bigint)
+                  ,@G_PropertyId_v2 = TRY_CAST(JSON_VALUE(@G_PropertyId_vals, '$[1]') AS bigint)
+            SELECT @G_Value_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Value.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Value') IS NOT NULL AND JSON_QUERY(@Filter, '$.Value') IS NULL THEN 3 END
+            )
+                  ,@G_Value_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Value.value') AS nvarchar(max)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Value') AS nvarchar(max))
+            )
+                  ,@G_Value_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Value.value'),
+                JSON_QUERY(@Filter, '$.Value')
+            )
+
+            IF @G_Id_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Id] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[Id] ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[Id] ' + [C].[SqlComparator]
+        ELSE '[T].[Id] ' + [C].[SqlComparator] + ' @Id'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Id_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ColumnId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[ColumnId] IS NULL'
+            ELSE
+            IF @G_ColumnId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[ColumnId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ColumnId] ' + [C].[SqlComparator] + ' @ColumnId_v1 AND @ColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ColumnId] ' + [C].[SqlComparator]
+        ELSE '[T].[ColumnId] ' + [C].[SqlComparator] + ' @ColumnId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_ColumnId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_ColumnId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_ColumnId_v1 IS NOT NULL AND @G_ColumnId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_ColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ExpressionId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[ExpressionId] IS NULL'
+            ELSE
+            IF @G_ExpressionId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[ExpressionId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ExpressionId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[ExpressionId] ' + [C].[SqlComparator] + ' @ExpressionId_v1 AND @ExpressionId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[ExpressionId] ' + [C].[SqlComparator]
+        ELSE '[T].[ExpressionId] ' + [C].[SqlComparator] + ' @ExpressionId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_ExpressionId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_ExpressionId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_ExpressionId_v1 IS NOT NULL AND @G_ExpressionId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_ExpressionId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'PropertyId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[PropertyId] IS NULL'
+            ELSE
+            IF @G_PropertyId_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[PropertyId] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@PropertyId_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[PropertyId] ' + [C].[SqlComparator] + ' @PropertyId_v1 AND @PropertyId_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[PropertyId] ' + [C].[SqlComparator]
+        ELSE '[T].[PropertyId] ' + [C].[SqlComparator] + ' @PropertyId'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_PropertyId_comparator
+                          AND (([C].[Arity] IS NULL AND @G_PropertyId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_PropertyId_v1 IS NOT NULL AND @G_PropertyId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_PropertyId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Value' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[Value] IS NULL'
+            ELSE
+            IF @G_Value_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[Value] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@Value_vals))'
+        WHEN [C].[Arity] = 1 THEN '[T].[Value] ' + [C].[SqlComparator]
+        ELSE '[T].[Value] ' + [C].[SqlComparator] + ' @Value'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_Value_comparator
+                          AND (([C].[Arity] IS NULL AND @G_Value_vals IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_Value_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
+        END ELSE
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[U].[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [dbo].[Behaviors] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ColumnId bigint,@T_ExpressionId bigint,@T_PropertyId bigint,@T_Value nvarchar(max),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@PropertyId bigint,@PropertyId_v1 bigint,@PropertyId_v2 bigint,@PropertyId_vals NVARCHAR(MAX),@Value nvarchar(max),@Value_vals NVARCHAR(MAX)'
+                               ,@T_Id = @WT_Id
+                               ,@T_ColumnId = @WT_ColumnId
+                               ,@T_ExpressionId = @WT_ExpressionId
+                               ,@T_PropertyId = @WT_PropertyId
+                               ,@T_Value = @WT_Value
+                               ,@Id = @G_Id_v
+                               ,@Id_v1 = @G_Id_v1
+                               ,@Id_v2 = @G_Id_v2
+                               ,@Id_vals = @G_Id_vals
+                               ,@ColumnId = @G_ColumnId_v
+                               ,@ColumnId_v1 = @G_ColumnId_v1
+                               ,@ColumnId_v2 = @G_ColumnId_v2
+                               ,@ColumnId_vals = @G_ColumnId_vals
+                               ,@ExpressionId = @G_ExpressionId_v
+                               ,@ExpressionId_v1 = @G_ExpressionId_v1
+                               ,@ExpressionId_v2 = @G_ExpressionId_v2
+                               ,@ExpressionId_vals = @G_ExpressionId_vals
+                               ,@PropertyId = @G_PropertyId_v
+                               ,@PropertyId_v1 = @G_PropertyId_v1
+                               ,@PropertyId_v2 = @G_PropertyId_v2
+                               ,@PropertyId_vals = @G_PropertyId_vals
+                               ,@Value = @G_Value_v
+                               ,@Value_vals = @G_Value_vals
+        END ELSE BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ColumnId bigint,@T_ExpressionId bigint,@T_PropertyId bigint,@T_Value nvarchar(max)'
+                               ,@T_Id = @WT_Id
+                               ,@T_ColumnId = @WT_ColumnId
+                               ,@T_ExpressionId = @WT_ExpressionId
+                               ,@T_PropertyId = @WT_PropertyId
+                               ,@T_Value = @WT_Value
+        END
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN
+                DECLARE @Recno BIGINT
+                   ,@S_Id_comparator TINYINT
+                   ,@S_Id_v bigint
+                   ,@S_Id_vals NVARCHAR(MAX)
+                   ,@S_Id_v1 bigint
+                   ,@S_Id_v2 bigint
+                   ,@S_ColumnId_comparator TINYINT
+                   ,@S_ColumnId_v bigint
+                   ,@S_ColumnId_vals NVARCHAR(MAX)
+                   ,@S_ColumnId_v1 bigint
+                   ,@S_ColumnId_v2 bigint
+                   ,@S_ExpressionId_comparator TINYINT
+                   ,@S_ExpressionId_v bigint
+                   ,@S_ExpressionId_vals NVARCHAR(MAX)
+                   ,@S_ExpressionId_v1 bigint
+                   ,@S_ExpressionId_v2 bigint
+                   ,@S_PropertyId_comparator TINYINT
+                   ,@S_PropertyId_v bigint
+                   ,@S_PropertyId_vals NVARCHAR(MAX)
+                   ,@S_PropertyId_v1 bigint
+                   ,@S_PropertyId_v2 bigint
+                   ,@S_Value_comparator TINYINT
+                   ,@S_Value_v nvarchar(max)
+                   ,@S_Value_vals NVARCHAR(MAX)
+
+                SELECT @S_Id_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Id') IS NOT NULL AND JSON_QUERY(@Search, '$.Id') IS NULL THEN 3 END
+                )
+                      ,@S_Id_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id') AS bigint)
+                )
+                      ,@S_Id_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Id.value'),
+                    JSON_QUERY(@Search, '$.Id')
+                )
+                SELECT @S_Id_v1 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[0]') AS bigint)
+                      ,@S_Id_v2 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[1]') AS bigint)
+                SELECT @S_ColumnId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ColumnId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.ColumnId') IS NOT NULL AND JSON_QUERY(@Search, '$.ColumnId') IS NULL THEN 3 END
+                )
+                      ,@S_ColumnId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ColumnId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.ColumnId') AS bigint)
+                )
+                      ,@S_ColumnId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.ColumnId.value'),
+                    JSON_QUERY(@Search, '$.ColumnId')
+                )
+                SELECT @S_ColumnId_v1 = TRY_CAST(JSON_VALUE(@S_ColumnId_vals, '$[0]') AS bigint)
+                      ,@S_ColumnId_v2 = TRY_CAST(JSON_VALUE(@S_ColumnId_vals, '$[1]') AS bigint)
+                SELECT @S_ExpressionId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ExpressionId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.ExpressionId') IS NOT NULL AND JSON_QUERY(@Search, '$.ExpressionId') IS NULL THEN 3 END
+                )
+                      ,@S_ExpressionId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ExpressionId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.ExpressionId') AS bigint)
+                )
+                      ,@S_ExpressionId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.ExpressionId.value'),
+                    JSON_QUERY(@Search, '$.ExpressionId')
+                )
+                SELECT @S_ExpressionId_v1 = TRY_CAST(JSON_VALUE(@S_ExpressionId_vals, '$[0]') AS bigint)
+                      ,@S_ExpressionId_v2 = TRY_CAST(JSON_VALUE(@S_ExpressionId_vals, '$[1]') AS bigint)
+                SELECT @S_PropertyId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.PropertyId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.PropertyId') IS NOT NULL AND JSON_QUERY(@Search, '$.PropertyId') IS NULL THEN 3 END
+                )
+                      ,@S_PropertyId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.PropertyId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.PropertyId') AS bigint)
+                )
+                      ,@S_PropertyId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.PropertyId.value'),
+                    JSON_QUERY(@Search, '$.PropertyId')
+                )
+                SELECT @S_PropertyId_v1 = TRY_CAST(JSON_VALUE(@S_PropertyId_vals, '$[0]') AS bigint)
+                      ,@S_PropertyId_v2 = TRY_CAST(JSON_VALUE(@S_PropertyId_vals, '$[1]') AS bigint)
+                SELECT @S_Value_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Value.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Value') IS NOT NULL AND JSON_QUERY(@Search, '$.Value') IS NULL THEN 9 END
+                )
+                      ,@S_Value_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Value.value') AS nvarchar(max)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Value') AS nvarchar(max))
+                )
+                      ,@S_Value_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Value.value'),
+                    JSON_QUERY(@Search, '$.Value')
+                )
+
+                SET @Where = ''
+                IF @S_Id_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id_v1 AND @Id_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Id], [O].[Id]) ' + [C].[SqlComparator] + ' @Id'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Id_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Id_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Id_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ColumnId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[ColumnId], [O].[ColumnId]) IS NULL'
+                END ELSE
+                IF @S_ColumnId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ColumnId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator] + ' @ColumnId_v1 AND @ColumnId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ColumnId], [O].[ColumnId]) ' + [C].[SqlComparator] + ' @ColumnId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_ColumnId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_ColumnId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_ColumnId_v1 IS NOT NULL AND @S_ColumnId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_ColumnId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ExpressionId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) IS NULL'
+                END ELSE
+                IF @S_ExpressionId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@ExpressionId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator] + ' @ExpressionId_v1 AND @ExpressionId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ExpressionId], [O].[ExpressionId]) ' + [C].[SqlComparator] + ' @ExpressionId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_ExpressionId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_ExpressionId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_ExpressionId_v1 IS NOT NULL AND @S_ExpressionId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_ExpressionId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'PropertyId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[PropertyId], [O].[PropertyId]) IS NULL'
+                END ELSE
+                IF @S_PropertyId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[PropertyId], [O].[PropertyId]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS bigint) FROM OPENJSON(@PropertyId_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[PropertyId], [O].[PropertyId]) ' + [C].[SqlComparator] + ' @PropertyId_v1 AND @PropertyId_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[PropertyId], [O].[PropertyId]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[PropertyId], [O].[PropertyId]) ' + [C].[SqlComparator] + ' @PropertyId'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_PropertyId_comparator
+                              AND (([C].[Arity] IS NULL AND @S_PropertyId_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_PropertyId_v1 IS NOT NULL AND @S_PropertyId_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_PropertyId_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Value' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[Value], [O].[Value]) IS NULL'
+                END ELSE
+                IF @S_Value_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[Value], [O].[Value]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@Value_vals))'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[Value], [O].[Value]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[Value], [O].[Value]) ' + [C].[SqlComparator] + ' @Value'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_Value_comparator
+                              AND (([C].[Arity] IS NULL AND @S_Value_vals IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_Value_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Behaviors] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@PropertyId bigint,@PropertyId_v1 bigint,@PropertyId_v2 bigint,@PropertyId_vals NVARCHAR(MAX),@Value nvarchar(max),@Value_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id_v
+                                       ,@Id_v1 = @S_Id_v1
+                                       ,@Id_v2 = @S_Id_v2
+                                       ,@Id_vals = @S_Id_vals
+                                       ,@ColumnId = @S_ColumnId_v
+                                       ,@ColumnId_v1 = @S_ColumnId_v1
+                                       ,@ColumnId_v2 = @S_ColumnId_v2
+                                       ,@ColumnId_vals = @S_ColumnId_vals
+                                       ,@ExpressionId = @S_ExpressionId_v
+                                       ,@ExpressionId_v1 = @S_ExpressionId_v1
+                                       ,@ExpressionId_v2 = @S_ExpressionId_v2
+                                       ,@ExpressionId_vals = @S_ExpressionId_vals
+                                       ,@PropertyId = @S_PropertyId_v
+                                       ,@PropertyId_v1 = @S_PropertyId_v1
+                                       ,@PropertyId_v2 = @S_PropertyId_v2
+                                       ,@PropertyId_vals = @S_PropertyId_vals
+                                       ,@Value = @S_Value_v
+                                       ,@Value_vals = @S_Value_vals
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            ELSE IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS bigint) AS [ColumnId]
+                    ,CAST(NULL AS bigint) AS [ExpressionId]
+                    ,CAST(NULL AS bigint) AS [PropertyId]
+                    ,CAST(NULL AS nvarchar(max)) AS [Value]
+            INTO [#result]
+        SET @sql = 'INSERT [#result]
+                        SELECT ''Behavior'' AS [Kind]
+                              ,[#].[Recno]
+                              ,[T].[Id]
+                              ,[T].[ColumnId]
+                              ,[T].[ExpressionId]
+                              ,[T].[PropertyId]
+                              ,[T].[Value]
+                            FROM [#tmpTable] [#]
+                                INNER JOIN [dbo].[Behaviors] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Behavior'' AS [Kind]
+                                  ,[#].[Recno]
+                                  ,[O].[Id]
+                                  ,[O].[ColumnId]
+                                  ,[O].[ExpressionId]
+                                  ,[O].[PropertyId]
+                                  ,[O].[Value]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[ColumnId]
+                      ,[ExpressionId]
+                      ,[PropertyId]
+                      ,[Value]
                     FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 

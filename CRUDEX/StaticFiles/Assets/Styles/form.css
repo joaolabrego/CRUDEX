@@ -82,7 +82,7 @@
     justify-content: center;
     box-sizing: border-box;
     height: var(--field-height);
-    padding: 0 var(--select-edge-inset);
+    padding: 0;
     border: 0.1dvmin solid #000;
     border-radius: 0.1dvmin;
     background: var(--background-color-control);
@@ -97,6 +97,7 @@
 .tedit-operator-symbol {
     flex: 1 1 auto;
     width: 100%;
+    padding: 0 1ch;
     text-align: center;
     line-height: 1;
     pointer-events: none;
@@ -122,9 +123,10 @@
 
 .tedit-operator-item {
     display: block;
+    box-sizing: border-box;
     width: 100%;
     margin: 0;
-    padding: 0.2dvmin var(--select-edge-inset);
+    padding: 0.2dvmin 1ch;
     border: none;
     background: transparent;
     font-family: inherit;

@@ -115,7 +115,7 @@ namespace CRUDEX.Classes
 
         public static bool IsNull(object? value)
         {
-            return value == DBNull.Value || value == null;
+            return value == DBNull.Value || value == null || value.ToString() == "";
         }
         public static bool ToBoolean(object? value)
         {

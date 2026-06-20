@@ -1268,11 +1268,75 @@ export default class TEditBox {
             }
             shell.classList.toggle("open", willOpen);
             menu.hidden = !willOpen;
+            if (willOpen)
+                this.#syncOperatorSelectDisplay(shell);
         });
 
         shell.append(symbol, menu);
         this.#syncOperatorSelectDisplay(shell);
         return shell;
+    }
+
+    #applyOperatorShellWidth(shell, width) {
+        shell.style.width = width;
+        shell.style.minWidth = width;
+        shell.style.maxWidth = width;
+        const menu = shell.querySelector(".tedit-operator-menu");
+        if (menu) {
+            menu.style.width = width;
+            menu.style.minWidth = width;
+            menu.style.maxWidth = width;
+        }
+    }
+
+    /** Mede botão e lista sem largura fixa — usa o item mais largo. */
+    #measureOperatorBlockWidthPx(shell) {
+        const menu = shell.querySelector(".tedit-operator-menu");
+        if (!menu)
+            return null;
+        const prev = {
+            hidden: menu.hidden,
+            visibility: menu.style.visibility,
+            position: menu.style.position,
+            pointerEvents: menu.style.pointerEvents,
+            menuWidth: menu.style.width,
+            menuMinWidth: menu.style.minWidth,
+            menuMaxWidth: menu.style.maxWidth,
+            shellWidth: shell.style.width,
+            shellMinWidth: shell.style.minWidth,
+            shellMaxWidth: shell.style.maxWidth,
+        };
+        menu.hidden = false;
+        menu.style.visibility = "hidden";
+        menu.style.position = "absolute";
+        menu.style.pointerEvents = "none";
+        menu.style.width = "auto";
+        menu.style.minWidth = "auto";
+        menu.style.maxWidth = "none";
+        shell.style.width = "auto";
+        shell.style.minWidth = "auto";
+        shell.style.maxWidth = "none";
+        let px = shell.offsetWidth;
+        const itemWidths = [];
+        for (const entry of menu.querySelectorAll(".tedit-operator-item")) {
+            itemWidths.push({ entry, width: entry.style.width });
+            entry.style.width = "auto";
+            px = Math.max(px, entry.offsetWidth);
+        }
+        px = Math.max(px, menu.offsetWidth);
+        for (const { entry, width } of itemWidths)
+            entry.style.width = width;
+        menu.hidden = prev.hidden;
+        menu.style.visibility = prev.visibility;
+        menu.style.position = prev.position;
+        menu.style.pointerEvents = prev.pointerEvents;
+        menu.style.width = prev.menuWidth;
+        menu.style.minWidth = prev.menuMinWidth;
+        menu.style.maxWidth = prev.menuMaxWidth;
+        shell.style.width = prev.shellWidth;
+        shell.style.minWidth = prev.shellMinWidth;
+        shell.style.maxWidth = prev.shellMaxWidth;
+        return px > 0 ? px : null;
     }
 
     #syncOperatorSelectDisplay(shell) {
@@ -1287,14 +1351,13 @@ export default class TEditBox {
             ?? shell.querySelector(".tedit-operator-item");
         const text = item?.textContent ?? "";
         symbol.textContent = text;
-        const ch = Math.max(1, text.length);
-        const width = `calc(${ch}ch + 2 * var(--select-edge-inset) + 0.2dvmin)`;
-        shell.style.width = width;
-        shell.style.minWidth = width;
-        shell.style.maxWidth = width;
-        const menu = shell.querySelector(".tedit-operator-menu");
-        if (menu)
-            menu.style.minWidth = width;
+        const measuredPx = this.#measureOperatorBlockWidthPx(shell);
+        if (measuredPx)
+            this.#applyOperatorShellWidth(shell, `${measuredPx}px`);
+        else {
+            const ch = Math.max(1, text.length);
+            this.#applyOperatorShellWidth(shell, `calc(${ch + 2}ch + 0.2dvmin)`);
+        }
     }
 
     #configureCondition(options) {
