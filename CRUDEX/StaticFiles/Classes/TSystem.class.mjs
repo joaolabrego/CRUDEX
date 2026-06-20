@@ -36,6 +36,10 @@ export default class TSystem {
     static #Masks = [];
     static #Comparators = [];
     static #Rules = [];
+    static #Expressions = [];
+    static #Conditions = [];
+    static #Properties = [];
+    static #Behaviors = [];
     static #Actions = null;
 
     static Run(withBackgroundImage = true) {
@@ -73,6 +77,10 @@ export default class TSystem {
                 config.Data.Masks.forEach(row => this.#Masks.push(new TMask(row)));
                 (config.Data.Comparators ?? []).forEach(row => this.#Comparators.push(new TComparator(row)));
                 this.#Rules = config.Data.Rules ?? [];
+                this.#Expressions = config.Data.Expressions ?? [];
+                this.#Conditions = config.Data.Conditions ?? [];
+                this.#Properties = config.Data.Properties ?? [];
+                this.#Behaviors = config.Data.Behaviors ?? [];
                 config.Data.Databases.forEach(databaseRow => {
                     let database = new TDatabase(databaseRow);
 
@@ -147,6 +155,20 @@ export default class TSystem {
     static GetRulesForCategory(categoryId) {
         return this.#Rules.filter(rule => Number(rule.CategoryId) === Number(categoryId));
     }
+    static GetExpressionsForTable(tableId) {
+        return this.#Expressions.filter(expression => Number(expression.TableId) === Number(tableId));
+    }
+    static GetConditionsForExpression(expressionId) {
+        return this.#Conditions
+            .filter(condition => Number(condition.ExpressionId) === Number(expressionId))
+            .sort((left, right) => Number(left.Sequence) - Number(right.Sequence));
+    }
+    static GetBehaviorsForColumn(columnId) {
+        return this.#Behaviors.filter(behavior => Number(behavior.ColumnId) === Number(columnId));
+    }
+    static GetProperty(id) {
+        return this.#Properties.find(property => Number(property.Id) === Number(id));
+    }
     static get Comparators() {
         return this.#Comparators;
     }
@@ -201,7 +223,7 @@ export default class TSystem {
      * @param {number} value
      */
     static GetColumn(id) {
-        return this.#Columns.find(column => column.id === id);
+        return this.#Columns.find(column => Number(column.Id) === Number(id));
     }
     /**
      * @param {number} value

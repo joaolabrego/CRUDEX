@@ -50,6 +50,10 @@ namespace CRUDEX.Classes
                     Unicities = ConfigTable(dataSet, 11),
                     Comparators = ConfigTable(dataSet, 12),
                     Rules = ConfigTable(dataSet, 13),
+                    Expressions = ConfigTable(dataSet, 14),
+                    Conditions = ConfigTable(dataSet, 15),
+                    Properties = ConfigTable(dataSet, 16),
+                    Behaviors = ConfigTable(dataSet, 17),
                     Actions = Actions.GetObject(),
                 };
                 config.Styles = new Styles();

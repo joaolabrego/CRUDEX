@@ -260,18 +260,33 @@ export default class TDropdown {
     }
 
     #applyReadOnlyState() {
-        if (!this.#readOnly)
-            return;
-        this.#container.classList.add("tdropdown-readonly");
+        this.#container.classList.toggle("tdropdown-readonly", this.#readOnly);
         if (this.#input) {
-            this.#input.readOnly = true;
-            this.#input.placeholder = "";
+            if (this.#readOnly) {
+                this.#input.readOnly = true;
+                this.#input.placeholder = "";
+            } else {
+                this.#input.removeAttribute("readonly");
+            }
         }
         if (this.#icon)
-            this.#icon.style.visibility = "hidden";
+            this.#icon.style.visibility = this.#readOnly ? "hidden" : "";
         if (this.#plus)
-            this.#plus.hidden = true;
-        this.#hideList();
+            this.#plus.hidden = this.#readOnly;
+        if (this.#readOnly)
+            this.#hideList();
+    }
+
+    setReadOnly(readOnly) {
+        const next = readOnly === true;
+        if (this.#readOnly === next)
+            return;
+        this.#readOnly = next;
+        this.#applyReadOnlyState();
+    }
+
+    get readOnly() {
+        return this.#readOnly;
     }
 
     #bindEvents() {

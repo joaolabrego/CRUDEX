@@ -5,12 +5,16 @@ export default class TComparator {
     #Symbol = "";
     #Description = "";
     #Arity = null;
+    #SqlComparator = "";
+    #JsComparator = "";
 
     constructor(row) {
         this.#Id = Number(row.Id);
         this.#Symbol = row.Symbol ?? "";
         this.#Description = row.Description ?? row.Name ?? "";
         this.#Arity = row.Arity ?? null;
+        this.#SqlComparator = row.SqlComparator ?? "";
+        this.#JsComparator = row.JsComparator ?? "";
     }
 
     get Id() {
@@ -27,6 +31,14 @@ export default class TComparator {
 
     get Arity() {
         return this.#Arity;
+    }
+
+    get SqlComparator() {
+        return this.#SqlComparator;
+    }
+
+    get JsComparator() {
+        return this.#JsComparator;
     }
 
     /** @returns {"single"|"between"|"list"} */

@@ -31,6 +31,7 @@ export default class TEditBox {
     #editMask = null;
     #readOnly = false;
     #domainVariant = null;
+    #behaviorBaseline = null;
 
     static Create(column, container = null) {
         const edit = new TEditBox(column);
@@ -1493,6 +1494,7 @@ export default class TEditBox {
             this.#configureCondition({ ...options, onChange });
             this.#applyControlWidth();
             this.#syncControlAlignment();
+            this.#captureBehaviorBaseline();
             return this;
         }
 
@@ -1507,7 +1509,120 @@ export default class TEditBox {
 
         this.#applyControlWidth();
         this.#syncControlAlignment();
+        this.#captureBehaviorBaseline();
         return this;
+    }
+
+    #captureBehaviorBaseline() {
+        const control = this.#control;
+        this.#behaviorBaseline = {
+            display: this.#root.style.display,
+            fieldDisabled: this.#rootFieldDisabled(),
+            readOnly: this.#readOnly,
+            required: this.#isRequired,
+            placeholder: control?.placeholder ?? "",
+            value: control?.value ?? null,
+        };
+    }
+
+    #rootFieldDisabled() {
+        if (this.#root.tagName === "FIELDSET")
+            return this.#root.disabled;
+        return this.#root.dataset.behaviorDisabled === "true";
+    }
+
+    resetBehaviorProperties() {
+        if (!this.#behaviorBaseline)
+            return;
+
+        const baseline = this.#behaviorBaseline;
+        this.#root.style.display = baseline.display;
+        this.#setFieldDisabled(baseline.fieldDisabled);
+        if (this.#control) {
+            this.#control.required = baseline.required;
+            if (baseline.readOnly)
+                this.#control.setAttribute("readonly", "readonly");
+            else
+                this.#control.removeAttribute("readonly");
+            if ("placeholder" in this.#control)
+                this.#control.placeholder = baseline.placeholder;
+        }
+    }
+
+    #setFieldDisabled(disabled) {
+        if (this.#root.tagName === "FIELDSET") {
+            this.#root.disabled = disabled;
+            return;
+        }
+        this.#root.dataset.behaviorDisabled = disabled ? "true" : "false";
+    }
+
+    static #behaviorActive(value, propertyName) {
+        if (value === null || value === undefined)
+            return true;
+
+        const text = String(value).trim().toLowerCase();
+        const prop = propertyName.toLowerCase();
+
+        if (text === "" || text === prop)
+            return true;
+        if (text === "true" || text === "1" || text === "yes" || text === "sim")
+            return true;
+        if (text === "false" || text === "0" || text === "no" || text === "nao" || text === "não")
+            return false;
+
+        if (prop === "enabled" || prop === "visible")
+            return text !== "disabled" && text !== "hidden";
+        if (prop === "disabled" || prop === "hidden")
+            return text === prop;
+
+        return true;
+    }
+
+    applyBehavior(propertyId, value) {
+        const property = TSystem.GetProperty(propertyId);
+        if (!property?.Name)
+            return;
+
+        const name = String(property.Name).trim().toLowerCase();
+        const active = TEditBox.#behaviorActive(value, name);
+        const control = this.#control;
+        if (!control && name !== "hidden" && name !== "visible" && name !== "disabled" && name !== "enabled")
+            return;
+
+        switch (name) {
+            case "disabled":
+                this.#setFieldDisabled(active);
+                break;
+            case "enabled":
+                this.#setFieldDisabled(!active);
+                break;
+            case "hidden":
+                this.#root.style.display = active ? "none" : (this.#behaviorBaseline?.display ?? "");
+                break;
+            case "visible":
+                this.#root.style.display = active ? (this.#behaviorBaseline?.display ?? "") : "none";
+                break;
+            case "readonly":
+                if (active)
+                    control.setAttribute("readonly", "readonly");
+                else
+                    control.removeAttribute("readonly");
+                break;
+            case "required":
+                control.required = active;
+                break;
+            case "value":
+                control.value = value ?? "";
+                break;
+            case "placeholder":
+                control.placeholder = value ?? "";
+                break;
+            default:
+                if (control)
+                    control.setAttribute(name, value ?? "");
+                break;
+        }
     }
 
     get element() {

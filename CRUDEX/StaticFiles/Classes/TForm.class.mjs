@@ -6,6 +6,7 @@ import TEditBox from "./TEditBox.class.mjs";
 import TBrowse from "./TBrowse.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TTransaction from "./TTransaction.class.mjs";
+import TExpression from "./TExpression.class.mjs";
 
 export default class TForm {
     static #METADATA_DRIVER_COLUMNS = ["DomainId", "TypeId", "CategoryId"];
@@ -138,12 +139,43 @@ export default class TForm {
             this.#HTML.ConfirmButton.disabled = false;
     }
     #onFieldChange(name, value) {
+        const previous = this.#actualRecord[name];
+        if (previous === value)
+            return;
+        if (previous == null && value == null)
+            return;
+
         this.#actualRecord[name] = value;
         const driver = this.#metadataDriverColumn();
         if (driver && name === driver)
             this.#refreshMetadataVariantFields();
+        this.#applyAllBehaviors();
         this.#updateConfirmButton();
         this.#updateDetailAccess();
+    }
+
+    #applyBehaviorsForEdit(edit) {
+        if (this.#Action === TSystem.Actions.FILTER || this.#Action === TSystem.Actions.SEARCH)
+            return;
+        if (!TSystem.GetBehaviorsForColumn(edit.column.Id).length)
+            return;
+
+        edit.resetBehaviorProperties();
+        for (const behavior of TSystem.GetBehaviorsForColumn(edit.column.Id)) {
+            const matched = TExpression.evaluate(behavior.ExpressionId, this.#actualRecord);
+            if (matched)
+                edit.applyBehavior(behavior.PropertyId, behavior.Value);
+            else if (behavior.ElseValue != null)
+                edit.applyBehavior(behavior.PropertyId, behavior.ElseValue);
+        }
+    }
+
+    #applyAllBehaviors() {
+        if (this.#Action === TSystem.Actions.FILTER || this.#Action === TSystem.Actions.SEARCH)
+            return;
+
+        for (const edit of this.#editBoxes)
+            this.#applyBehaviorsForEdit(edit);
     }
 
     #collectFilterValues() {
@@ -660,6 +692,7 @@ export default class TForm {
             this.#refreshMetadataVariantFields();
         else
             this.#balanceFormGridTail();
+        this.#applyAllBehaviors();
         this.#updateConfirmButton();
         this.#updateDetailAccess();
         await this.#refreshChildGrids();

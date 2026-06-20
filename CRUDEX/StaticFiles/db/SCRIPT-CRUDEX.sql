@@ -497,6 +497,7 @@ CREATE TABLE [dbo].[Comparators]([Id] tinyint IDENTITY(1,1) NOT NULL CHECK ([Id]
                                     ,[Description] nvarchar(50) NOT NULL
                                     ,[Arity] tinyint NULL
                                     ,[SqlComparator] nvarchar(15) NULL
+                                    ,[JsComparator] nvarchar(15) NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -608,6 +609,7 @@ CREATE TABLE [dbo].[Behaviors]([Id] bigint NOT NULL
                                     ,[ExpressionId] bigint NOT NULL
                                     ,[PropertyId] bigint NOT NULL
                                     ,[Value] nvarchar(max) NULL
+                                    ,[ElseValue] nvarchar(max) NULL
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
                                     ,[UpdatedAt] datetime NULL
@@ -870,6 +872,7 @@ BEGIN
 					,[Symbol]
 					,[Description]
 					,[Arity]
+					,[JsComparator]
 				INTO [#Comparators]
 				FROM [dbo].[Comparators]
 
@@ -880,6 +883,56 @@ BEGIN
 					,[ComparatorId]
 				INTO [#Rules]
 				FROM [dbo].[Rules]
+
+			-- 14 [Expressions]
+			SELECT 'Expression' AS [Kind]
+					,[E].[Id]
+					,[E].[TableId]
+					,[E].[Name]
+				INTO [#Expressions]
+				FROM [dbo].[Expressions] [E]
+				WHERE EXISTS(SELECT 1 FROM [#Tables] [T] WHERE [T].[Id] = [E].[TableId])
+
+			-- 15 [Conditions]
+			SELECT 'Condition' AS [Kind]
+					,[C].[Id]
+					,[C].[ExpressionId]
+					,[C].[Sequence]
+					,[C].[Connector]
+					,[C].[LeftParenthesis]
+					,[C].[LeftColumnId]
+					,[C].[ComparatorId]
+					,[C].[RightColumnId]
+					,[C].[RightValues]
+					,[C].[RightParenthesis]
+				INTO [#Conditions]
+				FROM [dbo].[Conditions] [C]
+				WHERE EXISTS(SELECT 1 FROM [#Expressions] [E] WHERE [E].[Id] = [C].[ExpressionId])
+
+			-- 16 [Properties]
+			SELECT 'Property' AS [Kind]
+					,[P].[Id]
+					,[P].[Name]
+					,[P].[CategoryId]
+					,[P].[Description]
+					,[P].[IsActive]
+				INTO [#Properties]
+				FROM [dbo].[Properties] [P]
+				WHERE ISNULL([P].[IsActive], 1) = 1
+
+			-- 17 [Behaviors]
+			SELECT 'Behavior' AS [Kind]
+					,[B].[Id]
+					,[B].[ColumnId]
+					,[B].[ExpressionId]
+					,[B].[PropertyId]
+					,[B].[Value]
+					,[B].[ElseValue]
+				INTO [#Behaviors]
+				FROM [dbo].[Behaviors] [B]
+				WHERE EXISTS(SELECT 1 FROM [#Columns] [C] WHERE [C].[Id] = [B].[ColumnId])
+					AND EXISTS(SELECT 1 FROM [#Expressions] [E] WHERE [E].[Id] = [B].[ExpressionId])
+					AND EXISTS(SELECT 1 FROM [#Properties] [P] WHERE [P].[Id] = [B].[PropertyId])
 		END
 
 		-- Results
@@ -898,6 +951,10 @@ BEGIN
 			SELECT * FROM [#Unicities] ORDER BY [Id] -- 11 [#Unicities]
 			SELECT * FROM [#Comparators] ORDER BY [Id] -- 12 [#Comparators]
 			SELECT * FROM [#Rules] ORDER BY [CategoryId], [ComparatorId] -- 13 [#Rules]
+			SELECT * FROM [#Expressions] ORDER BY [TableId], [Name] -- 14 [#Expressions]
+			SELECT * FROM [#Conditions] ORDER BY [ExpressionId], [Sequence] -- 15 [#Conditions]
+			SELECT * FROM [#Properties] ORDER BY [Name] -- 16 [#Properties]
+			SELECT * FROM [#Behaviors] ORDER BY [ColumnId], [ExpressionId] -- 17 [#Behaviors]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
@@ -14837,6 +14894,61 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('146' AS bigint)
+                                ,CAST('21' AS bigint)
+                                ,CAST('30' AS smallint)
+                                ,CAST('7' AS bigint)
+                                ,NULL
+                                ,CAST(N'JsComparator' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Comparador JS' AS nvarchar(50))
+                                ,CAST(N'JS' AS nvarchar(25))
+                                ,CAST(N'JS' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('147' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -14891,7 +15003,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('147' AS bigint)
+                         VALUES (CAST('148' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -14946,7 +15058,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('148' AS bigint)
+                         VALUES (CAST('149' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -15001,7 +15113,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('149' AS bigint)
+                         VALUES (CAST('150' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -15056,7 +15168,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('150' AS bigint)
+                         VALUES (CAST('151' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -15111,7 +15223,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('151' AS bigint)
+                         VALUES (CAST('152' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -15166,7 +15278,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('152' AS bigint)
+                         VALUES (CAST('153' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -15221,7 +15333,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('153' AS bigint)
+                         VALUES (CAST('154' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -15276,7 +15388,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('154' AS bigint)
+                         VALUES (CAST('155' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -15331,7 +15443,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('155' AS bigint)
+                         VALUES (CAST('156' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('5' AS bigint)
@@ -15386,7 +15498,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('156' AS bigint)
+                         VALUES (CAST('157' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -15441,7 +15553,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('157' AS bigint)
+                         VALUES (CAST('158' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -15496,7 +15608,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('158' AS bigint)
+                         VALUES (CAST('159' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -15551,7 +15663,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('159' AS bigint)
+                         VALUES (CAST('160' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -15606,7 +15718,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('160' AS bigint)
+                         VALUES (CAST('161' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -15661,7 +15773,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('161' AS bigint)
+                         VALUES (CAST('162' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
@@ -15716,7 +15828,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('162' AS bigint)
+                         VALUES (CAST('163' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS bigint)
@@ -15771,7 +15883,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('163' AS bigint)
+                         VALUES (CAST('164' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('8' AS bigint)
@@ -15826,7 +15938,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('164' AS bigint)
+                         VALUES (CAST('165' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -15881,7 +15993,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('165' AS bigint)
+                         VALUES (CAST('166' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -15936,7 +16048,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('166' AS bigint)
+                         VALUES (CAST('167' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -15991,7 +16103,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('167' AS bigint)
+                         VALUES (CAST('168' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('12' AS bigint)
@@ -16046,7 +16158,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('168' AS bigint)
+                         VALUES (CAST('169' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('8' AS bigint)
@@ -16101,7 +16213,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('169' AS bigint)
+                         VALUES (CAST('170' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -16156,7 +16268,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('170' AS bigint)
+                         VALUES (CAST('171' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
@@ -16211,7 +16323,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('171' AS bigint)
+                         VALUES (CAST('172' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -16266,7 +16378,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('172' AS bigint)
+                         VALUES (CAST('173' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
@@ -16321,7 +16433,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('173' AS bigint)
+                         VALUES (CAST('174' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
@@ -16376,7 +16488,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('174' AS bigint)
+                         VALUES (CAST('175' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -16431,7 +16543,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('175' AS bigint)
+                         VALUES (CAST('176' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -16486,7 +16598,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('176' AS bigint)
+                         VALUES (CAST('177' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -16541,7 +16653,7 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('177' AS bigint)
+                         VALUES (CAST('178' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
@@ -16596,16 +16708,71 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('178' AS bigint)
+                         VALUES (CAST('179' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('12' AS bigint)
                                 ,NULL
                                 ,CAST(N'Value' AS nvarchar(25))
                                 ,NULL
-                                ,CAST(N'Valor da propriedade' AS nvarchar(50))
-                                ,CAST(N'Valor' AS nvarchar(25))
-                                ,CAST(N'Valor' AS nvarchar(25))
+                                ,CAST(N'Valor da propriedade se verdadeiro' AS nvarchar(50))
+                                ,CAST(N'Valor se verdadeiro' AS nvarchar(25))
+                                ,CAST(N'Valor se verdadeiro' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('180' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('12' AS bigint)
+                                ,NULL
+                                ,CAST(N'ElseValue' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Valor da propriedade se falso' AS nvarchar(50))
+                                ,CAST(N'Valor se falso' AS nvarchar(25))
+                                ,CAST(N'Valor se falso' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -16663,6 +16830,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16671,6 +16839,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'<' AS nchar(1))
                                 ,CAST(N'Menor que...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
+                                ,CAST(N'<' AS nvarchar(15))
                                 ,CAST(N'<' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
@@ -16682,6 +16851,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16690,6 +16860,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'≤' AS nchar(1))
                                 ,CAST(N'Menor que ou igual a...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
+                                ,CAST(N'<=' AS nvarchar(15))
                                 ,CAST(N'<=' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
@@ -16701,6 +16872,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16710,6 +16882,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'Igual a...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
                                 ,CAST(N'=' AS nvarchar(15))
+                                ,CAST(N'===' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16720,6 +16893,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16729,6 +16903,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'Diferente de...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
                                 ,CAST(N'<>' AS nvarchar(15))
+                                ,CAST(N'!==' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16739,6 +16914,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16747,6 +16923,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'≥' AS nchar(1))
                                 ,CAST(N'Maior que ou igual a...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
+                                ,CAST(N'>=' AS nvarchar(15))
                                 ,CAST(N'>=' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
@@ -16758,6 +16935,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16766,6 +16944,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'>' AS nchar(1))
                                 ,CAST(N'Maior que...' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
+                                ,CAST(N'>' AS nvarchar(15))
                                 ,CAST(N'>' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
@@ -16777,6 +16956,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16786,6 +16966,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'IN' AS nvarchar(50))
                                 ,NULL
                                 ,CAST(N'IN' AS nvarchar(15))
+                                ,CAST(N'includes' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16796,6 +16977,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16805,6 +16987,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'NOT IN' AS nvarchar(50))
                                 ,NULL
                                 ,CAST(N'NOT IN' AS nvarchar(15))
+                                ,CAST(N'!includes' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16815,6 +16998,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16824,6 +17008,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'LIKE' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
                                 ,CAST(N'LIKE' AS nvarchar(15))
+                                ,CAST(N'includes' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16834,6 +17019,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16843,6 +17029,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'NOT LIKE' AS nvarchar(50))
                                 ,CAST('2' AS tinyint)
                                 ,CAST(N'NOT LIKE' AS nvarchar(15))
+                                ,CAST(N'!includes' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16853,6 +17040,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16862,6 +17050,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'BETWEEN... AND...' AS nvarchar(50))
                                 ,CAST('3' AS tinyint)
                                 ,CAST(N'BETWEEN' AS nvarchar(15))
+                                ,CAST(N'&&' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16872,6 +17061,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16881,6 +17071,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'NOT BETWEEN... AND...' AS nvarchar(50))
                                 ,CAST('3' AS tinyint)
                                 ,CAST(N'NOT BETWEEN' AS nvarchar(15))
+                                ,CAST(N'||' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16891,6 +17082,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16900,6 +17092,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'IS NULL' AS nvarchar(50))
                                 ,CAST('1' AS tinyint)
                                 ,CAST(N'IS NULL' AS nvarchar(15))
+                                ,CAST(N' == null' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -16910,6 +17103,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,[Description]
                                 ,[Arity]
                                 ,[SqlComparator]
+                                ,[JsComparator]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
@@ -16919,6 +17113,7 @@ INSERT INTO [dbo].[Comparators] ([Id]
                                 ,CAST(N'IS NOT NULL' AS nvarchar(50))
                                 ,CAST('1' AS tinyint)
                                 ,CAST(N'IS NOT NULL' AS nvarchar(15))
+                                ,CAST(N'!= null' AS nvarchar(15))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -18081,70 +18276,12 @@ INSERT INTO [dbo].[Conditions] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,NULL
-                                ,CAST(N'((' AS nvarchar(20))
-                                ,CAST('1' AS bigint)
-                                ,CAST('6' AS bigint)
-                                ,CAST('2' AS bigint)
                                 ,NULL
+                                ,CAST('94' AS bigint)
+                                ,CAST('3' AS bigint)
                                 ,NULL
-                                ,GETDATE()
-                                ,'crudex'
+                                ,CAST(N'teste' AS nvarchar(max))
                                 ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Conditions] ([Id]
-                                ,[ExpressionId]
-                                ,[Sequence]
-                                ,[Connector]
-                                ,[LeftParenthesis]
-                                ,[LeftColumnId]
-                                ,[ComparatorId]
-                                ,[RightColumnId]
-                                ,[RightValues]
-                                ,[RightParenthesis]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('2' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST(N'AND' AS nvarchar(15))
-                                ,NULL
-                                ,CAST('1' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,NULL
-                                ,CAST(N'20' AS nvarchar(max))
-                                ,CAST(N')' AS nvarchar(20))
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Conditions] ([Id]
-                                ,[ExpressionId]
-                                ,[Sequence]
-                                ,[Connector]
-                                ,[LeftParenthesis]
-                                ,[LeftColumnId]
-                                ,[ComparatorId]
-                                ,[RightColumnId]
-                                ,[RightValues]
-                                ,[RightParenthesis]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('3' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('15' AS smallint)
-                                ,CAST(N'OR' AS nvarchar(15))
-                                ,CAST(N'(' AS nvarchar(20))
-                                ,CAST('1' AS bigint)
-                                ,CAST('7' AS bigint)
-                                ,NULL
-                                ,CAST(N'5;10' AS nvarchar(max))
-                                ,CAST(N'))' AS nvarchar(20))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -18524,15 +18661,17 @@ INSERT INTO [dbo].[Behaviors] ([Id]
                                 ,[ExpressionId]
                                 ,[PropertyId]
                                 ,[Value]
+                                ,[ElseValue]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
-                                ,CAST('1' AS bigint)
+                                ,CAST('93' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('2' AS bigint)
                                 ,CAST(N'disabled' AS nvarchar(max))
+                                ,CAST(N'enabled' AS nvarchar(max))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -42330,7 +42469,8 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
                                   AND [Symbol] = JSON_VALUE(@LastRecord, '$.Symbol')
                                   AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
                                   AND [dbo].[IS_EQUAL]([Arity], JSON_VALUE(@LastRecord, '$.Arity'), 'tinyint') = 1
-                                  AND [dbo].[IS_EQUAL]([SqlComparator], JSON_VALUE(@LastRecord, '$.SqlComparator'), 'nvarchar') = 1)
+                                  AND [dbo].[IS_EQUAL]([SqlComparator], JSON_VALUE(@LastRecord, '$.SqlComparator'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([JsComparator], JSON_VALUE(@LastRecord, '$.JsComparator'), 'nvarchar') = 1)
             AND NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
                             WHERE [TransactionId] = @TransactionId
@@ -42340,7 +42480,8 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Symbol') = JSON_VALUE(@LastRecord, '$.Symbol')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
                                   AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Arity'), JSON_VALUE(@LastRecord, '$.Arity'), 'tinyint') = 1
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SqlComparator'), JSON_VALUE(@LastRecord, '$.SqlComparator'), 'nvarchar') = 1)
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SqlComparator'), JSON_VALUE(@LastRecord, '$.SqlComparator'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.JsComparator'), JSON_VALUE(@LastRecord, '$.JsComparator'), 'nvarchar') = 1)
                 THROW 51000, 'Registro de Comparators alterado por outro usuário', 1
         END
 
@@ -42354,6 +42495,7 @@ ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
                    ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
                    ,@W_Arity tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Arity') AS tinyint)
                    ,@W_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.SqlComparator') AS nvarchar(15))
+                   ,@W_JsComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.JsComparator') AS nvarchar(15))
 
             IF @W_Symbol IS NULL
                 THROW 51000, 'Valor de Symbol em @ActualRecord é requerido.', 1
@@ -42555,6 +42697,7 @@ ALTER PROCEDURE [dbo].[ComparatorCreate](@Login NVARCHAR(MAX)
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
                ,@W_Arity tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Arity') AS tinyint)
                ,@W_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.SqlComparator') AS nvarchar(15))
+               ,@W_JsComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.JsComparator') AS nvarchar(15))
 
         SET IDENTITY_INSERT [dbo].[Comparators] ON
         INSERT INTO [dbo].[Comparators] ([Id]
@@ -42562,6 +42705,7 @@ ALTER PROCEDURE [dbo].[ComparatorCreate](@Login NVARCHAR(MAX)
                                             ,[Description]
                                             ,[Arity]
                                             ,[SqlComparator]
+                                            ,[JsComparator]
                                             ,[CreatedAt]
                                             ,[CreatedBy])
                                       VALUES (@W_Id
@@ -42569,6 +42713,7 @@ ALTER PROCEDURE [dbo].[ComparatorCreate](@Login NVARCHAR(MAX)
                                              ,@W_Description
                                              ,@W_Arity
                                              ,@W_SqlComparator
+                                             ,@W_JsComparator
                                              ,GETDATE()
                                              ,@UserName)
         SET IDENTITY_INSERT [dbo].[Comparators] OFF
@@ -42645,11 +42790,13 @@ ALTER PROCEDURE [dbo].[ComparatorUpdate](@Login NVARCHAR(MAX)
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
                ,@W_Arity tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Arity') AS tinyint)
                ,@W_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.SqlComparator') AS nvarchar(15))
+               ,@W_JsComparator nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.JsComparator') AS nvarchar(15))
 
         UPDATE [dbo].[Comparators] SET [Symbol] = @W_Symbol
                                           ,[Description] = @W_Description
                                           ,[Arity] = @W_Arity
                                           ,[SqlComparator] = @W_SqlComparator
+                                          ,[JsComparator] = @W_JsComparator
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
             WHERE [Id] = @W_Id
@@ -42811,6 +42958,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Arity') AS tinyint) AS [Arity]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SqlComparator') AS nvarchar(15)) AS [SqlComparator]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.JsComparator') AS nvarchar(15)) AS [JsComparator]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -42828,6 +42976,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                ,@WT_Description nvarchar(50) = CAST(JSON_VALUE(@Filter, '$.Description') AS nvarchar(50))
                ,@WT_Arity tinyint = CAST(JSON_VALUE(@Filter, '$.Arity') AS tinyint)
                ,@WT_SqlComparator nvarchar(15) = CAST(JSON_VALUE(@Filter, '$.SqlComparator') AS nvarchar(15))
+               ,@WT_JsComparator nvarchar(15) = CAST(JSON_VALUE(@Filter, '$.JsComparator') AS nvarchar(15))
 
         IF @WT_Id IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[Id] = @T_Id'
@@ -42851,6 +43000,11 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
             SET @Where = @Where + ' AND [T].[SqlComparator] IS NULL'
         ELSE IF @WT_SqlComparator IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[SqlComparator] = @T_SqlComparator'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'JsComparator' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[JsComparator] IS NULL'
+        ELSE IF @WT_JsComparator IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[JsComparator] = @T_JsComparator'
         END
         IF @IsActionList = 1 BEGIN
             SET @PickerValue = CAST(JSON_VALUE(@Filter, '$.Picker.Value') AS nchar(1))
@@ -42883,6 +43037,11 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                    ,@G_SqlComparator_vals NVARCHAR(MAX)
                    ,@G_SqlComparator_v1 nvarchar(15)
                    ,@G_SqlComparator_v2 nvarchar(15)
+                   ,@G_JsComparator_comparator TINYINT
+                   ,@G_JsComparator_v nvarchar(15)
+                   ,@G_JsComparator_vals NVARCHAR(MAX)
+                   ,@G_JsComparator_v1 nvarchar(15)
+                   ,@G_JsComparator_v2 nvarchar(15)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -42954,6 +43113,20 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
             )
             SELECT @G_SqlComparator_v1 = TRY_CAST(JSON_VALUE(@G_SqlComparator_vals, '$[0]') AS nvarchar(15))
                   ,@G_SqlComparator_v2 = TRY_CAST(JSON_VALUE(@G_SqlComparator_vals, '$[1]') AS nvarchar(15))
+            SELECT @G_JsComparator_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.JsComparator.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.JsComparator') IS NOT NULL AND JSON_QUERY(@Filter, '$.JsComparator') IS NULL THEN 3 END
+            )
+                  ,@G_JsComparator_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.JsComparator.value') AS nvarchar(15)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.JsComparator') AS nvarchar(15))
+            )
+                  ,@G_JsComparator_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.JsComparator.value'),
+                JSON_QUERY(@Filter, '$.JsComparator')
+            )
+            SELECT @G_JsComparator_v1 = TRY_CAST(JSON_VALUE(@G_JsComparator_vals, '$[0]') AS nvarchar(15))
+                  ,@G_JsComparator_v2 = TRY_CAST(JSON_VALUE(@G_JsComparator_vals, '$[1]') AS nvarchar(15))
 
             IF @G_Id_comparator IS NOT NULL BEGIN
                 SELECT @ComparatorPredicate = CASE
@@ -43042,6 +43215,24 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'JsComparator' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[JsComparator] IS NULL'
+            ELSE
+            IF @G_JsComparator_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[JsComparator] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@JsComparator_vals))'
+        WHEN [C].[Arity] > 2 THEN '[T].[JsComparator] ' + [C].[SqlComparator] + ' @JsComparator_v1 AND @JsComparator_v2'
+        WHEN [C].[Arity] = 1 THEN '[T].[JsComparator] ' + [C].[SqlComparator]
+        ELSE '[T].[JsComparator] ' + [C].[SqlComparator] + ' @JsComparator'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_JsComparator_comparator
+                          AND (([C].[Arity] IS NULL AND @G_JsComparator_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @G_JsComparator_v1 IS NOT NULL AND @G_JsComparator_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_JsComparator_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
         END ELSE
             SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
 
@@ -43065,21 +43256,23 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @IsActionList = 1 BEGIN
             EXEC sp_executesql @sql
-                               ,N'@PickerValue nchar(1),@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15)'
+                               ,N'@PickerValue nchar(1),@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15),@T_JsComparator nvarchar(15)'
                                ,@PickerValue = @PickerValue
                                ,@T_Id = @WT_Id
                                ,@T_Symbol = @WT_Symbol
                                ,@T_Description = @WT_Description
                                ,@T_Arity = @WT_Arity
                                ,@T_SqlComparator = @WT_SqlComparator
+                               ,@T_JsComparator = @WT_JsComparator
         END ELSE IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15),@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_v1 nchar(1),@Symbol_v2 nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlComparator nvarchar(15),@SqlComparator_v1 nvarchar(15),@SqlComparator_v2 nvarchar(15),@SqlComparator_vals NVARCHAR(MAX)'
+                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15),@T_JsComparator nvarchar(15),@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_v1 nchar(1),@Symbol_v2 nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlComparator nvarchar(15),@SqlComparator_v1 nvarchar(15),@SqlComparator_v2 nvarchar(15),@SqlComparator_vals NVARCHAR(MAX),@JsComparator nvarchar(15),@JsComparator_v1 nvarchar(15),@JsComparator_v2 nvarchar(15),@JsComparator_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_Symbol = @WT_Symbol
                                ,@T_Description = @WT_Description
                                ,@T_Arity = @WT_Arity
                                ,@T_SqlComparator = @WT_SqlComparator
+                               ,@T_JsComparator = @WT_JsComparator
                                ,@Id = @G_Id_v
                                ,@Id_v1 = @G_Id_v1
                                ,@Id_v2 = @G_Id_v2
@@ -43100,14 +43293,19 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                                ,@SqlComparator_v1 = @G_SqlComparator_v1
                                ,@SqlComparator_v2 = @G_SqlComparator_v2
                                ,@SqlComparator_vals = @G_SqlComparator_vals
+                               ,@JsComparator = @G_JsComparator_v
+                               ,@JsComparator_v1 = @G_JsComparator_v1
+                               ,@JsComparator_v2 = @G_JsComparator_v2
+                               ,@JsComparator_vals = @G_JsComparator_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15)'
+                               ,N'@T_Id tinyint,@T_Symbol nchar(1),@T_Description nvarchar(50),@T_Arity tinyint,@T_SqlComparator nvarchar(15),@T_JsComparator nvarchar(15)'
                                ,@T_Id = @WT_Id
                                ,@T_Symbol = @WT_Symbol
                                ,@T_Description = @WT_Description
                                ,@T_Arity = @WT_Arity
                                ,@T_SqlComparator = @WT_SqlComparator
+                               ,@T_JsComparator = @WT_JsComparator
         END
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -43149,6 +43347,11 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                    ,@S_SqlComparator_vals NVARCHAR(MAX)
                    ,@S_SqlComparator_v1 nvarchar(15)
                    ,@S_SqlComparator_v2 nvarchar(15)
+                   ,@S_JsComparator_comparator TINYINT
+                   ,@S_JsComparator_v nvarchar(15)
+                   ,@S_JsComparator_vals NVARCHAR(MAX)
+                   ,@S_JsComparator_v1 nvarchar(15)
+                   ,@S_JsComparator_v2 nvarchar(15)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -43220,6 +43423,20 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                 )
                 SELECT @S_SqlComparator_v1 = TRY_CAST(JSON_VALUE(@S_SqlComparator_vals, '$[0]') AS nvarchar(15))
                       ,@S_SqlComparator_v2 = TRY_CAST(JSON_VALUE(@S_SqlComparator_vals, '$[1]') AS nvarchar(15))
+                SELECT @S_JsComparator_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.JsComparator.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.JsComparator') IS NOT NULL AND JSON_QUERY(@Search, '$.JsComparator') IS NULL THEN 9 END
+                )
+                      ,@S_JsComparator_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.JsComparator.value') AS nvarchar(15)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.JsComparator') AS nvarchar(15))
+                )
+                      ,@S_JsComparator_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.JsComparator.value'),
+                    JSON_QUERY(@Search, '$.JsComparator')
+                )
+                SELECT @S_JsComparator_v1 = TRY_CAST(JSON_VALUE(@S_JsComparator_vals, '$[0]') AS nvarchar(15))
+                      ,@S_JsComparator_v2 = TRY_CAST(JSON_VALUE(@S_JsComparator_vals, '$[1]') AS nvarchar(15))
 
                 SET @Where = ''
                 IF @S_Id_comparator IS NOT NULL BEGIN
@@ -43318,6 +43535,26 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'JsComparator' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[JsComparator], [O].[JsComparator]) IS NULL'
+                END ELSE
+                IF @S_JsComparator_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[JsComparator], [O].[JsComparator]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(15)) FROM OPENJSON(@JsComparator_vals))'
+        WHEN [C].[Arity] > 2 THEN 'COALESCE([D].[JsComparator], [O].[JsComparator]) ' + [C].[SqlComparator] + ' @JsComparator_v1 AND @JsComparator_v2'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[JsComparator], [O].[JsComparator]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[JsComparator], [O].[JsComparator]) ' + [C].[SqlComparator] + ' @JsComparator'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_JsComparator_comparator
+                              AND (([C].[Arity] IS NULL AND @S_JsComparator_vals IS NOT NULL)
+               OR ([C].[Arity] > 2 AND @S_JsComparator_v1 IS NOT NULL AND @S_JsComparator_v2 IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_JsComparator_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
                 IF @Where <> '' BEGIN
                     SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
                                     FROM [#tmpTable] [#]
@@ -43325,7 +43562,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_v1 nchar(1),@Symbol_v2 nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlComparator nvarchar(15),@SqlComparator_v1 nvarchar(15),@SqlComparator_v2 nvarchar(15),@SqlComparator_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id tinyint,@Id_v1 tinyint,@Id_v2 tinyint,@Id_vals NVARCHAR(MAX),@Symbol nchar(1),@Symbol_v1 nchar(1),@Symbol_v2 nchar(1),@Symbol_vals NVARCHAR(MAX),@Description nvarchar(50),@Description_v1 nvarchar(50),@Description_v2 nvarchar(50),@Description_vals NVARCHAR(MAX),@Arity tinyint,@Arity_v1 tinyint,@Arity_v2 tinyint,@Arity_vals NVARCHAR(MAX),@SqlComparator nvarchar(15),@SqlComparator_v1 nvarchar(15),@SqlComparator_v2 nvarchar(15),@SqlComparator_vals NVARCHAR(MAX),@JsComparator nvarchar(15),@JsComparator_v1 nvarchar(15),@JsComparator_v2 nvarchar(15),@JsComparator_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -43346,6 +43583,10 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                                        ,@SqlComparator_v1 = @S_SqlComparator_v1
                                        ,@SqlComparator_v2 = @S_SqlComparator_v2
                                        ,@SqlComparator_vals = @S_SqlComparator_vals
+                                       ,@JsComparator = @S_JsComparator_v
+                                       ,@JsComparator_v1 = @S_JsComparator_v1
+                                       ,@JsComparator_v2 = @S_JsComparator_v2
+                                       ,@JsComparator_vals = @S_JsComparator_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
                     IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
@@ -43366,6 +43607,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
                     ,CAST(NULL AS tinyint) AS [Arity]
                     ,CAST(NULL AS nvarchar(15)) AS [SqlComparator]
+                    ,CAST(NULL AS nvarchar(15)) AS [JsComparator]
             INTO [#result]
         SET @sql = 'INSERT [#result]
                         SELECT ''Comparator'' AS [Kind]
@@ -43375,6 +43617,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                               ,[T].[Description]
                               ,[T].[Arity]
                               ,[T].[SqlComparator]
+                              ,[T].[JsComparator]
                             FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Comparators] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
@@ -43386,6 +43629,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                                   ,[O].[Description]
                                   ,[O].[Arity]
                                   ,[O].[SqlComparator]
+                                  ,[O].[JsComparator]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
@@ -43400,6 +43644,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                       ,[Description]
                       ,[Arity]
                       ,[SqlComparator]
+                      ,[JsComparator]
                     FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 
@@ -44359,6 +44604,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
               ,[R].[Description]
               ,[R].[Arity]
               ,[R].[SqlComparator]
+              ,[R].[JsComparator]
             INTO [#Comparators]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Comparators] [R] ON [R].[Id] = [T].[ComparatorId]
@@ -49540,7 +49786,8 @@ ALTER PROCEDURE [dbo].[BehaviorValidate](@SessionId BIGINT
                                   AND [ColumnId] = JSON_VALUE(@LastRecord, '$.ColumnId')
                                   AND [ExpressionId] = JSON_VALUE(@LastRecord, '$.ExpressionId')
                                   AND [PropertyId] = JSON_VALUE(@LastRecord, '$.PropertyId')
-                                  AND [dbo].[IS_EQUAL]([Value], JSON_VALUE(@LastRecord, '$.Value'), 'nvarchar(max)') = 1)
+                                  AND [dbo].[IS_EQUAL]([Value], JSON_VALUE(@LastRecord, '$.Value'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL]([ElseValue], JSON_VALUE(@LastRecord, '$.ElseValue'), 'nvarchar(max)') = 1)
             AND NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
                             WHERE [TransactionId] = @TransactionId
@@ -49550,7 +49797,8 @@ ALTER PROCEDURE [dbo].[BehaviorValidate](@SessionId BIGINT
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ColumnId') = JSON_VALUE(@LastRecord, '$.ColumnId')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ExpressionId') = JSON_VALUE(@LastRecord, '$.ExpressionId')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PropertyId') = JSON_VALUE(@LastRecord, '$.PropertyId')
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Value'), JSON_VALUE(@LastRecord, '$.Value'), 'nvarchar(max)') = 1)
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Value'), JSON_VALUE(@LastRecord, '$.Value'), 'nvarchar(max)') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ElseValue'), JSON_VALUE(@LastRecord, '$.ElseValue'), 'nvarchar(max)') = 1)
                 THROW 51000, 'Registro de Behaviors alterado por outro usuário', 1
         END
 
@@ -49560,6 +49808,7 @@ ALTER PROCEDURE [dbo].[BehaviorValidate](@SessionId BIGINT
                    ,@W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
                    ,@W_PropertyId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PropertyId') AS bigint)
                    ,@W_Value nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Value') AS nvarchar(max))
+                   ,@W_ElseValue nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ElseValue') AS nvarchar(max))
 
             IF @W_ColumnId IS NULL
                 THROW 51000, 'Valor de ColumnId em @ActualRecord é requerido.', 1
@@ -49748,12 +49997,14 @@ ALTER PROCEDURE [dbo].[BehaviorCreate](@Login NVARCHAR(MAX)
                ,@W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
                ,@W_PropertyId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PropertyId') AS bigint)
                ,@W_Value nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Value') AS nvarchar(max))
+               ,@W_ElseValue nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ElseValue') AS nvarchar(max))
 
         INSERT INTO [dbo].[Behaviors] ([Id]
                                             ,[ColumnId]
                                             ,[ExpressionId]
                                             ,[PropertyId]
                                             ,[Value]
+                                            ,[ElseValue]
                                             ,[CreatedAt]
                                             ,[CreatedBy])
                                       VALUES (@W_Id
@@ -49761,6 +50012,7 @@ ALTER PROCEDURE [dbo].[BehaviorCreate](@Login NVARCHAR(MAX)
                                              ,@W_ExpressionId
                                              ,@W_PropertyId
                                              ,@W_Value
+                                             ,@W_ElseValue
                                              ,GETDATE()
                                              ,@UserName)
         UPDATE [dbo].[Operations]
@@ -49836,12 +50088,14 @@ ALTER PROCEDURE [dbo].[BehaviorUpdate](@Login NVARCHAR(MAX)
                ,@W_ExpressionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ExpressionId') AS bigint)
                ,@W_PropertyId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PropertyId') AS bigint)
                ,@W_Value nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.Value') AS nvarchar(max))
+               ,@W_ElseValue nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ElseValue') AS nvarchar(max))
 
         UPDATE [dbo].[Behaviors] SET [Id] = @W_Id
                                           ,[ColumnId] = @W_ColumnId
                                           ,[ExpressionId] = @W_ExpressionId
                                           ,[PropertyId] = @W_PropertyId
                                           ,[Value] = @W_Value
+                                          ,[ElseValue] = @W_ElseValue
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
             WHERE [Id] = @W_Id
@@ -50000,6 +50254,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ExpressionId') AS bigint) AS [ExpressionId]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PropertyId') AS bigint) AS [PropertyId]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Value') AS nvarchar(max)) AS [Value]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ElseValue') AS nvarchar(max)) AS [ElseValue]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
@@ -50017,6 +50272,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                ,@WT_ExpressionId bigint = CAST(JSON_VALUE(@Filter, '$.ExpressionId') AS bigint)
                ,@WT_PropertyId bigint = CAST(JSON_VALUE(@Filter, '$.PropertyId') AS bigint)
                ,@WT_Value nvarchar(max) = CAST(JSON_VALUE(@Filter, '$.Value') AS nvarchar(max))
+               ,@WT_ElseValue nvarchar(max) = CAST(JSON_VALUE(@Filter, '$.ElseValue') AS nvarchar(max))
 
         IF @WT_Id IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[Id] = @T_Id'
@@ -50040,6 +50296,11 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
             SET @Where = @Where + ' AND [T].[Value] IS NULL'
         ELSE IF @WT_Value IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[Value] = @T_Value'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ElseValue' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ElseValue] IS NULL'
+        ELSE IF @WT_ElseValue IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ElseValue] = @T_ElseValue'
         END
         IF @_ IS NULL BEGIN
             DECLARE @G_Id_comparator TINYINT
@@ -50065,6 +50326,9 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                    ,@G_Value_comparator TINYINT
                    ,@G_Value_v nvarchar(max)
                    ,@G_Value_vals NVARCHAR(MAX)
+                   ,@G_ElseValue_comparator TINYINT
+                   ,@G_ElseValue_v nvarchar(max)
+                   ,@G_ElseValue_vals NVARCHAR(MAX)
 
             SELECT @G_Id_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
@@ -50133,6 +50397,18 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                   ,@G_Value_vals = COALESCE(
                 JSON_QUERY(@Filter, '$.Value.value'),
                 JSON_QUERY(@Filter, '$.Value')
+            )
+            SELECT @G_ElseValue_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ElseValue.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.ElseValue') IS NOT NULL AND JSON_QUERY(@Filter, '$.ElseValue') IS NULL THEN 3 END
+            )
+                  ,@G_ElseValue_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ElseValue.value') AS nvarchar(max)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.ElseValue') AS nvarchar(max))
+            )
+                  ,@G_ElseValue_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.ElseValue.value'),
+                JSON_QUERY(@Filter, '$.ElseValue')
             )
 
             IF @G_Id_comparator IS NOT NULL BEGIN
@@ -50220,6 +50496,22 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                OR ([C].[Arity] = 1))
                 IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
             END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ElseValue' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[ElseValue] IS NULL'
+            ELSE
+            IF @G_ElseValue_comparator IS NOT NULL BEGIN
+                SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN '[T].[ElseValue] ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@ElseValue_vals))'
+        WHEN [C].[Arity] = 1 THEN '[T].[ElseValue] ' + [C].[SqlComparator]
+        ELSE '[T].[ElseValue] ' + [C].[SqlComparator] + ' @ElseValue'
+    END
+                    FROM [dbo].[Comparators] [C]
+                    WHERE [C].[Id] = @G_ElseValue_comparator
+                          AND (([C].[Arity] IS NULL AND @G_ElseValue_vals IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @G_ElseValue_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+            END
         END ELSE
             SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
 
@@ -50243,12 +50535,13 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_ColumnId bigint,@T_ExpressionId bigint,@T_PropertyId bigint,@T_Value nvarchar(max),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@PropertyId bigint,@PropertyId_v1 bigint,@PropertyId_v2 bigint,@PropertyId_vals NVARCHAR(MAX),@Value nvarchar(max),@Value_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_ColumnId bigint,@T_ExpressionId bigint,@T_PropertyId bigint,@T_Value nvarchar(max),@T_ElseValue nvarchar(max),@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@PropertyId bigint,@PropertyId_v1 bigint,@PropertyId_v2 bigint,@PropertyId_vals NVARCHAR(MAX),@Value nvarchar(max),@Value_vals NVARCHAR(MAX),@ElseValue nvarchar(max),@ElseValue_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_ColumnId = @WT_ColumnId
                                ,@T_ExpressionId = @WT_ExpressionId
                                ,@T_PropertyId = @WT_PropertyId
                                ,@T_Value = @WT_Value
+                               ,@T_ElseValue = @WT_ElseValue
                                ,@Id = @G_Id_v
                                ,@Id_v1 = @G_Id_v1
                                ,@Id_v2 = @G_Id_v2
@@ -50267,14 +50560,17 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                                ,@PropertyId_vals = @G_PropertyId_vals
                                ,@Value = @G_Value_v
                                ,@Value_vals = @G_Value_vals
+                               ,@ElseValue = @G_ElseValue_v
+                               ,@ElseValue_vals = @G_ElseValue_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_ColumnId bigint,@T_ExpressionId bigint,@T_PropertyId bigint,@T_Value nvarchar(max)'
+                               ,N'@T_Id bigint,@T_ColumnId bigint,@T_ExpressionId bigint,@T_PropertyId bigint,@T_Value nvarchar(max),@T_ElseValue nvarchar(max)'
                                ,@T_Id = @WT_Id
                                ,@T_ColumnId = @WT_ColumnId
                                ,@T_ExpressionId = @WT_ExpressionId
                                ,@T_PropertyId = @WT_PropertyId
                                ,@T_Value = @WT_Value
+                               ,@T_ElseValue = @WT_ElseValue
         END
 
         DECLARE @RowCount INT = @@ROWCOUNT
@@ -50314,6 +50610,9 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                    ,@S_Value_comparator TINYINT
                    ,@S_Value_v nvarchar(max)
                    ,@S_Value_vals NVARCHAR(MAX)
+                   ,@S_ElseValue_comparator TINYINT
+                   ,@S_ElseValue_v nvarchar(max)
+                   ,@S_ElseValue_vals NVARCHAR(MAX)
 
                 SELECT @S_Id_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
@@ -50382,6 +50681,18 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                       ,@S_Value_vals = COALESCE(
                     JSON_QUERY(@Search, '$.Value.value'),
                     JSON_QUERY(@Search, '$.Value')
+                )
+                SELECT @S_ElseValue_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ElseValue.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.ElseValue') IS NOT NULL AND JSON_QUERY(@Search, '$.ElseValue') IS NULL THEN 9 END
+                )
+                      ,@S_ElseValue_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ElseValue.value') AS nvarchar(max)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.ElseValue') AS nvarchar(max))
+                )
+                      ,@S_ElseValue_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.ElseValue.value'),
+                    JSON_QUERY(@Search, '$.ElseValue')
                 )
 
                 SET @Where = ''
@@ -50479,6 +50790,24 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                OR ([C].[Arity] = 1))
                     SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                 END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ElseValue' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[ElseValue], [O].[ElseValue]) IS NULL'
+                END ELSE
+                IF @S_ElseValue_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SELECT @ComparatorPredicate = CASE
+        WHEN [C].[Arity] IS NULL THEN 'COALESCE([D].[ElseValue], [O].[ElseValue]) ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS nvarchar(max)) FROM OPENJSON(@ElseValue_vals))'
+        WHEN [C].[Arity] = 1 THEN 'COALESCE([D].[ElseValue], [O].[ElseValue]) ' + [C].[SqlComparator]
+        ELSE 'COALESCE([D].[ElseValue], [O].[ElseValue]) ' + [C].[SqlComparator] + ' @ElseValue'
+    END
+                        FROM [dbo].[Comparators] [C]
+                        WHERE [C].[Id] = @S_ElseValue_comparator
+                              AND (([C].[Arity] IS NULL AND @S_ElseValue_vals IS NOT NULL)
+               OR ([C].[Arity] = 2 AND @S_ElseValue_v IS NOT NULL)
+               OR ([C].[Arity] = 1))
+                    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                END
                 IF @Where <> '' BEGIN
                     SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
                                     FROM [#tmpTable] [#]
@@ -50486,7 +50815,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@PropertyId bigint,@PropertyId_v1 bigint,@PropertyId_v2 bigint,@PropertyId_vals NVARCHAR(MAX),@Value nvarchar(max),@Value_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ColumnId bigint,@ColumnId_v1 bigint,@ColumnId_v2 bigint,@ColumnId_vals NVARCHAR(MAX),@ExpressionId bigint,@ExpressionId_v1 bigint,@ExpressionId_v2 bigint,@ExpressionId_vals NVARCHAR(MAX),@PropertyId bigint,@PropertyId_v1 bigint,@PropertyId_v2 bigint,@PropertyId_vals NVARCHAR(MAX),@Value nvarchar(max),@Value_vals NVARCHAR(MAX),@ElseValue nvarchar(max),@ElseValue_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -50505,6 +50834,8 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                                        ,@PropertyId_vals = @S_PropertyId_vals
                                        ,@Value = @S_Value_v
                                        ,@Value_vals = @S_Value_vals
+                                       ,@ElseValue = @S_ElseValue_v
+                                       ,@ElseValue_vals = @S_ElseValue_vals
                                        ,@r = @Recno OUTPUT
                     SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
                     IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
@@ -50525,6 +50856,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bigint) AS [ExpressionId]
                     ,CAST(NULL AS bigint) AS [PropertyId]
                     ,CAST(NULL AS nvarchar(max)) AS [Value]
+                    ,CAST(NULL AS nvarchar(max)) AS [ElseValue]
             INTO [#result]
         SET @sql = 'INSERT [#result]
                         SELECT ''Behavior'' AS [Kind]
@@ -50534,6 +50866,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                               ,[T].[ExpressionId]
                               ,[T].[PropertyId]
                               ,[T].[Value]
+                              ,[T].[ElseValue]
                             FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Behaviors] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
@@ -50545,6 +50878,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                                   ,[O].[ExpressionId]
                                   ,[O].[PropertyId]
                                   ,[O].[Value]
+                                  ,[O].[ElseValue]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
                                 WHERE [#].[_] = ''O''
@@ -50558,6 +50892,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                       ,[ExpressionId]
                       ,[PropertyId]
                       ,[Value]
+                      ,[ElseValue]
                     FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 

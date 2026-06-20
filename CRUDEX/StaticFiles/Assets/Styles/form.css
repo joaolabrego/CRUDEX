@@ -17,6 +17,15 @@
     width: 100%;
 }
 
+.form fieldset:disabled {
+    opacity: 0.65;
+}
+
+.form .tedit-field[data-behavior-disabled="true"] {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
 .form .tedit-field {
     color: black;
     font-size: var(--font-size-grid);

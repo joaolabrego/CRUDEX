@@ -249,6 +249,7 @@ BEGIN
 					,[Symbol]
 					,[Description]
 					,[Arity]
+					,[JsComparator]
 				INTO [#Comparators]
 				FROM [dbo].[Comparators]
 
@@ -259,6 +260,56 @@ BEGIN
 					,[ComparatorId]
 				INTO [#Rules]
 				FROM [dbo].[Rules]
+
+			-- 14 [Expressions]
+			SELECT 'Expression' AS [Kind]
+					,[E].[Id]
+					,[E].[TableId]
+					,[E].[Name]
+				INTO [#Expressions]
+				FROM [dbo].[Expressions] [E]
+				WHERE EXISTS(SELECT 1 FROM [#Tables] [T] WHERE [T].[Id] = [E].[TableId])
+
+			-- 15 [Conditions]
+			SELECT 'Condition' AS [Kind]
+					,[C].[Id]
+					,[C].[ExpressionId]
+					,[C].[Sequence]
+					,[C].[Connector]
+					,[C].[LeftParenthesis]
+					,[C].[LeftColumnId]
+					,[C].[ComparatorId]
+					,[C].[RightColumnId]
+					,[C].[RightValues]
+					,[C].[RightParenthesis]
+				INTO [#Conditions]
+				FROM [dbo].[Conditions] [C]
+				WHERE EXISTS(SELECT 1 FROM [#Expressions] [E] WHERE [E].[Id] = [C].[ExpressionId])
+
+			-- 16 [Properties]
+			SELECT 'Property' AS [Kind]
+					,[P].[Id]
+					,[P].[Name]
+					,[P].[CategoryId]
+					,[P].[Description]
+					,[P].[IsActive]
+				INTO [#Properties]
+				FROM [dbo].[Properties] [P]
+				WHERE ISNULL([P].[IsActive], 1) = 1
+
+			-- 17 [Behaviors]
+			SELECT 'Behavior' AS [Kind]
+					,[B].[Id]
+					,[B].[ColumnId]
+					,[B].[ExpressionId]
+					,[B].[PropertyId]
+					,[B].[Value]
+					,[B].[ElseValue]
+				INTO [#Behaviors]
+				FROM [dbo].[Behaviors] [B]
+				WHERE EXISTS(SELECT 1 FROM [#Columns] [C] WHERE [C].[Id] = [B].[ColumnId])
+					AND EXISTS(SELECT 1 FROM [#Expressions] [E] WHERE [E].[Id] = [B].[ExpressionId])
+					AND EXISTS(SELECT 1 FROM [#Properties] [P] WHERE [P].[Id] = [B].[PropertyId])
 		END
 
 		-- Results
@@ -277,6 +328,10 @@ BEGIN
 			SELECT * FROM [#Unicities] ORDER BY [Id] -- 11 [#Unicities]
 			SELECT * FROM [#Comparators] ORDER BY [Id] -- 12 [#Comparators]
 			SELECT * FROM [#Rules] ORDER BY [CategoryId], [ComparatorId] -- 13 [#Rules]
+			SELECT * FROM [#Expressions] ORDER BY [TableId], [Name] -- 14 [#Expressions]
+			SELECT * FROM [#Conditions] ORDER BY [ExpressionId], [Sequence] -- 15 [#Conditions]
+			SELECT * FROM [#Properties] ORDER BY [Name] -- 16 [#Properties]
+			SELECT * FROM [#Behaviors] ORDER BY [ColumnId], [ExpressionId] -- 17 [#Behaviors]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
