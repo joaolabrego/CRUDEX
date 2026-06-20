@@ -7,6 +7,7 @@ import TRecordSet from "./TRecordset.class.mjs";
 import TCondition from "./TCondition.class.mjs";
 import TMask from "./TMask.class.mjs";
 import TSystem from "./TSystem.class.mjs";
+import TProperty from "./TProperty.class.mjs";
 
 export default class TEditBox {
     static #operatorMenuCloseBound = false;
@@ -32,6 +33,10 @@ export default class TEditBox {
     #readOnly = false;
     #domainVariant = null;
     #behaviorBaseline = null;
+    #behaviorHooks = null;
+    #behaviorMaskSpec = null;
+    #behaviorContainerClass = "";
+    #behaviorContainerStyle = "";
 
     static Create(column, container = null) {
         const edit = new TEditBox(column);
@@ -165,6 +170,27 @@ export default class TEditBox {
         }
 
         return null;
+    }
+
+    static #editMaskFromSpec(spec, domain) {
+        const text = String(spec ?? "").trim();
+        if (!text)
+            return null;
+
+        const maskRow = TSystem.GetMaskByName(text);
+        if (maskRow) {
+            const variant = domain ? { ...domain, MaskId: maskRow.Id } : { MaskId: maskRow.Id, Type: { Category: { Name: "string" } }, Decimals: 0 };
+            return TEditBox.#editMaskForDomain(variant);
+        }
+
+        const category = domain?.Type?.Category?.Name ?? "string";
+        return {
+            kind: "pattern",
+            mask: text,
+            options: domain?.Codification ?? "",
+            placeholder: text,
+            category,
+        };
     }
 
     static #widthChFromDomain(domain) {
@@ -1509,19 +1535,30 @@ export default class TEditBox {
 
         this.#applyControlWidth();
         this.#syncControlAlignment();
+        this.#behaviorHooks = {
+            onChange: options.onChange
+                ?? ((name, value) => { options.record[name] = value; }),
+            action: options.action,
+            readOnly: this.#readOnly,
+        };
         this.#captureBehaviorBaseline();
         return this;
     }
 
     #captureBehaviorBaseline() {
         const control = this.#control;
+        this.#behaviorContainerClass = this.#root.className;
+        this.#behaviorContainerStyle = this.#root.style.cssText;
         this.#behaviorBaseline = {
             display: this.#root.style.display,
             fieldDisabled: this.#rootFieldDisabled(),
+            containerClass: this.#behaviorContainerClass,
+            containerStyle: this.#behaviorContainerStyle,
             readOnly: this.#readOnly,
             required: this.#isRequired,
             placeholder: control?.placeholder ?? "",
             value: control?.value ?? null,
+            maskSpec: this.#behaviorMaskSpec,
         };
     }
 
@@ -1537,7 +1574,10 @@ export default class TEditBox {
 
         const baseline = this.#behaviorBaseline;
         this.#root.style.display = baseline.display;
-        this.#setFieldDisabled(baseline.fieldDisabled);
+        this.applyContainerEnabled(!baseline.fieldDisabled);
+        this.#root.className = baseline.containerClass;
+        this.#root.style.cssText = baseline.containerStyle;
+        this.#behaviorMaskSpec = baseline.maskSpec;
         if (this.#control) {
             this.#control.required = baseline.required;
             if (baseline.readOnly)
@@ -1557,72 +1597,114 @@ export default class TEditBox {
         this.#root.dataset.behaviorDisabled = disabled ? "true" : "false";
     }
 
-    static #behaviorActive(value, propertyName) {
-        if (value === null || value === undefined)
-            return true;
+    applyContainerEnabled(enabled) {
+        this.#setFieldDisabled(!enabled);
+    }
 
-        const text = String(value).trim().toLowerCase();
-        const prop = propertyName.toLowerCase();
+    get containerEnabled() {
+        return !this.#rootFieldDisabled();
+    }
 
-        if (text === "" || text === prop)
-            return true;
-        if (text === "true" || text === "1" || text === "yes" || text === "sim")
-            return true;
-        if (text === "false" || text === "0" || text === "no" || text === "nao" || text === "não")
-            return false;
+    applyContainerHidden(hidden) {
+        this.#root.style.display = hidden
+            ? "none"
+            : (this.#behaviorBaseline?.display ?? "");
+    }
 
-        if (prop === "enabled" || prop === "visible")
-            return text !== "disabled" && text !== "hidden";
-        if (prop === "disabled" || prop === "hidden")
-            return text === prop;
+    get containerHidden() {
+        return this.#root.style.display === "none";
+    }
 
-        return true;
+    applyContainerClass(className) {
+        this.#root.className = className ?? "";
+    }
+
+    get containerClass() {
+        return this.#root.className;
+    }
+
+    applyContainerStyle(style) {
+        this.#root.style.cssText = style ?? "";
+    }
+
+    get containerStyle() {
+        return this.#root.style.cssText;
+    }
+
+    applyControlReadonly(readOnly) {
+        if (!this.#control)
+            return;
+        if (readOnly)
+            this.#control.setAttribute("readonly", "readonly");
+        else
+            this.#control.removeAttribute("readonly");
+    }
+
+    get controlReadonly() {
+        return this.#control?.hasAttribute("readonly") ?? false;
+    }
+
+    applyControlRequired(required) {
+        if (this.#control)
+            this.#control.required = required;
+    }
+
+    get controlRequired() {
+        return this.#control?.required ?? false;
+    }
+
+    applyControlValue(value) {
+        if (this.#control)
+            this.#control.value = value ?? "";
+    }
+
+    get controlValue() {
+        return this.#control?.value ?? null;
+    }
+
+    applyControlAttribute(name, value) {
+        if (!this.#control)
+            return;
+        if (value === null || value === undefined || value === "")
+            this.#control.removeAttribute(name);
+        else
+            this.#control.setAttribute(name, value);
+    }
+
+    controlAttribute(name) {
+        return this.#control?.getAttribute(name) ?? "";
+    }
+
+    applyBehaviorMask(spec) {
+        if (!this.#control || !this.#behaviorHooks?.onChange || this.#behaviorHooks.readOnly)
+            return;
+
+        const editMask = TEditBox.#editMaskFromSpec(spec, this.#effectiveDomain());
+        if (!editMask)
+            return;
+
+        this.#behaviorMaskSpec = spec;
+        this.#editMask = editMask;
+        const rawValue = this.#control.value ?? "";
+        this.#control.value = this.#formatRawValue(editMask, rawValue);
+        this.#applyEditMask(
+            this.#control,
+            editMask,
+            false,
+            this.#behaviorHooks.onChange,
+            this.#behaviorHooks.action,
+        );
+    }
+
+    get behaviorMaskSpec() {
+        return this.#behaviorMaskSpec;
     }
 
     applyBehavior(propertyId, value) {
         const property = TSystem.GetProperty(propertyId);
         if (!property?.Name)
             return;
-
-        const name = String(property.Name).trim().toLowerCase();
-        const active = TEditBox.#behaviorActive(value, name);
-        const control = this.#control;
-        if (!control && name !== "hidden" && name !== "visible" && name !== "disabled" && name !== "enabled")
-            return;
-
-        switch (name) {
-            case "disabled":
-                this.#setFieldDisabled(active);
-                break;
-            case "enabled":
-                this.#setFieldDisabled(!active);
-                break;
-            case "hidden":
-                this.#root.style.display = active ? "none" : (this.#behaviorBaseline?.display ?? "");
-                break;
-            case "visible":
-                this.#root.style.display = active ? (this.#behaviorBaseline?.display ?? "") : "none";
-                break;
-            case "readonly":
-                if (active)
-                    control.setAttribute("readonly", "readonly");
-                else
-                    control.removeAttribute("readonly");
-                break;
-            case "required":
-                control.required = active;
-                break;
-            case "value":
-                control.value = value ?? "";
-                break;
-            case "placeholder":
-                control.placeholder = value ?? "";
-                break;
-            default:
-                if (control)
-                    control.setAttribute(name, value ?? "");
-                break;
-        }
+        TProperty.apply(this, property.Name, value);
     }
 
     get element() {

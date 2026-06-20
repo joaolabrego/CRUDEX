@@ -249,7 +249,6 @@ BEGIN
 					,[Symbol]
 					,[Description]
 					,[Arity]
-					,[JsComparator]
 				INTO [#Comparators]
 				FROM [dbo].[Comparators]
 

@@ -259,7 +259,7 @@ namespace crudex.Classes
         private static bool CategoryAllowsBetweenFilter(Dictionary<long, List<long>> rulesByCategory, TDictionary[] comparators, DataRow column, TDataRows domains, TDataRows types) =>
             GetAllowedComparatorsForColumn(rulesByCategory, comparators, column, domains, types).Any(IsBetweenComparator);
 
-        private static void AppendReadFilterColumn(StringBuilder result, DataRow column, bool needsBetweenSlots, string indent)
+        private static void AppendReadFilterColumn(StringBuilder result, DataRow column, bool needsBetweenSlots, string indent, TDictionary[] comparators)
         {
             var name = column["Name"];
             var dataType = Convert.ToString(column["#DataType"]) ?? string.Empty;
@@ -271,7 +271,7 @@ namespace crudex.Classes
                 result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] IS NULL'\r\n");
                 result.Append($"{indent}ELSE\r\n");
             }
-            AppendComparatorPredicateFromMetadata(result, indent, $"@G_{name}_comparator", $"[T].[{name}]", dataType, Settings.ToString(name), isSearch: false, needsBetweenSlots);
+            AppendComparatorPredicateFromMetadata(result, indent, $"@G_{name}_comparator", $"[T].[{name}]", dataType, Settings.ToString(name), isSearch: false, needsBetweenSlots, comparators);
         }
         private static void AppendReadTableFilterColumn(StringBuilder result, DataRow column, TDataRows domains, TDataRows types, string valueVariable, string parameterName, string indent)
         {
@@ -289,7 +289,7 @@ namespace crudex.Classes
             result.Append($"{indent}    SET @Where = @Where + ' AND [T].[{name}] = {parameterName}'\r\n");
             result.Append($"{indent}END\r\n");
         }
-        private static void AppendReadSearchCondition(StringBuilder result, DataRow column, bool needsBetweenSlots, string indent)
+        private static void AppendReadSearchCondition(StringBuilder result, DataRow column, bool needsBetweenSlots, string indent, TDictionary[] comparators)
         {
             var name = column["Name"];
             var dataType = Convert.ToString(column["#DataType"]) ?? string.Empty;
@@ -303,7 +303,7 @@ namespace crudex.Classes
                 result.Append($"{indent}    SET @Where = @Where + '{colRef} IS NULL'\r\n");
                 result.Append($"{indent}END ELSE\r\n");
             }
-            AppendComparatorPredicateFromMetadata(result, indent, $"@S_{name}_comparator", colRef, dataType, Settings.ToString(name), isSearch: true, needsBetweenSlots);
+            AppendComparatorPredicateFromMetadata(result, indent, $"@S_{name}_comparator", colRef, dataType, Settings.ToString(name), isSearch: true, needsBetweenSlots, comparators);
         }
 
         private static void AppendReadGridFilterDeclareVars(StringBuilder result, DataRow column, bool isSearch, bool declare, bool needsBetweenSlots)
@@ -2226,7 +2226,7 @@ namespace crudex.Classes
                 if (filterableColumns.Count > 0)
                     result.Append($"\r\n");
                 foreach (var column in filterableColumns)
-                    AppendReadFilterColumn(result, column, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types), "            ");
+                    AppendReadFilterColumn(result, column, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types), "            ", comparators);
                 result.Append($"        END ELSE\r\n");
                 result.Append($"            SET @Where = @Where + ' AND {primaryKeyGridFilter}'\r\n");
                 result.Append($"\r\n");
@@ -2326,7 +2326,7 @@ namespace crudex.Classes
                     result.Append($"\r\n");
                 result.Append($"                SET @Where = ''\r\n");
                 foreach (var column in filterableColumns)
-                    AppendReadSearchCondition(result, column, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types), "                ");
+                    AppendReadSearchCondition(result, column, CategoryAllowsBetweenFilter(rulesByCategory, comparators, column, domains, types), "                ", comparators);
                 result.Append($"                IF @Where <> '' BEGIN\r\n");
                 result.Append($"                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]\r\n");
                 result.Append($"                                    FROM [#tmpTable] [#]\r\n");
@@ -2467,16 +2467,16 @@ namespace crudex.Classes
             rows.OrderBy(row => Settings.ToLong(row["Id"])).Select(row =>
             {
                 var id = Settings.ToLong(row["Id"]);
-                var sqlComparator = GetComparatorSqlComparator(row);
+                var symbol = Settings.ToString(row["Symbol"]).Trim();
                 var arity = row.Table.Columns.Contains("Arity") ? row["Arity"] : DBNull.Value;
-                ValidateComparatorSqlComparator(sqlComparator, arity, id);
+                ComparatorRegistry.ValidateArity(symbol, arity, id);
                 return new TDictionary
                 {
                     ["Id"] = id,
-                    ["Symbol"] = Settings.ToString(row["Symbol"]),
+                    ["Symbol"] = symbol,
                     ["Description"] = Settings.ToString(row["Description"]),
                     ["Arity"] = Settings.IsNull(arity) || string.IsNullOrWhiteSpace(Settings.ToString(arity)) ? null : Settings.ToLong(arity),
-                    ["SqlComparator"] = sqlComparator,
+                    ["SqlComparator"] = ComparatorRegistry.GetSqlOperator(symbol),
                 };
             }).ToArray();
 
@@ -2532,146 +2532,22 @@ namespace crudex.Classes
         static bool IsUnaryComparator(TDictionary comparator) =>
             !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) == 1;
 
-        static readonly HashSet<string> ListSqlComparators = new(StringComparer.OrdinalIgnoreCase) { "IN", "NOT IN" };
-        static readonly HashSet<string> BinarySqlComparators = new(StringComparer.OrdinalIgnoreCase) { "<", "<=", "=", "<>", ">=", ">", "LIKE", "NOT LIKE" };
-        static readonly HashSet<string> BetweenSqlComparators = new(StringComparer.OrdinalIgnoreCase) { "BETWEEN", "NOT BETWEEN" };
-        static readonly HashSet<string> UnarySqlComparators = new(StringComparer.OrdinalIgnoreCase) { "IS NULL", "IS NOT NULL" };
-
-        static string GetComparatorSqlComparator(DataRow row)
-        {
-            var id = Settings.ToLong(row["Id"]);
-            if (row.Table.Columns.Contains("SqlComparator"))
-            {
-                var sqlComparator = Settings.ToString(row["SqlComparator"]).Trim();
-                if (!string.IsNullOrWhiteSpace(sqlComparator))
-                    return sqlComparator;
-            }
-
-            if (row.Table.Columns.Contains("SqlCode") || row.Table.Columns.Contains("CodeSQL"))
-                return DeriveSqlComparatorFromSqlCode(GetLegacyComparatorSqlCode(row), id);
-
-            throw new Exception($"Comparators (Id {id}): SqlComparator é obrigatório no metadado.");
-        }
-
-        static string GetLegacyComparatorSqlCode(DataRow row)
-        {
-            var id = Settings.ToLong(row["Id"]);
-            var sqlCode = row.Table.Columns.Contains("SqlCode")
-                ? Settings.ToString(row["SqlCode"])
-                : Settings.ToString(row["CodeSQL"]);
-
-            if (string.IsNullOrWhiteSpace(sqlCode))
-                throw new Exception($"Comparators (Id {id}): SqlComparator é obrigatório no metadado.");
-
-            return sqlCode.Trim();
-        }
-
-        static string DeriveSqlComparatorFromSqlCode(string sqlCode, long id)
-        {
-            var patterns = new (string Pattern, string Comparator)[]
-            {
-                ("%1 NOT BETWEEN %2 AND %3", "NOT BETWEEN"),
-                ("%1 BETWEEN %2 AND %3", "BETWEEN"),
-                ("%1 NOT IN %2", "NOT IN"),
-                ("%1 IN %2", "IN"),
-                ("%1 NOT LIKE %2", "NOT LIKE"),
-                ("%1 LIKE %2", "LIKE"),
-                ("%1 IS NOT NULL", "IS NOT NULL"),
-                ("%1 IS NULL", "IS NULL"),
-                ("%1 <> %2", "<>"),
-                ("%1 <= %2", "<="),
-                ("%1 >= %2", ">="),
-                ("%1 < %2", "<"),
-                ("%1 > %2", ">"),
-                ("%1 = %2", "="),
-            };
-
-            foreach (var (pattern, comparator) in patterns)
-            {
-                if (string.Equals(sqlCode, pattern, StringComparison.OrdinalIgnoreCase))
-                    return comparator;
-            }
-
-            throw new Exception($"Comparators (Id {id}): SqlCode legado '{sqlCode}' não mapeia para SqlComparator.");
-        }
-
-        static void ValidateComparatorSqlComparator(string sqlComparator, object? arity, long id)
-        {
-            if (IsNullArity(arity))
-            {
-                if (!ListSqlComparators.Contains(sqlComparator))
-                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity NULL (esperado IN ou NOT IN).");
-                return;
-            }
-
-            var arityValue = Settings.ToLong(arity);
-            if (arityValue > 2)
-            {
-                if (!BetweenSqlComparators.Contains(sqlComparator))
-                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity {arityValue} (esperado BETWEEN ou NOT BETWEEN).");
-                return;
-            }
-
-            if (arityValue == 1)
-            {
-                if (!UnarySqlComparators.Contains(sqlComparator))
-                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity 1 (esperado IS NULL ou IS NOT NULL).");
-                return;
-            }
-
-            if (arityValue == 2)
-            {
-                if (!BinarySqlComparators.Contains(sqlComparator))
-                    throw new Exception($"Comparators (Id {id}): SqlComparator '{sqlComparator}' inválido para Arity 2.");
-                return;
-            }
-
-            throw new Exception($"Comparators (Id {id}): Arity '{arityValue}' não suportado.");
-        }
-
-        static string EscapeSqlStringLiteral(string value) =>
-            value.Replace("'", "''");
-
-        static string BuildComparatorPredicateCaseExpression(string columnRef, string parameterName, string dataType, bool needsBetweenSlots)
-        {
-            var column = EscapeSqlStringLiteral(columnRef);
-            var betweenBranch = needsBetweenSlots
-                ? $"        WHEN [C].[Arity] > 2 THEN '{column} ' + [C].[SqlComparator] + ' @{parameterName}_v1 AND @{parameterName}_v2'\r\n"
-                : string.Empty;
-            return $@"CASE
-        WHEN [C].[Arity] IS NULL THEN '{column} ' + [C].[SqlComparator] + ' (SELECT CAST([value] AS {dataType}) FROM OPENJSON(@{parameterName}_vals))'
-{betweenBranch}        WHEN [C].[Arity] = 1 THEN '{column} ' + [C].[SqlComparator]
-        ELSE '{column} ' + [C].[SqlComparator] + ' @{parameterName}'
-    END";
-        }
-
-        static string BuildComparatorArityReadyCondition(string valueVarPrefix, bool needsBetweenSlots)
-        {
-            var betweenBranch = needsBetweenSlots
-                ? $"               OR ([C].[Arity] > 2 AND {valueVarPrefix}v1 IS NOT NULL AND {valueVarPrefix}v2 IS NOT NULL)\r\n"
-                : string.Empty;
-            return $@"(([C].[Arity] IS NULL AND {valueVarPrefix}vals IS NOT NULL)
-{betweenBranch}               OR ([C].[Arity] = 2 AND {valueVarPrefix}v IS NOT NULL)
-               OR ([C].[Arity] = 1))";
-        }
-
-        static void AppendComparatorPredicateFromMetadata(StringBuilder result, string indent, string opVariable, string columnRef, string dataType, string parameterName, bool isSearch, bool needsBetweenSlots)
+        static void AppendComparatorPredicateFromMetadata(StringBuilder result, string indent, string opVariable, string columnRef, string dataType, string parameterName, bool isSearch, bool needsBetweenSlots, TDictionary[] comparators)
         {
             var valueVarPrefix = opVariable.Replace("_comparator", "_", StringComparison.Ordinal);
-            var predicateCase = BuildComparatorPredicateCaseExpression(columnRef, parameterName, dataType, needsBetweenSlots);
-            var arityReady = BuildComparatorArityReadyCondition(valueVarPrefix, needsBetweenSlots);
+            var predicateCase = ComparatorRegistry.BuildPredicateCaseById(comparators, opVariable, columnRef, parameterName, dataType);
+            var arityReady = ComparatorRegistry.BuildArityReadyExpression(opVariable, valueVarPrefix, comparators, needsBetweenSlots);
 
             result.Append($"{indent}IF {opVariable} IS NOT NULL BEGIN\r\n");
             if (isSearch)
                 result.Append($"{indent}    IF @Where <> '' SET @Where = @Where + ' AND '\r\n");
-            result.Append($"{indent}    SELECT @ComparatorPredicate = {predicateCase}\r\n");
-            result.Append($"{indent}        FROM [dbo].[Comparators] [C]\r\n");
-            result.Append($"{indent}        WHERE [C].[Id] = {opVariable}\r\n");
-            result.Append($"{indent}              AND {arityReady}\r\n");
+            result.Append($"{indent}    IF {arityReady} BEGIN\r\n");
+            result.Append($"{indent}        SET @ComparatorPredicate = {predicateCase}\r\n");
             if (isSearch)
-                result.Append($"{indent}    SET @Where = @Where + ISNULL(@ComparatorPredicate, '')\r\n");
+                result.Append($"{indent}        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')\r\n");
             else
-                result.Append($"{indent}    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate\r\n");
+                result.Append($"{indent}        IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate\r\n");
+            result.Append($"{indent}    END\r\n");
             result.Append($"{indent}END\r\n");
         }
     }

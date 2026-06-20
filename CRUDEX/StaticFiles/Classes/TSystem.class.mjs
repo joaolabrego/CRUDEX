@@ -169,6 +169,13 @@ export default class TSystem {
     static GetProperty(id) {
         return this.#Properties.find(property => Number(property.Id) === Number(id));
     }
+    static GetPropertyByName(name) {
+        return this.#Properties.find(property =>
+            String(property.Name).toLowerCase() === String(name).toLowerCase());
+    }
+    static GetMaskByName(name) {
+        return this.#Masks.find(mask => mask.Name === name);
+    }
     static get Comparators() {
         return this.#Comparators;
     }
