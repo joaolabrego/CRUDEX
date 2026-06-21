@@ -317,7 +317,6 @@ CREATE TABLE [dbo].[Tables]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CA
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Alias] nvarchar(25) NOT NULL
                                     ,[Description] nvarchar(50) NOT NULL
-                                    ,[ParentTableId] bigint NULL CHECK ([ParentTableId] >= CAST('0' AS bigint))
                                     ,[CurrentId] bigint NOT NULL DEFAULT CAST('0' AS bigint) CHECK ([CurrentId] >= CAST('0' AS bigint))
                                     ,[CreatedAt] datetime NOT NULL
                                     ,[CreatedBy] nvarchar(25) NOT NULL
@@ -353,7 +352,6 @@ CREATE TABLE [dbo].[Columns]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= C
                                     ,[TableId] bigint NOT NULL CHECK ([TableId] >= CAST('1' AS bigint))
                                     ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
                                     ,[DomainId] bigint NOT NULL CHECK ([DomainId] >= CAST('1' AS bigint))
-                                    ,[ReferenceTableId] bigint NULL CHECK ([ReferenceTableId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(25) NOT NULL
                                     ,[Alias] nvarchar(25) NULL
                                     ,[Description] nvarchar(50) NOT NULL
@@ -617,6 +615,41 @@ CREATE TABLE [dbo].[Behaviors]([Id] bigint NOT NULL
 ALTER TABLE [dbo].[Behaviors] ADD CONSTRAINT PK_Behaviors PRIMARY KEY CLUSTERED ([Id])
 
 /**********************************************************************************
+Criar tabela [dbo].[References]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[References]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[References]
+CREATE TABLE [dbo].[References]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+                                    ,[FkTableId] nvarchar(25) NOT NULL
+                                    ,[PkTableId] bigint NULL
+                                    ,[Name] nvarchar(50) NULL
+                                    ,[IsParentChildren] bit NULL
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[ClientId] bigint NOT NULL DEFAULT 1
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
+ALTER TABLE [dbo].[References] ADD CONSTRAINT PK_References PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
+Criar tabela [dbo].[Referencekeys]
+**********************************************************************************/
+IF (SELECT object_id('[dbo].[Referencekeys]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Referencekeys]
+CREATE TABLE [dbo].[Referencekeys]([Id] bigint NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+                                    ,[ReferenceId] nvarchar(25) NOT NULL
+                                    ,[FkColumnId] bigint NULL
+                                    ,[Sequence] smallint NOT NULL CHECK ([Sequence] >= CAST('1' AS smallint))
+                                    ,[CreatedAt] datetime NOT NULL
+                                    ,[CreatedBy] nvarchar(25) NOT NULL
+                                    ,[UpdatedAt] datetime NULL
+                                    ,[UpdatedBy] nvarchar(25) NULL
+                                    ,[ClientId] bigint NOT NULL DEFAULT 1
+                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
+ALTER TABLE [dbo].[Referencekeys] ADD CONSTRAINT PK_Referencekeys PRIMARY KEY CLUSTERED ([Id])
+
+/**********************************************************************************
 Criar stored procedure [dbo].[Config]
 **********************************************************************************/
 IF(SELECT object_id('[dbo].[Config]', 'P')) IS NULL
@@ -702,7 +735,6 @@ BEGIN
 				,[T].[Name]
 				,[T].[Alias]
 				,[T].[Description]
-				,[T].[ParentTableId]
 			INTO [#Tables]
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
@@ -719,7 +751,6 @@ BEGIN
 					,[C].[TableId]
 					,[C].[Sequence]
 					,[C].[DomainId]
-					,[C].[ReferenceTableId]
 					,[C].[Name]
 					,[C].[Alias]
 					,[C].[Description]
@@ -930,6 +961,27 @@ BEGIN
 				WHERE EXISTS(SELECT 1 FROM [#Columns] [C] WHERE [C].[Id] = [B].[ColumnId])
 					AND EXISTS(SELECT 1 FROM [#Expressions] [E] WHERE [E].[Id] = [B].[ExpressionId])
 					AND EXISTS(SELECT 1 FROM [#Properties] [P] WHERE [P].[Id] = [B].[PropertyId])
+
+			-- 18 [References]
+			SELECT 'Reference' AS [Kind]
+					,[R].[Id]
+					,[R].[FkTableId]
+					,[R].[PkTableId]
+					,[R].[Name]
+					,[R].[IsParentChildren] AS [IsParentChild]
+				INTO [#References]
+				FROM [dbo].[References] [R]
+				WHERE EXISTS(SELECT 1 FROM [#Tables] [T] WHERE [T].[Id] IN ([R].[FkTableId], [R].[PkTableId]))
+
+			-- 19 [Referencekeys]
+			SELECT 'Referencekey' AS [Kind]
+					,[RK].[Id]
+					,[RK].[ReferenceId]
+					,[RK].[FkColumnId]
+					,[RK].[Sequence]
+				INTO [#Referencekeys]
+				FROM [dbo].[Referencekeys] [RK]
+				WHERE EXISTS(SELECT 1 FROM [#References] [R] WHERE [R].[Id] = [RK].[ReferenceId])
 		END
 
 		-- Results
@@ -952,6 +1004,8 @@ BEGIN
 			SELECT * FROM [#Conditions] ORDER BY [ExpressionId], [Sequence] -- 15 [#Conditions]
 			SELECT * FROM [#Properties] ORDER BY [Name] -- 16 [#Properties]
 			SELECT * FROM [#Behaviors] ORDER BY [ColumnId], [ExpressionId] -- 17 [#Behaviors]
+			SELECT * FROM [#References] ORDER BY [FkTableId], [PkTableId], [Name] -- 18 [#References]
+			SELECT * FROM [#Referencekeys] ORDER BY [ReferenceId], [Sequence] -- 19 [#Referencekeys]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]
@@ -1306,13 +1360,10 @@ BEGIN
 				,[T].[Name]
 				,[T].[Alias]
 				,[T].[Description]
-				,[T].[ParentTableId]
-				,[PT].[Name] AS [#ParentTableName]
 				,[T].[CurrentId]
 			INTO [#Tables]
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [#DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
-				LEFT JOIN [dbo].[Tables] [PT] ON [PT].[Id] = [T].[ParentTableId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [#Tables] ADD PRIMARY KEY CLUSTERED([Id])
@@ -1454,8 +1505,6 @@ BEGIN
 			  ,[D].[#CategoryName]
 			  ,[D].[#TypeName]
 			  ,[D].[#DataType]
-			  ,[C].[ReferenceTableId]
-			  ,[RT].[Name] AS [#ReferenceTableName]
 			  ,[C].[Name]
 			  ,[C].[Alias]
 			  ,[C].[Description]
@@ -1477,7 +1526,6 @@ BEGIN
 			FROM [dbo].[Columns] [C]
 				INNER JOIN [#Tables] [T] ON [T].[Id] = [C].[TableId]
 				INNER JOIN [#Domains] [D] ON [D].[Id] = [C].[DomainId]
-				LEFT JOIN [#Tables] [RT] ON [RT].[Id] = [C].[ReferenceTableId]
 		IF @@ROWCOUNT = 0
 			THROW 51000, 'Coluna(s) de tabela(s) não cadastrada(s)', 1
 		ALTER TABLE [#Columns] ADD PRIMARY KEY CLUSTERED([Id])
@@ -1506,7 +1554,28 @@ BEGIN
 			INNER JOIN [#Indexes] [I] ON [I].[Id] = [IK].[IndexId]
 			INNER JOIN [#Columns] [C] ON [C].[Id] = [IK].[ColumnId]
 		ALTER TABLE [#Indexkeys] ADD PRIMARY KEY CLUSTERED([Id])
-		-- 17 [Sessions]
+		-- 17 [References]
+		SELECT 'Reference' AS [Kind]
+				,[R].[Id]
+				,[R].[FkTableId]
+				,[R].[PkTableId]
+				,[R].[Name]
+				,[R].[IsParentChildren] AS [IsParentChild]
+			INTO [#References]
+			FROM [dbo].[References] [R]
+			WHERE EXISTS(SELECT 1 FROM [#Tables] [T] WHERE [T].[Id] IN ([R].[FkTableId], [R].[PkTableId]))
+		ALTER TABLE [#References] ADD PRIMARY KEY CLUSTERED([Id])
+		-- 18 [Referencekeys]
+		SELECT 'Referencekey' AS [Kind]
+				,[RK].[Id]
+				,[RK].[ReferenceId]
+				,[RK].[FkColumnId]
+				,[RK].[Sequence]
+			INTO [#Referencekeys]
+			FROM [dbo].[Referencekeys] [RK]
+			WHERE EXISTS(SELECT 1 FROM [#References] [R] WHERE [R].[Id] = [RK].[ReferenceId])
+		ALTER TABLE [#Referencekeys] ADD PRIMARY KEY CLUSTERED([Id])
+		-- 19 [Sessions]
 		SELECT TOP 0 'Session' AS [Kind]
 					,[Id]
 				    ,[SystemId]
@@ -1515,14 +1584,14 @@ BEGIN
 					,[IsLogged]
 			INTO [#Sessions]
 			FROM [dbo].[Sessions]
-		-- 18 [Transactions]
+		-- 20 [Transactions]
 		SELECT TOP 0 'Transaction' AS [Kind]
 					,[Id]
 				    ,[SessionId]
 					,[IsConfirmed]
 			INTO [#Transactions]
 			FROM [dbo].[Transactions]
-		-- 19 [Operations]
+		-- 21 [Operations]
 		SELECT TOP 0 'Operation' AS [Kind]
 					,[Id]
 				    ,[TransactionId]
@@ -1533,7 +1602,7 @@ BEGIN
 					,[IsConfirmed]
 			INTO [#Operations]
 			FROM [dbo].[Operations]
-		-- 21 [Unicities]
+		-- 22 [Unicities]
 		SELECT DISTINCT 'Unicity' AS [Kind]
 						,[U].[Id]
 						,[U].[ColumnId1]
@@ -1571,6 +1640,8 @@ BEGIN
 		SELECT * FROM [#Columns] ORDER BY [TableId], [Sequence]
 		SELECT * FROM [#Indexes]
 		SELECT * FROM [#Indexkeys] ORDER BY [IndexId], [Sequence]
+		SELECT * FROM [#References] ORDER BY [FkTableId], [PkTableId], [Name]
+		SELECT * FROM [#Referencekeys] ORDER BY [ReferenceId], [Sequence]
 		SELECT * FROM [#Sessions]
 		SELECT * FROM [#Transactions]
 		SELECT * FROM [#Operations]
@@ -2126,333 +2197,310 @@ GO
 /**********************************************************************************
 Criar referências de [dbo].[Types]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Types_Categories')
-    ALTER TABLE [dbo].[Types] DROP CONSTRAINT FK_Types_Categories
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Types_Categories_1')
+    ALTER TABLE [dbo].[Types] DROP CONSTRAINT FK_Types_Categories_1
 GO
 ALTER TABLE [dbo].[Types] WITH CHECK 
-    ADD CONSTRAINT [FK_Types_Categories] 
+    ADD CONSTRAINT [FK_Types_Categories_1] 
     FOREIGN KEY([CategoryId]) 
     REFERENCES [dbo].[Categories] ([Id])
 GO
-ALTER TABLE [dbo].[Types] CHECK CONSTRAINT [FK_Types_Categories]
+ALTER TABLE [dbo].[Types] CHECK CONSTRAINT [FK_Types_Categories_1]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Domains]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Domains_Types')
-    ALTER TABLE [dbo].[Domains] DROP CONSTRAINT FK_Domains_Types
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Domains_Types_2')
+    ALTER TABLE [dbo].[Domains] DROP CONSTRAINT FK_Domains_Types_2
 GO
 ALTER TABLE [dbo].[Domains] WITH CHECK 
-    ADD CONSTRAINT [FK_Domains_Types] 
+    ADD CONSTRAINT [FK_Domains_Types_2] 
     FOREIGN KEY([TypeId]) 
     REFERENCES [dbo].[Types] ([Id])
 GO
-ALTER TABLE [dbo].[Domains] CHECK CONSTRAINT [FK_Domains_Types]
+ALTER TABLE [dbo].[Domains] CHECK CONSTRAINT [FK_Domains_Types_2]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Domains_Masks')
-    ALTER TABLE [dbo].[Domains] DROP CONSTRAINT FK_Domains_Masks
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Domains_Masks_3')
+    ALTER TABLE [dbo].[Domains] DROP CONSTRAINT FK_Domains_Masks_3
 GO
 ALTER TABLE [dbo].[Domains] WITH CHECK 
-    ADD CONSTRAINT [FK_Domains_Masks] 
+    ADD CONSTRAINT [FK_Domains_Masks_3] 
     FOREIGN KEY([MaskId]) 
     REFERENCES [dbo].[Masks] ([Id])
 GO
-ALTER TABLE [dbo].[Domains] CHECK CONSTRAINT [FK_Domains_Masks]
+ALTER TABLE [dbo].[Domains] CHECK CONSTRAINT [FK_Domains_Masks_3]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Menus]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Menus_Systems')
-    ALTER TABLE [dbo].[Menus] DROP CONSTRAINT FK_Menus_Systems
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Menus_Menus_4')
+    ALTER TABLE [dbo].[Menus] DROP CONSTRAINT FK_Menus_Menus_4
 GO
 ALTER TABLE [dbo].[Menus] WITH CHECK 
-    ADD CONSTRAINT [FK_Menus_Systems] 
-    FOREIGN KEY([SystemId]) 
-    REFERENCES [dbo].[Systems] ([Id])
-GO
-ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Systems]
-GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Menus_Menus')
-    ALTER TABLE [dbo].[Menus] DROP CONSTRAINT FK_Menus_Menus
-GO
-ALTER TABLE [dbo].[Menus] WITH CHECK 
-    ADD CONSTRAINT [FK_Menus_Menus] 
+    ADD CONSTRAINT [FK_Menus_Menus_4] 
     FOREIGN KEY([ParentMenuId]) 
     REFERENCES [dbo].[Menus] ([Id])
 GO
-ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Menus]
+ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Menus_4]
+GO
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Menus_Systems_5')
+    ALTER TABLE [dbo].[Menus] DROP CONSTRAINT FK_Menus_Systems_5
+GO
+ALTER TABLE [dbo].[Menus] WITH CHECK 
+    ADD CONSTRAINT [FK_Menus_Systems_5] 
+    FOREIGN KEY([SystemId]) 
+    REFERENCES [dbo].[Systems] ([Id])
+GO
+ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Systems_5]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[SystemsUsers]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsUsers_Systems')
-    ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Systems
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsUsers_Systems_6')
+    ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Systems_6
 GO
 ALTER TABLE [dbo].[SystemsUsers] WITH CHECK 
-    ADD CONSTRAINT [FK_SystemsUsers_Systems] 
+    ADD CONSTRAINT [FK_SystemsUsers_Systems_6] 
     FOREIGN KEY([SystemId]) 
     REFERENCES [dbo].[Systems] ([Id])
 GO
-ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Systems]
+ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Systems_6]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsUsers_Users')
-    ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Users
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsUsers_Users_7')
+    ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Users_7
 GO
 ALTER TABLE [dbo].[SystemsUsers] WITH CHECK 
-    ADD CONSTRAINT [FK_SystemsUsers_Users] 
+    ADD CONSTRAINT [FK_SystemsUsers_Users_7] 
     FOREIGN KEY([UserId]) 
     REFERENCES [dbo].[Users] ([Id])
 GO
-ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Users]
+ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Users_7]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Databases]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Databases_Connections')
-    ALTER TABLE [dbo].[Databases] DROP CONSTRAINT FK_Databases_Connections
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Databases_Connections_8')
+    ALTER TABLE [dbo].[Databases] DROP CONSTRAINT FK_Databases_Connections_8
 GO
 ALTER TABLE [dbo].[Databases] WITH CHECK 
-    ADD CONSTRAINT [FK_Databases_Connections] 
+    ADD CONSTRAINT [FK_Databases_Connections_8] 
     FOREIGN KEY([ConnectionId]) 
     REFERENCES [dbo].[Connections] ([Id])
 GO
-ALTER TABLE [dbo].[Databases] CHECK CONSTRAINT [FK_Databases_Connections]
+ALTER TABLE [dbo].[Databases] CHECK CONSTRAINT [FK_Databases_Connections_8]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[SystemsDatabases]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsDatabases_Systems')
-    ALTER TABLE [dbo].[SystemsDatabases] DROP CONSTRAINT FK_SystemsDatabases_Systems
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsDatabases_Systems_9')
+    ALTER TABLE [dbo].[SystemsDatabases] DROP CONSTRAINT FK_SystemsDatabases_Systems_9
 GO
 ALTER TABLE [dbo].[SystemsDatabases] WITH CHECK 
-    ADD CONSTRAINT [FK_SystemsDatabases_Systems] 
+    ADD CONSTRAINT [FK_SystemsDatabases_Systems_9] 
     FOREIGN KEY([SystemId]) 
     REFERENCES [dbo].[Systems] ([Id])
 GO
-ALTER TABLE [dbo].[SystemsDatabases] CHECK CONSTRAINT [FK_SystemsDatabases_Systems]
+ALTER TABLE [dbo].[SystemsDatabases] CHECK CONSTRAINT [FK_SystemsDatabases_Systems_9]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsDatabases_Databases')
-    ALTER TABLE [dbo].[SystemsDatabases] DROP CONSTRAINT FK_SystemsDatabases_Databases
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsDatabases_Databases_10')
+    ALTER TABLE [dbo].[SystemsDatabases] DROP CONSTRAINT FK_SystemsDatabases_Databases_10
 GO
 ALTER TABLE [dbo].[SystemsDatabases] WITH CHECK 
-    ADD CONSTRAINT [FK_SystemsDatabases_Databases] 
+    ADD CONSTRAINT [FK_SystemsDatabases_Databases_10] 
     FOREIGN KEY([DatabaseId]) 
     REFERENCES [dbo].[Databases] ([Id])
 GO
-ALTER TABLE [dbo].[SystemsDatabases] CHECK CONSTRAINT [FK_SystemsDatabases_Databases]
-GO
-/**********************************************************************************
-Criar referências de [dbo].[Tables]
-**********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Tables_Tables')
-    ALTER TABLE [dbo].[Tables] DROP CONSTRAINT FK_Tables_Tables
-GO
-ALTER TABLE [dbo].[Tables] WITH CHECK 
-    ADD CONSTRAINT [FK_Tables_Tables] 
-    FOREIGN KEY([ParentTableId]) 
-    REFERENCES [dbo].[Tables] ([Id])
-GO
-ALTER TABLE [dbo].[Tables] CHECK CONSTRAINT [FK_Tables_Tables]
+ALTER TABLE [dbo].[SystemsDatabases] CHECK CONSTRAINT [FK_SystemsDatabases_Databases_10]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[DatabasesTables]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_DatabasesTables_Databases')
-    ALTER TABLE [dbo].[DatabasesTables] DROP CONSTRAINT FK_DatabasesTables_Databases
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_DatabasesTables_Databases_11')
+    ALTER TABLE [dbo].[DatabasesTables] DROP CONSTRAINT FK_DatabasesTables_Databases_11
 GO
 ALTER TABLE [dbo].[DatabasesTables] WITH CHECK 
-    ADD CONSTRAINT [FK_DatabasesTables_Databases] 
+    ADD CONSTRAINT [FK_DatabasesTables_Databases_11] 
     FOREIGN KEY([DatabaseId]) 
     REFERENCES [dbo].[Databases] ([Id])
 GO
-ALTER TABLE [dbo].[DatabasesTables] CHECK CONSTRAINT [FK_DatabasesTables_Databases]
+ALTER TABLE [dbo].[DatabasesTables] CHECK CONSTRAINT [FK_DatabasesTables_Databases_11]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_DatabasesTables_Tables')
-    ALTER TABLE [dbo].[DatabasesTables] DROP CONSTRAINT FK_DatabasesTables_Tables
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_DatabasesTables_Tables_12')
+    ALTER TABLE [dbo].[DatabasesTables] DROP CONSTRAINT FK_DatabasesTables_Tables_12
 GO
 ALTER TABLE [dbo].[DatabasesTables] WITH CHECK 
-    ADD CONSTRAINT [FK_DatabasesTables_Tables] 
+    ADD CONSTRAINT [FK_DatabasesTables_Tables_12] 
     FOREIGN KEY([TableId]) 
     REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[DatabasesTables] CHECK CONSTRAINT [FK_DatabasesTables_Tables]
+ALTER TABLE [dbo].[DatabasesTables] CHECK CONSTRAINT [FK_DatabasesTables_Tables_12]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Columns]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Columns_Tables')
-    ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Tables
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Columns_Tables_13')
+    ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Tables_13
 GO
 ALTER TABLE [dbo].[Columns] WITH CHECK 
-    ADD CONSTRAINT [FK_Columns_Tables] 
+    ADD CONSTRAINT [FK_Columns_Tables_13] 
     FOREIGN KEY([TableId]) 
     REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Tables]
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Tables_13]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Columns_Domains')
-    ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Domains
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Columns_Domains_14')
+    ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Domains_14
 GO
 ALTER TABLE [dbo].[Columns] WITH CHECK 
-    ADD CONSTRAINT [FK_Columns_Domains] 
+    ADD CONSTRAINT [FK_Columns_Domains_14] 
     FOREIGN KEY([DomainId]) 
     REFERENCES [dbo].[Domains] ([Id])
 GO
-ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Domains]
-GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Columns_Tables')
-    ALTER TABLE [dbo].[Columns] DROP CONSTRAINT FK_Columns_Tables
-GO
-ALTER TABLE [dbo].[Columns] WITH CHECK 
-    ADD CONSTRAINT [FK_Columns_Tables] 
-    FOREIGN KEY([ReferenceTableId]) 
-    REFERENCES [dbo].[Tables] ([Id])
-GO
-ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Tables]
+ALTER TABLE [dbo].[Columns] CHECK CONSTRAINT [FK_Columns_Domains_14]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Indexes]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexes_Tables')
-    ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Tables
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexes_Tables_15')
+    ALTER TABLE [dbo].[Indexes] DROP CONSTRAINT FK_Indexes_Tables_15
 GO
 ALTER TABLE [dbo].[Indexes] WITH CHECK 
-    ADD CONSTRAINT [FK_Indexes_Tables] 
+    ADD CONSTRAINT [FK_Indexes_Tables_15] 
     FOREIGN KEY([TableId]) 
     REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_Tables]
+ALTER TABLE [dbo].[Indexes] CHECK CONSTRAINT [FK_Indexes_Tables_15]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Indexkeys]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexkeys_Indexes')
-    ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_Indexes
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexkeys_Indexes_16')
+    ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_Indexes_16
 GO
 ALTER TABLE [dbo].[Indexkeys] WITH CHECK 
-    ADD CONSTRAINT [FK_Indexkeys_Indexes] 
+    ADD CONSTRAINT [FK_Indexkeys_Indexes_16] 
     FOREIGN KEY([IndexId]) 
     REFERENCES [dbo].[Indexes] ([Id])
 GO
-ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_Indexes]
+ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_Indexes_16]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexkeys_Columns')
-    ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_Columns
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Indexkeys_Columns_17')
+    ALTER TABLE [dbo].[Indexkeys] DROP CONSTRAINT FK_Indexkeys_Columns_17
 GO
 ALTER TABLE [dbo].[Indexkeys] WITH CHECK 
-    ADD CONSTRAINT [FK_Indexkeys_Columns] 
+    ADD CONSTRAINT [FK_Indexkeys_Columns_17] 
     FOREIGN KEY([ColumnId]) 
     REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_Columns]
+ALTER TABLE [dbo].[Indexkeys] CHECK CONSTRAINT [FK_Indexkeys_Columns_17]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Sessions]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Sessions_Systems')
-    ALTER TABLE [dbo].[Sessions] DROP CONSTRAINT FK_Sessions_Systems
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Sessions_Systems_18')
+    ALTER TABLE [dbo].[Sessions] DROP CONSTRAINT FK_Sessions_Systems_18
 GO
 ALTER TABLE [dbo].[Sessions] WITH CHECK 
-    ADD CONSTRAINT [FK_Sessions_Systems] 
+    ADD CONSTRAINT [FK_Sessions_Systems_18] 
     FOREIGN KEY([SystemId]) 
     REFERENCES [dbo].[Systems] ([Id])
 GO
-ALTER TABLE [dbo].[Sessions] CHECK CONSTRAINT [FK_Sessions_Systems]
+ALTER TABLE [dbo].[Sessions] CHECK CONSTRAINT [FK_Sessions_Systems_18]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Sessions_Users')
-    ALTER TABLE [dbo].[Sessions] DROP CONSTRAINT FK_Sessions_Users
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Sessions_Users_19')
+    ALTER TABLE [dbo].[Sessions] DROP CONSTRAINT FK_Sessions_Users_19
 GO
 ALTER TABLE [dbo].[Sessions] WITH CHECK 
-    ADD CONSTRAINT [FK_Sessions_Users] 
+    ADD CONSTRAINT [FK_Sessions_Users_19] 
     FOREIGN KEY([UserId]) 
     REFERENCES [dbo].[Users] ([Id])
 GO
-ALTER TABLE [dbo].[Sessions] CHECK CONSTRAINT [FK_Sessions_Users]
+ALTER TABLE [dbo].[Sessions] CHECK CONSTRAINT [FK_Sessions_Users_19]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Transactions]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Transactions_Sessions')
-    ALTER TABLE [dbo].[Transactions] DROP CONSTRAINT FK_Transactions_Sessions
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Transactions_Sessions_20')
+    ALTER TABLE [dbo].[Transactions] DROP CONSTRAINT FK_Transactions_Sessions_20
 GO
 ALTER TABLE [dbo].[Transactions] WITH CHECK 
-    ADD CONSTRAINT [FK_Transactions_Sessions] 
+    ADD CONSTRAINT [FK_Transactions_Sessions_20] 
     FOREIGN KEY([SessionId]) 
     REFERENCES [dbo].[Sessions] ([Id])
 GO
-ALTER TABLE [dbo].[Transactions] CHECK CONSTRAINT [FK_Transactions_Sessions]
+ALTER TABLE [dbo].[Transactions] CHECK CONSTRAINT [FK_Transactions_Sessions_20]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Operations]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Operations_Transactions')
-    ALTER TABLE [dbo].[Operations] DROP CONSTRAINT FK_Operations_Transactions
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Operations_Transactions_21')
+    ALTER TABLE [dbo].[Operations] DROP CONSTRAINT FK_Operations_Transactions_21
 GO
 ALTER TABLE [dbo].[Operations] WITH CHECK 
-    ADD CONSTRAINT [FK_Operations_Transactions] 
+    ADD CONSTRAINT [FK_Operations_Transactions_21] 
     FOREIGN KEY([TransactionId]) 
     REFERENCES [dbo].[Transactions] ([Id])
 GO
-ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Transactions]
+ALTER TABLE [dbo].[Operations] CHECK CONSTRAINT [FK_Operations_Transactions_21]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Unicities]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns')
-    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns_22')
+    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns_22
 GO
 ALTER TABLE [dbo].[Unicities] WITH CHECK 
-    ADD CONSTRAINT [FK_Unicities_Columns] 
+    ADD CONSTRAINT [FK_Unicities_Columns_22] 
     FOREIGN KEY([ColumnId1]) 
     REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns]
+ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns_22]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns')
-    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Unicities_Columns_23')
+    ALTER TABLE [dbo].[Unicities] DROP CONSTRAINT FK_Unicities_Columns_23
 GO
 ALTER TABLE [dbo].[Unicities] WITH CHECK 
-    ADD CONSTRAINT [FK_Unicities_Columns] 
+    ADD CONSTRAINT [FK_Unicities_Columns_23] 
     FOREIGN KEY([ColumnId2]) 
     REFERENCES [dbo].[Columns] ([Id])
 GO
-ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns]
+ALTER TABLE [dbo].[Unicities] CHECK CONSTRAINT [FK_Unicities_Columns_23]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Rules]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Rules_Categories')
-    ALTER TABLE [dbo].[Rules] DROP CONSTRAINT FK_Rules_Categories
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Rules_Categories_24')
+    ALTER TABLE [dbo].[Rules] DROP CONSTRAINT FK_Rules_Categories_24
 GO
 ALTER TABLE [dbo].[Rules] WITH CHECK 
-    ADD CONSTRAINT [FK_Rules_Categories] 
+    ADD CONSTRAINT [FK_Rules_Categories_24] 
     FOREIGN KEY([CategoryId]) 
     REFERENCES [dbo].[Categories] ([Id])
 GO
-ALTER TABLE [dbo].[Rules] CHECK CONSTRAINT [FK_Rules_Categories]
+ALTER TABLE [dbo].[Rules] CHECK CONSTRAINT [FK_Rules_Categories_24]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Rules_Comparators')
-    ALTER TABLE [dbo].[Rules] DROP CONSTRAINT FK_Rules_Comparators
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Rules_Comparators_25')
+    ALTER TABLE [dbo].[Rules] DROP CONSTRAINT FK_Rules_Comparators_25
 GO
 ALTER TABLE [dbo].[Rules] WITH CHECK 
-    ADD CONSTRAINT [FK_Rules_Comparators] 
+    ADD CONSTRAINT [FK_Rules_Comparators_25] 
     FOREIGN KEY([ComparatorId]) 
     REFERENCES [dbo].[Comparators] ([Id])
 GO
-ALTER TABLE [dbo].[Rules] CHECK CONSTRAINT [FK_Rules_Comparators]
+ALTER TABLE [dbo].[Rules] CHECK CONSTRAINT [FK_Rules_Comparators_25]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Expressions]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Expressions_Tables')
-    ALTER TABLE [dbo].[Expressions] DROP CONSTRAINT FK_Expressions_Tables
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Expressions_Tables_26')
+    ALTER TABLE [dbo].[Expressions] DROP CONSTRAINT FK_Expressions_Tables_26
 GO
 ALTER TABLE [dbo].[Expressions] WITH CHECK 
-    ADD CONSTRAINT [FK_Expressions_Tables] 
+    ADD CONSTRAINT [FK_Expressions_Tables_26] 
     FOREIGN KEY([TableId]) 
     REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Expressions] CHECK CONSTRAINT [FK_Expressions_Tables]
+ALTER TABLE [dbo].[Expressions] CHECK CONSTRAINT [FK_Expressions_Tables_26]
 GO
 
 /**********************************************************************************
@@ -5854,7 +5902,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5864,7 +5911,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Categories' AS nvarchar(25))
                                 ,CAST(N'Category' AS nvarchar(25))
                                 ,CAST(N'Categorias de tipos de dados' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('10' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5875,7 +5921,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5885,7 +5930,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Types' AS nvarchar(25))
                                 ,CAST(N'Type' AS nvarchar(25))
                                 ,CAST(N'Tipos de dados' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('37' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5896,7 +5940,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5906,7 +5949,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Masks' AS nvarchar(25))
                                 ,CAST(N'Mask' AS nvarchar(25))
                                 ,CAST(N'Máscaras de Edição' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('25' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5917,7 +5959,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5927,7 +5968,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Domains' AS nvarchar(25))
                                 ,CAST(N'Domain' AS nvarchar(25))
                                 ,CAST(N'Domínios de colunas' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('24' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5938,7 +5978,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5948,7 +5987,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Systems' AS nvarchar(25))
                                 ,CAST(N'System' AS nvarchar(25))
                                 ,CAST(N'Sistemas' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5959,7 +5997,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5969,7 +6006,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Menus' AS nvarchar(25))
                                 ,CAST(N'Menu' AS nvarchar(25))
                                 ,CAST(N'Menus de sistemas' AS nvarchar(50))
-                                ,CAST('5' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5980,7 +6016,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -5990,7 +6025,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Users' AS nvarchar(25))
                                 ,CAST(N'User' AS nvarchar(25))
                                 ,CAST(N'Usuários de sistemas' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6001,7 +6035,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6011,7 +6044,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'SystemsUsers' AS nvarchar(25))
                                 ,CAST(N'SystemUser' AS nvarchar(25))
                                 ,CAST(N'Sistemas x Usuários' AS nvarchar(50))
-                                ,CAST('5' AS bigint)
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6022,7 +6054,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6032,7 +6063,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Connections' AS nvarchar(25))
                                 ,CAST(N'Connection' AS nvarchar(25))
                                 ,CAST(N'Conexões de bancos-de-dados' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6043,7 +6073,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6053,7 +6082,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Databases' AS nvarchar(25))
                                 ,CAST(N'Database' AS nvarchar(25))
                                 ,CAST(N'Bancos-de-Dados' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6064,7 +6092,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6074,7 +6101,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'SystemsDatabases' AS nvarchar(25))
                                 ,CAST(N'SystemDatabase' AS nvarchar(25))
                                 ,CAST(N'Sistemas x Bancos-de-Dados' AS nvarchar(50))
-                                ,CAST('5' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6085,7 +6111,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6095,8 +6120,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Tables' AS nvarchar(25))
                                 ,CAST(N'Table' AS nvarchar(25))
                                 ,CAST(N'Tabelas de bancos-de-dados' AS nvarchar(50))
-                                ,CAST('10' AS bigint)
-                                ,CAST('27' AS bigint)
+                                ,CAST('29' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6106,7 +6130,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6116,8 +6139,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'DatabasesTables' AS nvarchar(25))
                                 ,CAST(N'DatabaseTable' AS nvarchar(25))
                                 ,CAST(N'Bancos-de-Dados x Tabelas' AS nvarchar(50))
-                                ,CAST('10' AS bigint)
-                                ,CAST('27' AS bigint)
+                                ,CAST('29' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6127,7 +6149,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6137,8 +6158,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Columns' AS nvarchar(25))
                                 ,CAST(N'Column' AS nvarchar(25))
                                 ,CAST(N'Colunas de tabelas' AS nvarchar(50))
-                                ,CAST('12' AS bigint)
-                                ,CAST('178' AS bigint)
+                                ,CAST('187' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6148,7 +6168,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6158,7 +6177,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Indexes' AS nvarchar(25))
                                 ,CAST(N'Index' AS nvarchar(25))
                                 ,CAST(N'Índices de tabelas' AS nvarchar(50))
-                                ,CAST('12' AS bigint)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6169,7 +6187,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6179,7 +6196,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Indexkeys' AS nvarchar(25))
                                 ,CAST(N'Indexkey' AS nvarchar(25))
                                 ,CAST(N'Chaves de índices' AS nvarchar(50))
-                                ,CAST('15' AS bigint)
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6190,7 +6206,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6200,7 +6215,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Sessions' AS nvarchar(25))
                                 ,CAST(N'Session' AS nvarchar(25))
                                 ,CAST(N'Sessões de sistema' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6211,7 +6225,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6221,7 +6234,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Transactions' AS nvarchar(25))
                                 ,CAST(N'Transaction' AS nvarchar(25))
                                 ,CAST(N'Transações de bancos-de-dados' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6232,7 +6244,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6242,7 +6253,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Operations' AS nvarchar(25))
                                 ,CAST(N'Operation' AS nvarchar(25))
                                 ,CAST(N'Operações de transações' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6253,7 +6263,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6263,7 +6272,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Unicities' AS nvarchar(25))
                                 ,CAST(N'Unicity' AS nvarchar(25))
                                 ,CAST(N'Unicidades cruzadas' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6274,7 +6282,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6284,7 +6291,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Comparators' AS nvarchar(25))
                                 ,CAST(N'Comparator' AS nvarchar(25))
                                 ,CAST(N'Comparadores relacionais' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('14' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6295,7 +6301,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6305,7 +6310,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Rules' AS nvarchar(25))
                                 ,CAST(N'Rule' AS nvarchar(25))
                                 ,CAST(N'Regras de comparação/categoria' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('72' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6316,7 +6320,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6326,7 +6329,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'testes' AS nvarchar(25))
                                 ,CAST(N'teste' AS nvarchar(25))
                                 ,CAST(N'Tabela de teste de PKs múltiplas' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6337,7 +6339,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6347,7 +6348,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Expressions' AS nvarchar(25))
                                 ,CAST(N'Expression' AS nvarchar(25))
                                 ,CAST(N'Expressões lógicas' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6358,7 +6358,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6368,8 +6367,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Conditions' AS nvarchar(25))
                                 ,CAST(N'Condition' AS nvarchar(25))
                                 ,CAST(N'Condições lógicas' AS nvarchar(50))
-                                ,NULL
-                                ,CAST('3' AS bigint)
+                                ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6379,7 +6377,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6389,7 +6386,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Properties' AS nvarchar(25))
                                 ,CAST(N'Property' AS nvarchar(25))
                                 ,CAST(N'Propriedades HTML' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('19' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6400,7 +6396,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
-                                ,[ParentTableId]
                                 ,[CurrentId]
                                 ,[CreatedAt]
                                 ,[CreatedBy]
@@ -6410,8 +6405,45 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Behaviors' AS nvarchar(25))
                                 ,CAST(N'Behavior' AS nvarchar(25))
                                 ,CAST(N'Comportamentos' AS nvarchar(50))
-                                ,NULL
                                 ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('28' AS bigint)
+                                ,CAST(N'References' AS nvarchar(25))
+                                ,CAST(N'Reference' AS nvarchar(25))
+                                ,CAST(N'Referências' AS nvarchar(50))
+                                ,CAST('27' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Tables] ([Id]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[CurrentId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('29' AS bigint)
+                                ,CAST(N'Referencekeys' AS nvarchar(25))
+                                ,CAST(N'Referencekey' AS nvarchar(25))
+                                ,CAST(N'Chaves de referências' AS nvarchar(50))
+                                ,CAST('27' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6882,6 +6914,40 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('28' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('28' AS bigint)
+                                ,CAST(N'crudex x References' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[DatabasesTables] ([Id]
+                                ,[DatabaseId]
+                                ,[TableId]
+                                ,[Name]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('29' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('29' AS bigint)
+                                ,CAST(N'crudex x Referencekeys' AS nvarchar(50))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 SET IDENTITY_INSERT [dbo].[DatabasesTables] OFF
 
 /**********************************************************************************
@@ -6892,7 +6958,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -6919,7 +6984,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da categoria' AS nvarchar(50))
@@ -6947,7 +7011,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -6974,7 +7037,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome da categoria' AS nvarchar(50))
@@ -7002,7 +7064,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7029,7 +7090,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('19' AS bigint)
-                                ,NULL
                                 ,CAST(N'HtmlInputType' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo do input HTML' AS nvarchar(50))
@@ -7057,7 +7117,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7084,7 +7143,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('20' AS bigint)
-                                ,NULL
                                 ,CAST(N'HtmlInputAlign' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Alinhamento do input HTML' AS nvarchar(50))
@@ -7112,7 +7170,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7139,7 +7196,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskEncrypted' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria de tipo pede criptografia?' AS nvarchar(50))
@@ -7167,7 +7223,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7194,7 +7249,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskMask' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria de tipo pede máscara?' AS nvarchar(50))
@@ -7222,7 +7276,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7249,7 +7302,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskListable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria de tipo pede listável?' AS nvarchar(50))
@@ -7277,7 +7329,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7304,7 +7355,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskDefault' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria de tipo pede valor padrão?' AS nvarchar(50))
@@ -7332,7 +7382,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7359,7 +7408,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskMinimum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria de tipo pede valor mínimo?' AS nvarchar(50))
@@ -7387,7 +7435,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7414,7 +7461,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskMaximum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria de tipo pede valor máximo?' AS nvarchar(50))
@@ -7442,7 +7488,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7469,7 +7514,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bigint)
                                 ,CAST('55' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskInWords' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria de tipo pede extenso?' AS nvarchar(50))
@@ -7497,7 +7541,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7524,7 +7567,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do tipo' AS nvarchar(50))
@@ -7552,7 +7594,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7579,7 +7620,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST(N'CategoryId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Categoria do tipo' AS nvarchar(50))
@@ -7607,7 +7647,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7634,7 +7673,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do tipo' AS nvarchar(50))
@@ -7662,7 +7700,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7689,7 +7726,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('2' AS bigint)
-                                ,NULL
                                 ,CAST(N'MaxLength' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tamanho máximo' AS nvarchar(50))
@@ -7717,7 +7753,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7744,7 +7779,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Minimum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor mínimo do tipo' AS nvarchar(50))
@@ -7772,7 +7806,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7799,7 +7832,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Maximum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor máximo do tipo' AS nvarchar(50))
@@ -7827,7 +7859,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7854,7 +7885,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskLength' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo pede tamanho?' AS nvarchar(50))
@@ -7882,7 +7912,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7909,7 +7938,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskDecimals' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo pede decimais?' AS nvarchar(50))
@@ -7937,7 +7965,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -7964,7 +7991,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskPrimarykey' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo pede chave-primária?' AS nvarchar(50))
@@ -7992,7 +8018,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8019,7 +8044,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskAutoincrement' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo pede autoincremento?' AS nvarchar(50))
@@ -8047,7 +8071,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8074,7 +8097,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('55' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskFilterable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo pede filtrável?' AS nvarchar(50))
@@ -8102,7 +8124,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8129,7 +8150,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('60' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskGridable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo pede exibível em grade?' AS nvarchar(50))
@@ -8157,7 +8177,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8184,7 +8203,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('65' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'AskCodification' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo pede codificação?' AS nvarchar(50))
@@ -8212,7 +8230,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8239,7 +8256,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('70' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsLikeable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Aceita operador LIKE?' AS nvarchar(50))
@@ -8267,7 +8283,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8294,7 +8309,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST('75' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsActive' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tipo é ativo?' AS nvarchar(50))
@@ -8322,7 +8336,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8349,7 +8362,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('3' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da máscara de edição' AS nvarchar(50))
@@ -8377,7 +8389,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8404,7 +8415,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('3' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome da máscara' AS nvarchar(50))
@@ -8432,7 +8442,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8459,7 +8468,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('3' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('12' AS bigint)
-                                ,NULL
                                 ,CAST(N'Mask' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Máscara de edição' AS nvarchar(50))
@@ -8487,7 +8495,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8514,7 +8521,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do domínio' AS nvarchar(50))
@@ -8542,7 +8548,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8569,7 +8574,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,CAST('2' AS bigint)
                                 ,CAST(N'TypeId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do tipo do domínio' AS nvarchar(50))
@@ -8597,7 +8601,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8624,7 +8627,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('3' AS bigint)
                                 ,CAST(N'MaskId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da máscara de edição do domínio' AS nvarchar(50))
@@ -8652,7 +8654,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8679,7 +8680,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do domínio' AS nvarchar(50))
@@ -8707,7 +8707,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8734,7 +8733,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('4' AS bigint)
-                                ,NULL
                                 ,CAST(N'Length' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tamanho do domínio' AS nvarchar(50))
@@ -8762,7 +8760,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8789,7 +8786,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'Decimals' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Decimais do domínio' AS nvarchar(50))
@@ -8817,7 +8813,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8844,7 +8839,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('12' AS bigint)
-                                ,NULL
                                 ,CAST(N'ValidValues' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valores válidos' AS nvarchar(50))
@@ -8872,7 +8866,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8899,7 +8892,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Default' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor padrão do domínio' AS nvarchar(50))
@@ -8927,7 +8919,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -8954,7 +8945,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Minimum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor mínimo do domínio' AS nvarchar(50))
@@ -8982,7 +8972,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9009,7 +8998,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Maximum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor máximo do domínio' AS nvarchar(50))
@@ -9037,7 +9025,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9064,7 +9051,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('4' AS bigint)
                                 ,CAST('55' AS smallint)
                                 ,CAST('18' AS bigint)
-                                ,NULL
                                 ,CAST(N'Codification' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Codificação do domínio' AS nvarchar(50))
@@ -9092,7 +9078,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9119,7 +9104,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do sistema' AS nvarchar(50))
@@ -9147,7 +9131,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9174,7 +9157,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do sistema' AS nvarchar(50))
@@ -9202,7 +9184,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9229,7 +9210,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Description' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Descrição do sistema' AS nvarchar(50))
@@ -9257,7 +9237,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9284,7 +9263,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS bigint)
-                                ,NULL
                                 ,CAST(N'ClientName' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Cliente do sistema' AS nvarchar(50))
@@ -9312,7 +9290,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9339,7 +9316,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'MaxRetryLogins' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Máximo de tentativas de logins' AS nvarchar(50))
@@ -9367,7 +9343,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9394,7 +9369,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('5' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsOffAir' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Sistema fora-do-ar' AS nvarchar(50))
@@ -9422,7 +9396,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9449,7 +9422,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do menu' AS nvarchar(50))
@@ -9477,7 +9449,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9504,7 +9475,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('5' AS bigint)
                                 ,CAST(N'SystemId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do sistema do menu' AS nvarchar(50))
@@ -9532,7 +9502,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9559,7 +9528,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
-                                ,NULL
                                 ,CAST(N'Sequence' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Sequência do menu' AS nvarchar(50))
@@ -9587,7 +9555,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9614,7 +9581,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('8' AS bigint)
-                                ,NULL
                                 ,CAST(N'Caption' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Opção do menu' AS nvarchar(50))
@@ -9642,7 +9608,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9669,7 +9634,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Message' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Mensagem do menu' AS nvarchar(50))
@@ -9697,7 +9661,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9724,7 +9687,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Action' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Ação do menu' AS nvarchar(50))
@@ -9752,7 +9714,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9779,7 +9740,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('6' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('6' AS bigint)
                                 ,CAST(N'ParentMenuId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do menu-pai' AS nvarchar(50))
@@ -9807,7 +9767,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9834,7 +9793,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('7' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do usuário' AS nvarchar(50))
@@ -9862,7 +9820,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9889,7 +9846,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('7' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do usuário' AS nvarchar(50))
@@ -9917,7 +9873,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9944,7 +9899,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('7' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('11' AS bigint)
-                                ,NULL
                                 ,CAST(N'Password' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Senha do usuário' AS nvarchar(50))
@@ -9972,7 +9926,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -9999,7 +9952,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('7' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'FullName' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome completo do usuário' AS nvarchar(50))
@@ -10027,7 +9979,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10054,7 +10005,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('7' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'RetryLogins' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tentativas de login' AS nvarchar(50))
@@ -10082,7 +10032,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10109,7 +10058,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('7' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsActive' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Ativo?' AS nvarchar(50))
@@ -10137,7 +10085,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10164,7 +10111,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('8' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do sistema x usuário' AS nvarchar(50))
@@ -10192,7 +10138,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10219,7 +10164,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('8' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('5' AS bigint)
                                 ,CAST(N'SystemId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do sistema' AS nvarchar(50))
@@ -10247,7 +10191,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10274,7 +10217,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('8' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('7' AS bigint)
                                 ,CAST(N'UserId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do usuário' AS nvarchar(50))
@@ -10302,7 +10244,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10329,7 +10270,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('8' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do sistema x usuário' AS nvarchar(50))
@@ -10357,7 +10297,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10384,7 +10323,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID de conexões' AS nvarchar(50))
@@ -10412,7 +10350,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10439,7 +10376,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('22' AS bigint)
-                                ,NULL
                                 ,CAST(N'Environment' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Ambiente' AS nvarchar(50))
@@ -10467,7 +10403,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10494,7 +10429,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('9' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('11' AS bigint)
-                                ,NULL
                                 ,CAST(N'ConnectionString' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ConnectionString' AS nvarchar(50))
@@ -10522,7 +10456,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10549,7 +10482,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do banco-de-dados' AS nvarchar(50))
@@ -10577,7 +10509,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10604,7 +10535,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('9' AS bigint)
                                 ,CAST(N'ConnectionId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da conexão' AS nvarchar(50))
@@ -10632,7 +10562,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10659,7 +10588,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do banco-de-dados' AS nvarchar(50))
@@ -10687,7 +10615,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10714,7 +10641,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Alias' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Alias  do banco-de-dados' AS nvarchar(50))
@@ -10742,7 +10668,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10769,7 +10694,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Description' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Descrição do banco-de-dados' AS nvarchar(50))
@@ -10797,7 +10721,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10824,7 +10747,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('11' AS bigint)
-                                ,NULL
                                 ,CAST(N'Folder' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Pasta diretório do banco-de-dados' AS nvarchar(50))
@@ -10852,7 +10774,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10879,7 +10800,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsLegacy' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'É banco-de-dados legado?' AS nvarchar(50))
@@ -10907,7 +10827,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10934,7 +10853,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('10' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'CurrentOperationId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da Operação atual' AS nvarchar(50))
@@ -10962,7 +10880,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -10989,7 +10906,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('11' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do sistema x banco-de-dados' AS nvarchar(50))
@@ -11017,7 +10933,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11044,7 +10959,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('11' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('5' AS bigint)
                                 ,CAST(N'SystemId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do sistema' AS nvarchar(50))
@@ -11072,7 +10986,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11099,7 +11012,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('11' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('10' AS bigint)
                                 ,CAST(N'DatabaseId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do banco-de-dados' AS nvarchar(50))
@@ -11127,7 +11039,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11154,7 +11065,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('11' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do sistema x banco-de-dados' AS nvarchar(50))
@@ -11182,7 +11092,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11209,7 +11118,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da tabela' AS nvarchar(50))
@@ -11237,7 +11145,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11264,7 +11171,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome da tabela' AS nvarchar(50))
@@ -11292,7 +11198,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11319,7 +11224,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Alias' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Alias da tabela' AS nvarchar(50))
@@ -11347,7 +11251,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11374,7 +11277,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Description' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Descrição da tabela' AS nvarchar(50))
@@ -11402,7 +11304,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11429,62 +11330,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('12' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST(N'ParentTableId' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Id da tabela-pai' AS nvarchar(50))
-                                ,CAST(N'Tabela-pai' AS nvarchar(25))
-                                ,CAST(N'Tabela-pai' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'0' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('84' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST('30' AS smallint)
-                                ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'CurrentId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id atual' AS nvarchar(50))
@@ -11512,7 +11357,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11535,11 +11379,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('85' AS bigint)
+                         VALUES (CAST('84' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do banco-de-dados x tabela' AS nvarchar(50))
@@ -11567,7 +11410,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11590,11 +11432,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('86' AS bigint)
+                         VALUES (CAST('85' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('10' AS bigint)
                                 ,CAST(N'DatabaseId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do banco-de-dados' AS nvarchar(50))
@@ -11622,7 +11463,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11645,11 +11485,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('87' AS bigint)
+                         VALUES (CAST('86' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
                                 ,CAST(N'TableId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da tabela' AS nvarchar(50))
@@ -11677,7 +11516,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11700,11 +11538,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('88' AS bigint)
+                         VALUES (CAST('87' AS bigint)
                                 ,CAST('13' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do banco-de-dados x tabela' AS nvarchar(50))
@@ -11732,7 +11569,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11755,11 +11591,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('89' AS bigint)
+                         VALUES (CAST('88' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da coluna' AS nvarchar(50))
@@ -11787,7 +11622,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11810,11 +11644,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('90' AS bigint)
+                         VALUES (CAST('89' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
                                 ,CAST(N'TableId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Tabela' AS nvarchar(50))
@@ -11842,7 +11675,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11865,11 +11697,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('91' AS bigint)
+                         VALUES (CAST('90' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
-                                ,NULL
                                 ,CAST(N'Sequence' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Sequência' AS nvarchar(50))
@@ -11897,7 +11728,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11920,11 +11750,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('92' AS bigint)
+                         VALUES (CAST('91' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('4' AS bigint)
                                 ,CAST(N'DomainId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Domínio da coluna' AS nvarchar(50))
@@ -11952,7 +11781,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -11975,66 +11803,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('93' AS bigint)
+                         VALUES (CAST('92' AS bigint)
                                 ,CAST('14' AS bigint)
                                 ,CAST('25' AS smallint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
-                                ,CAST(N'ReferenceTableId' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Tabela-referência' AS nvarchar(50))
-                                ,CAST(N'Referência' AS nvarchar(25))
-                                ,CAST(N'Referência' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[ReferenceTableId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('94' AS bigint)
-                                ,CAST('14' AS bigint)
-                                ,CAST('30' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome da coluna' AS nvarchar(50))
@@ -12062,7 +11834,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12085,11 +11856,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('95' AS bigint)
+                         VALUES (CAST('93' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('35' AS smallint)
+                                ,CAST('30' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Alias' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Alias da coluna' AS nvarchar(50))
@@ -12117,7 +11887,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12140,11 +11909,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('96' AS bigint)
+                         VALUES (CAST('94' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('40' AS smallint)
+                                ,CAST('35' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Description' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Descrição da Coluna' AS nvarchar(50))
@@ -12172,7 +11940,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12195,11 +11962,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('97' AS bigint)
+                         VALUES (CAST('95' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('45' AS smallint)
+                                ,CAST('40' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Title' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Título da Coluna' AS nvarchar(50))
@@ -12227,7 +11993,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12250,11 +12015,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('98' AS bigint)
+                         VALUES (CAST('96' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('50' AS smallint)
+                                ,CAST('45' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Caption' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Legenda da Coluna' AS nvarchar(50))
@@ -12282,7 +12046,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12305,11 +12068,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('99' AS bigint)
+                         VALUES (CAST('97' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('55' AS smallint)
+                                ,CAST('50' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Default' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor padrão da coluna' AS nvarchar(50))
@@ -12337,7 +12099,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12360,11 +12121,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('100' AS bigint)
+                         VALUES (CAST('98' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('60' AS smallint)
+                                ,CAST('55' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Minimum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor mínimo da coluna' AS nvarchar(50))
@@ -12392,7 +12152,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12415,11 +12174,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('101' AS bigint)
+                         VALUES (CAST('99' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('65' AS smallint)
+                                ,CAST('60' AS smallint)
                                 ,CAST('17' AS bigint)
-                                ,NULL
                                 ,CAST(N'Maximum' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor máximo da coluna' AS nvarchar(50))
@@ -12447,7 +12205,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12470,11 +12227,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('102' AS bigint)
+                         VALUES (CAST('100' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('70' AS smallint)
+                                ,CAST('65' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsPrimarykey' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é chave-primária?' AS nvarchar(50))
@@ -12502,7 +12258,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12525,11 +12280,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('103' AS bigint)
+                         VALUES (CAST('101' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('75' AS smallint)
+                                ,CAST('70' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsAutoIncrement' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é autoincremento?' AS nvarchar(50))
@@ -12557,7 +12311,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12580,11 +12333,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('104' AS bigint)
+                         VALUES (CAST('102' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('80' AS smallint)
+                                ,CAST('75' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsRequired' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é requerida?' AS nvarchar(50))
@@ -12612,7 +12364,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12635,11 +12386,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('105' AS bigint)
+                         VALUES (CAST('103' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('85' AS smallint)
+                                ,CAST('80' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsListable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é listável?' AS nvarchar(50))
@@ -12667,7 +12417,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12690,11 +12439,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('106' AS bigint)
+                         VALUES (CAST('104' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('90' AS smallint)
+                                ,CAST('85' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsFilterable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é filtrável?' AS nvarchar(50))
@@ -12722,7 +12470,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12745,11 +12492,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('107' AS bigint)
+                         VALUES (CAST('105' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('95' AS smallint)
+                                ,CAST('90' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsEditable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é editável?' AS nvarchar(50))
@@ -12777,7 +12523,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12800,11 +12545,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('108' AS bigint)
+                         VALUES (CAST('106' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('100' AS smallint)
+                                ,CAST('95' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsGridable' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é exibível em grade?' AS nvarchar(50))
@@ -12832,7 +12576,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12855,11 +12598,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('109' AS bigint)
+                         VALUES (CAST('107' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('105' AS smallint)
+                                ,CAST('100' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsEncrypted' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é encriptada?' AS nvarchar(50))
@@ -12887,7 +12629,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12910,11 +12651,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('110' AS bigint)
+                         VALUES (CAST('108' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('110' AS smallint)
+                                ,CAST('105' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsInWords' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor da coluna por extenso?' AS nvarchar(50))
@@ -12942,7 +12682,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -12965,11 +12704,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('111' AS bigint)
+                         VALUES (CAST('109' AS bigint)
                                 ,CAST('14' AS bigint)
-                                ,CAST('115' AS smallint)
+                                ,CAST('110' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsVirtual' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna é virtual?' AS nvarchar(50))
@@ -12997,7 +12735,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13020,11 +12757,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('112' AS bigint)
+                         VALUES (CAST('110' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do índice' AS nvarchar(50))
@@ -13052,7 +12788,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13075,11 +12810,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('113' AS bigint)
+                         VALUES (CAST('111' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
                                 ,CAST(N'TableId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da tabela do índice' AS nvarchar(50))
@@ -13107,7 +12841,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13130,11 +12863,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('114' AS bigint)
+                         VALUES (CAST('112' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome do índice' AS nvarchar(50))
@@ -13162,7 +12894,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13185,11 +12916,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('115' AS bigint)
+                         VALUES (CAST('113' AS bigint)
                                 ,CAST('15' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsUnique' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'É índice único?' AS nvarchar(50))
@@ -13217,7 +12947,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13240,11 +12969,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('116' AS bigint)
+                         VALUES (CAST('114' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da chave de índice' AS nvarchar(50))
@@ -13272,7 +13000,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13295,11 +13022,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('117' AS bigint)
+                         VALUES (CAST('115' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('15' AS bigint)
                                 ,CAST(N'IndexId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do índice da chave' AS nvarchar(50))
@@ -13327,7 +13053,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13350,11 +13075,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('118' AS bigint)
+                         VALUES (CAST('116' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
-                                ,NULL
                                 ,CAST(N'Sequence' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Sequência da chave' AS nvarchar(50))
@@ -13382,7 +13106,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13405,11 +13128,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('119' AS bigint)
+                         VALUES (CAST('117' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('14' AS bigint)
                                 ,CAST(N'ColumnId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da coluna-chave do índice' AS nvarchar(50))
@@ -13437,7 +13159,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13460,11 +13181,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('120' AS bigint)
+                         VALUES (CAST('118' AS bigint)
                                 ,CAST('16' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsDescending' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Ordem descedente da chave?' AS nvarchar(50))
@@ -13492,7 +13212,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13515,11 +13234,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('121' AS bigint)
+                         VALUES (CAST('119' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do Login de Acesso' AS nvarchar(50))
@@ -13547,7 +13265,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13570,11 +13287,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('122' AS bigint)
+                         VALUES (CAST('120' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('5' AS bigint)
                                 ,CAST(N'SystemId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do Sistema' AS nvarchar(50))
@@ -13602,7 +13318,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13625,11 +13340,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('123' AS bigint)
+                         VALUES (CAST('121' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('7' AS bigint)
                                 ,CAST(N'UserId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do usuário' AS nvarchar(50))
@@ -13657,7 +13371,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13680,11 +13393,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('124' AS bigint)
+                         VALUES (CAST('122' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('23' AS bigint)
-                                ,NULL
                                 ,CAST(N'ClientRsaPublicKey' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Chave pública RSA do usuário' AS nvarchar(50))
@@ -13712,7 +13424,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13735,11 +13446,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('125' AS bigint)
+                         VALUES (CAST('123' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('11' AS bigint)
-                                ,NULL
                                 ,CAST(N'PublicKey' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Chave pública AES do usuário' AS nvarchar(50))
@@ -13767,7 +13477,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13790,11 +13499,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('126' AS bigint)
+                         VALUES (CAST('124' AS bigint)
                                 ,CAST('17' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsLogged' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Logado?' AS nvarchar(50))
@@ -13822,7 +13530,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13845,11 +13552,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('127' AS bigint)
+                         VALUES (CAST('125' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da transação' AS nvarchar(50))
@@ -13877,7 +13583,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13900,11 +13605,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('128' AS bigint)
+                         VALUES (CAST('126' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('17' AS bigint)
                                 ,CAST(N'SessionId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Sessão do sistema' AS nvarchar(50))
@@ -13932,7 +13636,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -13955,11 +13658,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('129' AS bigint)
+                         VALUES (CAST('127' AS bigint)
                                 ,CAST('18' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsConfirmed' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'É confirmado?' AS nvarchar(50))
@@ -13987,7 +13689,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14010,11 +13711,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('130' AS bigint)
+                         VALUES (CAST('128' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da operação' AS nvarchar(50))
@@ -14042,7 +13742,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14065,11 +13764,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('131' AS bigint)
+                         VALUES (CAST('129' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('18' AS bigint)
                                 ,CAST(N'TransactionId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da transação' AS nvarchar(50))
@@ -14097,7 +13795,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14120,11 +13817,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('132' AS bigint)
+                         VALUES (CAST('130' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'TableName' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome da tabela' AS nvarchar(50))
@@ -14152,7 +13848,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14175,11 +13870,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('133' AS bigint)
+                         VALUES (CAST('131' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('21' AS bigint)
-                                ,NULL
                                 ,CAST(N'Action' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Ação da operação' AS nvarchar(50))
@@ -14207,7 +13901,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14230,11 +13923,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('134' AS bigint)
+                         VALUES (CAST('132' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('12' AS bigint)
-                                ,NULL
                                 ,CAST(N'LastRecord' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Último registro' AS nvarchar(50))
@@ -14262,7 +13954,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14285,11 +13976,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('135' AS bigint)
+                         VALUES (CAST('133' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('12' AS bigint)
-                                ,NULL
                                 ,CAST(N'ActualRecord' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Registro atual' AS nvarchar(50))
@@ -14317,7 +14007,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14340,11 +14029,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('136' AS bigint)
+                         VALUES (CAST('134' AS bigint)
                                 ,CAST('19' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsConfirmed' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'É confirmado?' AS nvarchar(50))
@@ -14372,7 +14060,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14395,11 +14082,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('137' AS bigint)
+                         VALUES (CAST('135' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da unicidade cruzada' AS nvarchar(50))
@@ -14427,7 +14113,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14450,11 +14135,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('138' AS bigint)
+                         VALUES (CAST('136' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('14' AS bigint)
                                 ,CAST(N'ColumnId1' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da coluna 1' AS nvarchar(50))
@@ -14482,7 +14166,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14505,11 +14188,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('139' AS bigint)
+                         VALUES (CAST('137' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('14' AS bigint)
                                 ,CAST(N'ColumnId2' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da coluna 2' AS nvarchar(50))
@@ -14537,7 +14219,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14560,11 +14241,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('140' AS bigint)
+                         VALUES (CAST('138' AS bigint)
                                 ,CAST('20' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsBidirectional' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'É bidirecional?' AS nvarchar(50))
@@ -14592,7 +14272,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14615,11 +14294,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('141' AS bigint)
+                         VALUES (CAST('139' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do comparador' AS nvarchar(50))
@@ -14647,7 +14325,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14670,11 +14347,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('142' AS bigint)
+                         VALUES (CAST('140' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('24' AS bigint)
-                                ,NULL
                                 ,CAST(N'Symbol' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Símbolo do comparador' AS nvarchar(50))
@@ -14702,7 +14378,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14725,11 +14400,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('143' AS bigint)
+                         VALUES (CAST('141' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Description' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Descrição do comparador' AS nvarchar(50))
@@ -14757,7 +14431,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14780,11 +14453,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('144' AS bigint)
+                         VALUES (CAST('142' AS bigint)
                                 ,CAST('21' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'Arity' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Aridade do comparador' AS nvarchar(50))
@@ -14812,7 +14484,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14835,11 +14506,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('145' AS bigint)
+                         VALUES (CAST('143' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID da regra' AS nvarchar(50))
@@ -14867,7 +14537,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14890,11 +14559,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('146' AS bigint)
+                         VALUES (CAST('144' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,CAST('1' AS bigint)
                                 ,CAST(N'CategoryId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID dat categoria da regra' AS nvarchar(50))
@@ -14922,7 +14590,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -14945,11 +14612,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('147' AS bigint)
+                         VALUES (CAST('145' AS bigint)
                                 ,CAST('22' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,CAST('21' AS bigint)
                                 ,CAST(N'ComparatorId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do comparador da regra' AS nvarchar(50))
@@ -14977,7 +14643,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15000,11 +14665,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('148' AS bigint)
+                         VALUES (CAST('146' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'pk1' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'ID do comparador' AS nvarchar(50))
@@ -15032,7 +14696,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15055,11 +14718,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('149' AS bigint)
+                         VALUES (CAST('147' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'pk2' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Símbolo do comparador' AS nvarchar(50))
@@ -15087,7 +14749,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15110,11 +14771,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('150' AS bigint)
+                         VALUES (CAST('148' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'pk3' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Descrição do comparador' AS nvarchar(50))
@@ -15142,7 +14802,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15165,11 +14824,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('151' AS bigint)
+                         VALUES (CAST('149' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'cpo1' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Aridade do comparador' AS nvarchar(50))
@@ -15197,7 +14855,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15220,11 +14877,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('152' AS bigint)
+                         VALUES (CAST('150' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'cpo2' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Aridade do comparador' AS nvarchar(50))
@@ -15252,7 +14908,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15275,11 +14930,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('153' AS bigint)
+                         VALUES (CAST('151' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'cpo3' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Aridade do comparador' AS nvarchar(50))
@@ -15307,7 +14961,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15330,11 +14983,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('154' AS bigint)
+                         VALUES (CAST('152' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('5' AS bigint)
-                                ,NULL
                                 ,CAST(N'cpo4' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Aridade do comparador' AS nvarchar(50))
@@ -15362,7 +15014,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15385,11 +15036,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('155' AS bigint)
+                         VALUES (CAST('153' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da expressão lógica' AS nvarchar(50))
@@ -15417,7 +15067,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15440,11 +15089,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('156' AS bigint)
+                         VALUES (CAST('154' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,CAST('12' AS bigint)
                                 ,CAST(N'TableId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da tabela' AS nvarchar(50))
@@ -15472,7 +15120,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15495,11 +15142,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('157' AS bigint)
+                         VALUES (CAST('155' AS bigint)
                                 ,CAST('24' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome da expressão lógica' AS nvarchar(50))
@@ -15527,7 +15173,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15550,11 +15195,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('158' AS bigint)
+                         VALUES (CAST('156' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da condição lógica' AS nvarchar(50))
@@ -15582,7 +15226,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15605,11 +15248,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('159' AS bigint)
+                         VALUES (CAST('157' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'ExpressionId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da expressão lógica' AS nvarchar(50))
@@ -15637,7 +15279,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15660,11 +15301,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('160' AS bigint)
+                         VALUES (CAST('158' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
-                                ,NULL
                                 ,CAST(N'Sequence' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Sequência da condição lógica' AS nvarchar(50))
@@ -15692,7 +15332,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15715,11 +15354,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('161' AS bigint)
+                         VALUES (CAST('159' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS bigint)
-                                ,NULL
                                 ,CAST(N'Connector' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Conector lógico' AS nvarchar(50))
@@ -15747,7 +15385,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15770,11 +15407,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('162' AS bigint)
+                         VALUES (CAST('160' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('8' AS bigint)
-                                ,NULL
                                 ,CAST(N'LeftParenthesis' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Parênteses à esquerda' AS nvarchar(50))
@@ -15802,7 +15438,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15825,11 +15460,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('163' AS bigint)
+                         VALUES (CAST('161' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'LeftColumnId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da coluna à esquerda' AS nvarchar(50))
@@ -15857,7 +15491,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15880,11 +15513,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('164' AS bigint)
+                         VALUES (CAST('162' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'ComparatorId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id do comparador lógico' AS nvarchar(50))
@@ -15912,7 +15544,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15935,11 +15566,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('165' AS bigint)
+                         VALUES (CAST('163' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'RightColumnId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da coluna à direita' AS nvarchar(50))
@@ -15967,7 +15597,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -15990,11 +15619,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('166' AS bigint)
+                         VALUES (CAST('164' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('12' AS bigint)
-                                ,NULL
                                 ,CAST(N'RightValues' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor à direita' AS nvarchar(50))
@@ -16022,7 +15650,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16045,11 +15672,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('167' AS bigint)
+                         VALUES (CAST('165' AS bigint)
                                 ,CAST('25' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('8' AS bigint)
-                                ,NULL
                                 ,CAST(N'RightParenthesis' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Parênteses à direita' AS nvarchar(50))
@@ -16077,7 +15703,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16100,11 +15725,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('168' AS bigint)
+                         VALUES (CAST('166' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da propriedade' AS nvarchar(50))
@@ -16132,7 +15756,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16155,11 +15778,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('169' AS bigint)
+                         VALUES (CAST('167' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
-                                ,NULL
                                 ,CAST(N'Name' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Nome da propriedade' AS nvarchar(50))
@@ -16187,7 +15809,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16210,11 +15831,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('170' AS bigint)
+                         VALUES (CAST('168' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'CategoryId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da categoria da propriedade' AS nvarchar(50))
@@ -16242,7 +15862,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16265,11 +15884,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('171' AS bigint)
+                         VALUES (CAST('169' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
-                                ,NULL
                                 ,CAST(N'Description' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Descrição da propriedade' AS nvarchar(50))
@@ -16297,7 +15915,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16320,11 +15937,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('172' AS bigint)
+                         VALUES (CAST('170' AS bigint)
                                 ,CAST('26' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
-                                ,NULL
                                 ,CAST(N'IsActive' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Propriedade é ativa?' AS nvarchar(50))
@@ -16352,7 +15968,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16375,11 +15990,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('173' AS bigint)
+                         VALUES (CAST('171' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id do comportamento' AS nvarchar(50))
@@ -16407,7 +16021,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16430,11 +16043,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('174' AS bigint)
+                         VALUES (CAST('172' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'ColumnId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Coluna da propriedade' AS nvarchar(50))
@@ -16462,7 +16074,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16485,11 +16096,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('175' AS bigint)
+                         VALUES (CAST('173' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'ExpressionId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da expressão lógica' AS nvarchar(50))
@@ -16517,7 +16127,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16540,11 +16149,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('176' AS bigint)
+                         VALUES (CAST('174' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
-                                ,NULL
                                 ,CAST(N'PropertyId' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Id da propriedade' AS nvarchar(50))
@@ -16572,7 +16180,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16595,11 +16202,10 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('177' AS bigint)
+                         VALUES (CAST('175' AS bigint)
                                 ,CAST('27' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('12' AS bigint)
-                                ,NULL
                                 ,CAST(N'Value' AS nvarchar(25))
                                 ,NULL
                                 ,CAST(N'Valor da propriedade se verdadeiro' AS nvarchar(50))
@@ -16627,7 +16233,112 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[TableId]
                                 ,[Sequence]
                                 ,[DomainId]
-                                ,[ReferenceTableId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('176' AS bigint)
+                                ,CAST('27' AS bigint)
+                                ,CAST('25' AS smallint)
+                                ,CAST('12' AS bigint)
+                                ,CAST(N'ElseValue' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Valor da propriedade se falso' AS nvarchar(50))
+                                ,CAST(N'Valor se falso' AS nvarchar(25))
+                                ,CAST(N'Valor se falso' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('177' AS bigint)
+                                ,CAST('28' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da referência' AS nvarchar(50))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
                                 ,[Name]
                                 ,[Alias]
                                 ,[Description]
@@ -16651,15 +16362,173 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('178' AS bigint)
-                                ,CAST('27' AS bigint)
+                                ,CAST('28' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,CAST(N'FkTableId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da tabela FK' AS nvarchar(50))
+                                ,CAST(N'Tabela FK' AS nvarchar(25))
+                                ,CAST(N'Tabela FK' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('179' AS bigint)
+                                ,CAST('28' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'PkTableId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da tabela PK' AS nvarchar(50))
+                                ,CAST(N'Tabela PK' AS nvarchar(25))
+                                ,CAST(N'Tabela PK' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('180' AS bigint)
+                                ,CAST('28' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('10' AS bigint)
+                                ,CAST(N'Name' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Nome da referência' AS nvarchar(50))
+                                ,CAST(N'Nome' AS nvarchar(25))
+                                ,CAST(N'Nome' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('181' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,CAST('25' AS smallint)
-                                ,CAST('12' AS bigint)
+                                ,CAST('6' AS bigint)
+                                ,CAST(N'IsParentChildren' AS nvarchar(25))
                                 ,NULL
-                                ,CAST(N'ElseValue' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Valor da propriedade se falso' AS nvarchar(50))
-                                ,CAST(N'Valor se falso' AS nvarchar(25))
-                                ,CAST(N'Valor se falso' AS nvarchar(25))
+                                ,CAST(N'É relação pai-filhos?' AS nvarchar(50))
+                                ,CAST(N'Pai-filhos?' AS nvarchar(25))
+                                ,CAST(N'Pai-filhos?' AS nvarchar(25))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -16672,6 +16541,218 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,CAST('1' AS bit)
                                 ,CAST('0' AS bit)
                                 ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('182' AS bigint)
+                                ,CAST('29' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da referência' AS nvarchar(50))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,CAST(N'Id' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('183' AS bigint)
+                                ,CAST('29' AS bigint)
+                                ,CAST('10' AS smallint)
+                                ,CAST('9' AS bigint)
+                                ,CAST(N'ReferenceId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da tabela FK' AS nvarchar(50))
+                                ,CAST(N'Tabela FK' AS nvarchar(25))
+                                ,CAST(N'Tabela FK' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('184' AS bigint)
+                                ,CAST('29' AS bigint)
+                                ,CAST('15' AS smallint)
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'FkColumnId' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Id da tabela PK' AS nvarchar(50))
+                                ,CAST(N'Tabela PK' AS nvarchar(25))
+                                ,CAST(N'Tabela PK' AS nvarchar(25))
+                                ,NULL
+                                ,NULL
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('0' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Columns] ([Id]
+                                ,[TableId]
+                                ,[Sequence]
+                                ,[DomainId]
+                                ,[Name]
+                                ,[Alias]
+                                ,[Description]
+                                ,[Title]
+                                ,[Caption]
+                                ,[Default]
+                                ,[Minimum]
+                                ,[Maximum]
+                                ,[IsPrimarykey]
+                                ,[IsAutoIncrement]
+                                ,[IsRequired]
+                                ,[IsListable]
+                                ,[IsFilterable]
+                                ,[IsEditable]
+                                ,[IsGridable]
+                                ,[IsEncrypted]
+                                ,[IsInWords]
+                                ,[IsVirtual]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('185' AS bigint)
+                                ,CAST('29' AS bigint)
+                                ,CAST('20' AS smallint)
+                                ,CAST('4' AS bigint)
+                                ,CAST(N'Sequence' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'Sequência da chave' AS nvarchar(50))
+                                ,CAST(N'Sequência' AS nvarchar(25))
+                                ,CAST(N'Sequência' AS nvarchar(25))
+                                ,NULL
+                                ,CAST(N'1' AS nvarchar(max))
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
+                                ,CAST('1' AS bit)
+                                ,CAST('1' AS bit)
+                                ,NULL
+                                ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -18503,6 +18584,950 @@ INSERT INTO [dbo].[Behaviors] ([Id]
                                 ,CAST('2' AS bigint)
                                 ,CAST(N'disabled' AS nvarchar(max))
                                 ,CAST(N'enabled' AS nvarchar(max))
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[References]
+**********************************************************************************/
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST(N'2' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Types x Categories' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST(N'4' AS nvarchar(25))
+                                ,CAST('2' AS bigint)
+                                ,CAST(N'Domains x Types' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST(N'4' AS nvarchar(25))
+                                ,CAST('3' AS bigint)
+                                ,CAST(N'Domains x Masks' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST(N'6' AS nvarchar(25))
+                                ,CAST('6' AS bigint)
+                                ,CAST(N'Menus x Menus' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST(N'6' AS nvarchar(25))
+                                ,CAST('5' AS bigint)
+                                ,CAST(N'Menus x Systems' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST(N'8' AS nvarchar(25))
+                                ,CAST('5' AS bigint)
+                                ,CAST(N'SystemsUsers x Systems' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST(N'8' AS nvarchar(25))
+                                ,CAST('7' AS bigint)
+                                ,CAST(N'SystemsUsers x Users' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST(N'10' AS nvarchar(25))
+                                ,CAST('9' AS bigint)
+                                ,CAST(N'Databases x Connections' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST(N'11' AS nvarchar(25))
+                                ,CAST('5' AS bigint)
+                                ,CAST(N'SystemsDatabases x Systems' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST(N'11' AS nvarchar(25))
+                                ,CAST('10' AS bigint)
+                                ,CAST(N'SystemsDatabases x Databases' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST(N'13' AS nvarchar(25))
+                                ,CAST('10' AS bigint)
+                                ,CAST(N'DatabasesTables x Databases' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST(N'13' AS nvarchar(25))
+                                ,CAST('12' AS bigint)
+                                ,CAST(N'DatabasesTables x Tables' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST(N'14' AS nvarchar(25))
+                                ,CAST('12' AS bigint)
+                                ,CAST(N'Columns x Tables' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST(N'14' AS nvarchar(25))
+                                ,CAST('4' AS bigint)
+                                ,CAST(N'Columns x Domains' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST(N'15' AS nvarchar(25))
+                                ,CAST('12' AS bigint)
+                                ,CAST(N'Indexes x Tables' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST(N'16' AS nvarchar(25))
+                                ,CAST('15' AS bigint)
+                                ,CAST(N'Indexkeys x Indexes' AS nvarchar(50))
+                                ,CAST('1' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS bigint)
+                                ,CAST(N'16' AS nvarchar(25))
+                                ,CAST('14' AS bigint)
+                                ,CAST(N'Indexkeys x Columns' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS bigint)
+                                ,CAST(N'17' AS nvarchar(25))
+                                ,CAST('5' AS bigint)
+                                ,CAST(N'Sessions x Systems' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS bigint)
+                                ,CAST(N'17' AS nvarchar(25))
+                                ,CAST('7' AS bigint)
+                                ,CAST(N'Sessions x Users' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,CAST(N'18' AS nvarchar(25))
+                                ,CAST('17' AS bigint)
+                                ,CAST(N'Transactions x Sessions' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST(N'19' AS nvarchar(25))
+                                ,CAST('18' AS bigint)
+                                ,CAST(N'Operations x Transactions' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('22' AS bigint)
+                                ,CAST(N'20' AS nvarchar(25))
+                                ,CAST('14' AS bigint)
+                                ,CAST(N'Unicities x Columns 1' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('23' AS bigint)
+                                ,CAST(N'20' AS nvarchar(25))
+                                ,CAST('14' AS bigint)
+                                ,CAST(N'Unicities x Columns 2' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('24' AS bigint)
+                                ,CAST(N'22' AS nvarchar(25))
+                                ,CAST('1' AS bigint)
+                                ,CAST(N'Rules x Categories' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST(N'22' AS nvarchar(25))
+                                ,CAST('21' AS bigint)
+                                ,CAST(N'Rules x Comparators' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[References] ([Id]
+                                ,[FkTableId]
+                                ,[PkTableId]
+                                ,[Name]
+                                ,[IsParentChildren]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('26' AS bigint)
+                                ,CAST(N'24' AS nvarchar(25))
+                                ,CAST('12' AS bigint)
+                                ,CAST(N'Expressions x Tables' AS nvarchar(50))
+                                ,CAST('0' AS bit)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+
+/**********************************************************************************
+Inserir dados na tabela [dbo].[Referencekeys]
+**********************************************************************************/
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('1' AS bigint)
+                                ,CAST(N'1' AS nvarchar(25))
+                                ,CAST('13' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('2' AS bigint)
+                                ,CAST(N'2' AS nvarchar(25))
+                                ,CAST('31' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('3' AS bigint)
+                                ,CAST(N'3' AS nvarchar(25))
+                                ,CAST('32' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('4' AS bigint)
+                                ,CAST(N'4' AS nvarchar(25))
+                                ,CAST('53' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('5' AS bigint)
+                                ,CAST(N'5' AS nvarchar(25))
+                                ,CAST('48' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('6' AS bigint)
+                                ,CAST(N'6' AS nvarchar(25))
+                                ,CAST('61' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('7' AS bigint)
+                                ,CAST(N'7' AS nvarchar(25))
+                                ,CAST('62' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('8' AS bigint)
+                                ,CAST(N'8' AS nvarchar(25))
+                                ,CAST('68' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('9' AS bigint)
+                                ,CAST(N'9' AS nvarchar(25))
+                                ,CAST('76' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('10' AS bigint)
+                                ,CAST(N'10' AS nvarchar(25))
+                                ,CAST('77' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('11' AS bigint)
+                                ,CAST(N'11' AS nvarchar(25))
+                                ,CAST('85' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('12' AS bigint)
+                                ,CAST(N'12' AS nvarchar(25))
+                                ,CAST('86' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('13' AS bigint)
+                                ,CAST(N'13' AS nvarchar(25))
+                                ,CAST('89' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST(N'14' AS nvarchar(25))
+                                ,CAST('91' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('15' AS bigint)
+                                ,CAST(N'15' AS nvarchar(25))
+                                ,CAST('111' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('16' AS bigint)
+                                ,CAST(N'16' AS nvarchar(25))
+                                ,CAST('115' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('17' AS bigint)
+                                ,CAST(N'17' AS nvarchar(25))
+                                ,CAST('117' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('18' AS bigint)
+                                ,CAST(N'18' AS nvarchar(25))
+                                ,CAST('120' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('19' AS bigint)
+                                ,CAST(N'19' AS nvarchar(25))
+                                ,CAST('121' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('20' AS bigint)
+                                ,CAST(N'20' AS nvarchar(25))
+                                ,CAST('126' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('21' AS bigint)
+                                ,CAST(N'21' AS nvarchar(25))
+                                ,CAST('129' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('22' AS bigint)
+                                ,CAST(N'22' AS nvarchar(25))
+                                ,CAST('136' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('23' AS bigint)
+                                ,CAST(N'23' AS nvarchar(25))
+                                ,CAST('137' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('24' AS bigint)
+                                ,CAST(N'24' AS nvarchar(25))
+                                ,CAST('144' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('25' AS bigint)
+                                ,CAST(N'25' AS nvarchar(25))
+                                ,CAST('145' AS bigint)
+                                ,CAST('5' AS smallint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
+INSERT INTO [dbo].[Referencekeys] ([Id]
+                                ,[ReferenceId]
+                                ,[FkColumnId]
+                                ,[Sequence]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('26' AS bigint)
+                                ,CAST(N'26' AS nvarchar(25))
+                                ,CAST('154' AS bigint)
+                                ,CAST('5' AS smallint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -20631,8 +21656,6 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
 
             IF @W_CategoryId IS NULL
                 THROW 51000, 'Valor de CategoryId em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId)
-                THROW 51000, 'Valor de CategoryId em @ActualRecord inexiste em Categories', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_MaxLength IS NOT NULL AND @W_MaxLength < CAST('1' AS int)
@@ -20655,6 +21678,8 @@ ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de IsLikeable em @ActualRecord é requerido.', 1
             IF @W_IsActive IS NULL
                 THROW 51000, 'Valor de IsActive em @ActualRecord é requerido.', 1
+            IF (@W_CategoryId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Categories', 1
         END
 
     RETURN @TransactionId
@@ -22771,7 +23796,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[CategoryId]
@@ -22790,7 +23815,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                       ,[IsLikeable]
                       ,[IsActive]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
+              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -23857,16 +24882,16 @@ ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TypeId em @ActualRecord é requerido.', 1
             IF @W_TypeId < CAST('1' AS tinyint)
                 THROW 51000, 'Valor de TypeId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_TypeId)
-                THROW 51000, 'Valor de TypeId em @ActualRecord inexiste em Types', 1
-            IF @W_MaskId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_MaskId)
-                THROW 51000, 'Valor de MaskId em @ActualRecord inexiste em Masks', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_Length IS NOT NULL AND @W_Length < CAST('0' AS smallint)
                 THROW 51000, 'Valor de Length em @ActualRecord deve ser maior que ou igual a 0', 1
             IF @W_Decimals IS NOT NULL AND @W_Decimals < CAST('0' AS tinyint)
                 THROW 51000, 'Valor de Decimals em @ActualRecord deve ser maior que ou igual a 0', 1
+            IF (@W_TypeId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Types] WHERE [Id] = @W_TypeId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Types', 1
+            IF (@W_MaskId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Masks] WHERE [Id] = @W_MaskId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Masks', 1
         END
 
     RETURN @TransactionId
@@ -25280,7 +26305,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
+        CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -25297,7 +26322,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             FROM [#Types] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
         SELECT DISTINCT 'Mask' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -25306,7 +26331,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Masks] ON [#Masks](Id)
+        CREATE UNIQUE INDEX [#Masks] ON [#Masks]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[TypeId]
@@ -25321,9 +26346,9 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                       ,[Maximum]
                       ,[Codification]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Types].* FROM [#Types] AS [Types] FOR JSON PATH), '[]') AS [Types]
-              ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
-              ,ISNULL((SELECT [Masks].* FROM [#Masks] AS [Masks] FOR JSON PATH), '[]') AS [Masks]
+              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
+              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
+              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -26579,8 +27604,6 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
-                THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
             IF @W_Sequence < CAST('1' AS smallint)
@@ -26591,8 +27614,10 @@ ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Message em @ActualRecord é requerido.', 1
             IF @W_ParentMenuId IS NOT NULL AND @W_ParentMenuId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ParentMenuId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_ParentMenuId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId)
-                THROW 51000, 'Valor de ParentMenuId em @ActualRecord inexiste em Menus', 1
+            IF (@W_ParentMenuId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [Id] = @W_ParentMenuId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Menus', 1
+            IF (@W_SystemId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Systems', 1
         END
 
     RETURN @TransactionId
@@ -27573,18 +28598,6 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'System' AS [Kind]
-              ,[R].[Id]
-              ,[R].[Name]
-              ,[R].[Description]
-              ,[R].[ClientName]
-              ,[R].[MaxRetryLogins]
-              ,[R].[IsOffAir]
-            INTO [#Systems]
-            FROM [#result] [T]
-                INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
-            ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
         SELECT DISTINCT 'Menu' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
@@ -27597,7 +28610,31 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Menus] [R] ON [R].[Id] = [T].[ParentMenuId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Menus] ON [#Menus](Id)
+        CREATE UNIQUE INDEX [#Menus] ON [#Menus]([Id])
+        SELECT DISTINCT 'System' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Description]
+              ,[R].[ClientName]
+              ,[R].[MaxRetryLogins]
+              ,[R].[IsOffAir]
+            INTO [#Systems]
+            FROM [#Menus] [T]
+                INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
+        INSERT INTO [#Systems]
+            SELECT DISTINCT 'System' AS [Kind]
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Description]
+                  ,[R].[ClientName]
+                  ,[R].[MaxRetryLogins]
+                  ,[R].[IsOffAir]
+                FROM [#result] [T]
+                    INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Systems] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[SystemId]
@@ -27608,8 +28645,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                       ,[Action]
                       ,[ParentMenuId]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
-              ,ISNULL((SELECT [Menus].* FROM [#Menus] AS [Menus] FOR JSON PATH), '[]') AS [Menus]
+              ,ISNULL((SELECT [Menu].* FROM [#Menus] AS [Menu] FOR JSON PATH), '[]') AS [Menu]
+              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -28979,16 +30016,16 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
-                THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
-                THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+            IF (@W_SystemId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Systems', 1
+            IF (@W_UserId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Users', 1
         END
 
     RETURN @TransactionId
@@ -30084,7 +31121,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
         SELECT DISTINCT 'User' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -30096,7 +31133,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Users] ON [#Users](Id)
+        CREATE UNIQUE INDEX [#Users] ON [#Users]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[SystemId]
@@ -30104,8 +31141,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
-              ,ISNULL((SELECT [Users].* FROM [#Users] AS [Users] FOR JSON PATH), '[]') AS [Users]
+              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
+              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -31295,8 +32332,6 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord é requerido.', 1
             IF @W_ConnectionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ConnectionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_ConnectionId)
-                THROW 51000, 'Valor de ConnectionId em @ActualRecord inexiste em Connections', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_Alias IS NULL
@@ -31309,6 +32344,8 @@ ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de CurrentOperationId em @ActualRecord é requerido.', 1
             IF @W_CurrentOperationId < CAST('0' AS bigint)
                 THROW 51000, 'Valor de CurrentOperationId em @ActualRecord deve ser maior que ou igual a 0', 1
+            IF (@W_ConnectionId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Connections] WHERE [Id] = @W_ConnectionId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Connections', 1
         END
 
     RETURN @TransactionId
@@ -32437,7 +33474,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
+        CREATE UNIQUE INDEX [#Connections] ON [#Connections]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[ConnectionId]
@@ -32449,7 +33486,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                       ,[IsLegacy]
                       ,[CurrentOperationId]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
+              ,ISNULL((SELECT [Connection].* FROM [#Connections] AS [Connection] FOR JSON PATH), '[]') AS [Connection]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -32569,16 +33606,16 @@ ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
-                THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_DatabaseId IS NULL
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+            IF (@W_SystemId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Systems', 1
+            IF (@W_DatabaseId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Databases', 1
         END
 
     RETURN @TransactionId
@@ -33674,7 +34711,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
         SELECT DISTINCT 'Database' AS [Kind]
               ,[R].[Id]
               ,[R].[ConnectionId]
@@ -33688,7 +34725,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
+        CREATE UNIQUE INDEX [#Databases] ON [#Databases]([Id])
         SELECT DISTINCT 'Connection' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
@@ -33697,7 +34734,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
             FROM [#Databases] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
+        CREATE UNIQUE INDEX [#Connections] ON [#Connections]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[SystemId]
@@ -33705,9 +34742,9 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
-              ,ISNULL((SELECT [Databases].* FROM [#Databases] AS [Databases] FOR JSON PATH), '[]') AS [Databases]
-              ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
+              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
+              ,ISNULL((SELECT [Database].* FROM [#Databases] AS [Database] FOR JSON PATH), '[]') AS [Database]
+              ,ISNULL((SELECT [Connection].* FROM [#Connections] AS [Connection] FOR JSON PATH), '[]') AS [Connection]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -33805,7 +34842,6 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [Alias] = JSON_VALUE(@LastRecord, '$.Alias')
                                   AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
-                                  AND [dbo].[IS_EQUAL]([ParentTableId], JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
                                   AND [CurrentId] = JSON_VALUE(@LastRecord, '$.CurrentId'))
             AND NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
@@ -33816,31 +34852,29 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') = JSON_VALUE(@LastRecord, '$.Alias')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ParentTableId'), JSON_VALUE(@LastRecord, '$.ParentTableId'), 'bigint') = 1
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CurrentId') = JSON_VALUE(@LastRecord, '$.CurrentId'))
                 THROW 51000, 'Registro de Tables alterado por outro usuário', 1
         END
 
         IF @Action = 'delete' BEGIN
-            IF EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [ParentTableId] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Tables', 1
             IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em DatabasesTables', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [TableId] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Columns', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [ReferenceTableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Expressions] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Expressions', 1
         END
+        IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[References] WHERE [PkTableId] = @W_Id OR [FkTableId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em References', 1
+        END
         IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
-                   ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
                    ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
             IF @W_Name IS NULL
@@ -33849,10 +34883,6 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Alias em @ActualRecord é requerido.', 1
             IF @W_Description IS NULL
                 THROW 51000, 'Valor de Description em @ActualRecord é requerido.', 1
-            IF @W_ParentTableId IS NOT NULL AND @W_ParentTableId < CAST('0' AS bigint)
-                THROW 51000, 'Valor de ParentTableId em @ActualRecord deve ser maior que ou igual a 0', 1
-            IF @W_ParentTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ParentTableId)
-                THROW 51000, 'Valor de ParentTableId em @ActualRecord inexiste em Tables', 1
             IF @W_CurrentId IS NULL
                 THROW 51000, 'Valor de CurrentId em @ActualRecord é requerido.', 1
             IF @W_CurrentId < CAST('0' AS bigint)
@@ -34052,7 +35082,6 @@ ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
         DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
-               ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
                ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
         SET IDENTITY_INSERT [dbo].[Tables] ON
@@ -34060,7 +35089,6 @@ ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
                                             ,[Name]
                                             ,[Alias]
                                             ,[Description]
-                                            ,[ParentTableId]
                                             ,[CurrentId]
                                             ,[CreatedAt]
                                             ,[CreatedBy])
@@ -34068,7 +35096,6 @@ ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
                                              ,@W_Name
                                              ,@W_Alias
                                              ,@W_Description
-                                             ,@W_ParentTableId
                                              ,@W_CurrentId
                                              ,GETDATE()
                                              ,@UserName)
@@ -34145,13 +35172,11 @@ ALTER PROCEDURE [dbo].[TableUpdate](@Login NVARCHAR(MAX)
         DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
-               ,@W_ParentTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ParentTableId') AS bigint)
                ,@W_CurrentId bigint = CAST(JSON_VALUE(@ActualRecord, '$.CurrentId') AS bigint)
 
         UPDATE [dbo].[Tables] SET [Name] = @W_Name
                                           ,[Alias] = @W_Alias
                                           ,[Description] = @W_Description
-                                          ,[ParentTableId] = @W_ParentTableId
                                           ,[CurrentId] = @W_CurrentId
                                           ,[UpdatedAt] = GETDATE()
                                           ,[UpdatedBy] = @UserName
@@ -34313,7 +35338,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') AS nvarchar(25)) AS [Alias]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ParentTableId') AS bigint) AS [ParentTableId]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.CurrentId') AS bigint) AS [CurrentId]
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
@@ -34797,7 +35821,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(25)) AS [Alias]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
-                    ,CAST(NULL AS bigint) AS [ParentTableId]
                     ,CAST(NULL AS bigint) AS [CurrentId]
             INTO [#result]
         SET @sql = 'INSERT [#result]
@@ -34807,7 +35830,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                               ,[T].[Name]
                               ,[T].[Alias]
                               ,[T].[Description]
-                              ,[T].[ParentTableId]
                               ,[T].[CurrentId]
                             FROM [#tmpTable] [#]
                                 INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
@@ -34819,7 +35841,6 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                   ,[O].[Name]
                                   ,[O].[Alias]
                                   ,[O].[Description]
-                                  ,[O].[ParentTableId]
                                   ,[O].[CurrentId]
                                 FROM [#tmpTable] [#]
                                     INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
@@ -34828,28 +35849,14 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Table' AS [Kind]
-              ,[R].[Id]
-              ,[R].[Name]
-              ,[R].[Alias]
-              ,[R].[Description]
-              ,[R].[ParentTableId]
-              ,[R].[CurrentId]
-            INTO [#Tables]
-            FROM [#result] [T]
-                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-            ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                       ,[Alias]
                       ,[Description]
-                      ,[ParentTableId]
                       ,[CurrentId]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -34969,16 +35976,16 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord é requerido.', 1
             IF @W_DatabaseId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DatabaseId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
-                THROW 51000, 'Valor de DatabaseId em @ActualRecord inexiste em Databases', 1
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
-                THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+            IF (@W_DatabaseId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Databases] WHERE [Id] = @W_DatabaseId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Databases', 1
+            IF (@W_TableId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Tables', 1
             IF @Action = 'create' BEGIN
                 IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_Name)
                     THROW 51000, 'Unicidade cruzada de [DatabaseTable].[TableId] => [DatabaseTable].[Name] já existe', 1
@@ -36085,7 +37092,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Databases] ON [#Databases](Id)
+        CREATE UNIQUE INDEX [#Databases] ON [#Databases]([Id])
         SELECT DISTINCT 'Connection' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
@@ -36094,31 +37101,18 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
             FROM [#Databases] [T]
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Connections] ON [#Connections](Id)
+        CREATE UNIQUE INDEX [#Connections] ON [#Connections]([Id])
         SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
-              ,[R].[ParentTableId]
               ,[R].[CurrentId]
             INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[DatabaseId]
@@ -36126,9 +37120,9 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Databases].* FROM [#Databases] AS [Databases] FOR JSON PATH), '[]') AS [Databases]
-              ,ISNULL((SELECT [Connections].* FROM [#Connections] AS [Connections] FOR JSON PATH), '[]') AS [Connections]
-              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
+              ,ISNULL((SELECT [Database].* FROM [#Databases] AS [Database] FOR JSON PATH), '[]') AS [Database]
+              ,ISNULL((SELECT [Connection].* FROM [#Connections] AS [Connection] FOR JSON PATH), '[]') AS [Connection]
+              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -36226,7 +37220,6 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                                   AND [TableId] = JSON_VALUE(@LastRecord, '$.TableId')
                                   AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence')
                                   AND [DomainId] = JSON_VALUE(@LastRecord, '$.DomainId')
-                                  AND [dbo].[IS_EQUAL]([ReferenceTableId], JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
                                   AND [Name] = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [dbo].[IS_EQUAL]([Alias], JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
                                   AND [Description] = JSON_VALUE(@LastRecord, '$.Description')
@@ -36254,7 +37247,6 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') = JSON_VALUE(@LastRecord, '$.TableId')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') = JSON_VALUE(@LastRecord, '$.Sequence')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DomainId') = JSON_VALUE(@LastRecord, '$.DomainId')
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ReferenceTableId'), JSON_VALUE(@LastRecord, '$.ReferenceTableId'), 'bigint') = 1
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name')
                                   AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias'), JSON_VALUE(@LastRecord, '$.Alias'), 'nvarchar') = 1
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') = JSON_VALUE(@LastRecord, '$.Description')
@@ -36284,12 +37276,15 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
             IF EXISTS(SELECT 1 FROM [dbo].[Unicities] WHERE [ColumnId2] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Unicities', 1
         END
+        IF @Action = 'delete' BEGIN
+            IF EXISTS(SELECT 1 FROM [dbo].[Referencekeys] WHERE [FkColumnId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Referencekeys', 1
+        END
         IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
                    ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
                    ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
-                   ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
                    ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                    ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
                    ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
@@ -36313,8 +37308,6 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
-                THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
             IF @W_Sequence < CAST('1' AS smallint)
@@ -36323,12 +37316,6 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de DomainId em @ActualRecord é requerido.', 1
             IF @W_DomainId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de DomainId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId)
-                THROW 51000, 'Valor de DomainId em @ActualRecord inexiste em Domains', 1
-            IF @W_ReferenceTableId IS NOT NULL AND @W_ReferenceTableId < CAST('1' AS bigint)
-                THROW 51000, 'Valor de ReferenceTableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF @W_ReferenceTableId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_ReferenceTableId)
-                THROW 51000, 'Valor de ReferenceTableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_Description IS NULL
@@ -36339,6 +37326,10 @@ ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de Caption em @ActualRecord é requerido.', 1
             IF @W_IsRequired IS NULL
                 THROW 51000, 'Valor de IsRequired em @ActualRecord é requerido.', 1
+            IF (@W_TableId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Tables', 1
+            IF (@W_DomainId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Domains] WHERE [Id] = @W_DomainId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Domains', 1
         END
 
     RETURN @TransactionId
@@ -36534,7 +37525,6 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
         DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
                ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
                ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
-               ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
                ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
@@ -36559,7 +37549,6 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                                             ,[TableId]
                                             ,[Sequence]
                                             ,[DomainId]
-                                            ,[ReferenceTableId]
                                             ,[Name]
                                             ,[Alias]
                                             ,[Description]
@@ -36584,7 +37573,6 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
                                              ,@W_TableId
                                              ,@W_Sequence
                                              ,@W_DomainId
-                                             ,@W_ReferenceTableId
                                              ,@W_Name
                                              ,@W_Alias
                                              ,@W_Description
@@ -36678,7 +37666,6 @@ ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
         DECLARE @W_TableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TableId') AS bigint)
                ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
                ,@W_DomainId bigint = CAST(JSON_VALUE(@ActualRecord, '$.DomainId') AS bigint)
-               ,@W_ReferenceTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceTableId') AS bigint)
                ,@W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
                ,@W_Alias nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Alias') AS nvarchar(25))
                ,@W_Description nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Description') AS nvarchar(50))
@@ -36701,7 +37688,6 @@ ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
         UPDATE [dbo].[Columns] SET [TableId] = @W_TableId
                                           ,[Sequence] = @W_Sequence
                                           ,[DomainId] = @W_DomainId
-                                          ,[ReferenceTableId] = @W_ReferenceTableId
                                           ,[Name] = @W_Name
                                           ,[Alias] = @W_Alias
                                           ,[Description] = @W_Description
@@ -36877,7 +37863,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableId') AS bigint) AS [TableId]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') AS smallint) AS [Sequence]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.DomainId') AS bigint) AS [DomainId]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ReferenceTableId') AS bigint) AS [ReferenceTableId]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Alias') AS nvarchar(25)) AS [Alias]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Description') AS nvarchar(50)) AS [Description]
@@ -36911,7 +37896,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
         DECLARE @WT_Id bigint = CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
                ,@WT_TableId bigint = CAST(JSON_VALUE(@Filter, '$.TableId') AS bigint)
                ,@WT_DomainId bigint = CAST(JSON_VALUE(@Filter, '$.DomainId') AS bigint)
-               ,@WT_ReferenceTableId bigint = CAST(JSON_VALUE(@Filter, '$.ReferenceTableId') AS bigint)
                ,@WT_Name nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.Name') AS nvarchar(25))
                ,@WT_Alias nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.Alias') AS nvarchar(25))
                ,@WT_IsAutoIncrement bit = CAST(JSON_VALUE(@Filter, '$.IsAutoIncrement') AS bit)
@@ -36936,11 +37920,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             SET @Where = @Where + ' AND [T].[DomainId] IS NULL'
         ELSE IF @WT_DomainId IS NOT NULL BEGIN
             SET @Where = @Where + ' AND [T].[DomainId] = @T_DomainId'
-        END
-        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ReferenceTableId' AND [type] = 0)
-            SET @Where = @Where + ' AND [T].[ReferenceTableId] IS NULL'
-        ELSE IF @WT_ReferenceTableId IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[ReferenceTableId] = @T_ReferenceTableId'
         END
         IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
             SET @Where = @Where + ' AND [T].[Name] IS NULL'
@@ -37013,11 +37992,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                    ,@G_DomainId_vals NVARCHAR(MAX)
                    ,@G_DomainId_v1 bigint
                    ,@G_DomainId_v2 bigint
-                   ,@G_ReferenceTableId_comparator TINYINT
-                   ,@G_ReferenceTableId_v bigint
-                   ,@G_ReferenceTableId_vals NVARCHAR(MAX)
-                   ,@G_ReferenceTableId_v1 bigint
-                   ,@G_ReferenceTableId_v2 bigint
                    ,@G_Name_comparator TINYINT
                    ,@G_Name_v nvarchar(25)
                    ,@G_Name_vals NVARCHAR(MAX)
@@ -37116,20 +38090,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             )
             SELECT @G_DomainId_v1 = TRY_CAST(JSON_VALUE(@G_DomainId_vals, '$[0]') AS bigint)
                   ,@G_DomainId_v2 = TRY_CAST(JSON_VALUE(@G_DomainId_vals, '$[1]') AS bigint)
-            SELECT @G_ReferenceTableId_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.ReferenceTableId.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.ReferenceTableId') IS NOT NULL AND JSON_QUERY(@Filter, '$.ReferenceTableId') IS NULL THEN 3 END
-            )
-                  ,@G_ReferenceTableId_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.ReferenceTableId.value') AS bigint),
-                TRY_CAST(JSON_VALUE(@Filter, '$.ReferenceTableId') AS bigint)
-            )
-                  ,@G_ReferenceTableId_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.ReferenceTableId.value'),
-                JSON_QUERY(@Filter, '$.ReferenceTableId')
-            )
-            SELECT @G_ReferenceTableId_v1 = TRY_CAST(JSON_VALUE(@G_ReferenceTableId_vals, '$[0]') AS bigint)
-                  ,@G_ReferenceTableId_v2 = TRY_CAST(JSON_VALUE(@G_ReferenceTableId_vals, '$[1]') AS bigint)
             SELECT @G_Name_comparator = COALESCE(
                 TRY_CAST(JSON_VALUE(@Filter, '$.Name.comparator') AS TINYINT),
                 CASE WHEN JSON_VALUE(@Filter, '$.Name') IS NOT NULL AND JSON_QUERY(@Filter, '$.Name') IS NULL THEN 3 END
@@ -37389,43 +38349,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
         WHEN 12 THEN N'[T].[DomainId] NOT BETWEEN @DomainId_v1 AND @DomainId_v2'
         WHEN 13 THEN N'[T].[DomainId] IS NULL'
         WHEN 14 THEN N'[T].[DomainId] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ReferenceTableId' AND [type] = 0)
-                SET @Where = @Where + ' AND [T].[ReferenceTableId] IS NULL'
-            ELSE
-            IF @G_ReferenceTableId_comparator IS NOT NULL BEGIN
-                IF (@G_ReferenceTableId_comparator = 1 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 2 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 3 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 4 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 5 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 6 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 7 AND @G_ReferenceTableId_vals IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 8 AND @G_ReferenceTableId_vals IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 9 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 10 AND @G_ReferenceTableId_v IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 11 AND @G_ReferenceTableId_v1 IS NOT NULL AND @G_ReferenceTableId_v2 IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 12 AND @G_ReferenceTableId_v1 IS NOT NULL AND @G_ReferenceTableId_v2 IS NOT NULL)
-               OR (@G_ReferenceTableId_comparator = 13)
-               OR (@G_ReferenceTableId_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_ReferenceTableId_comparator
-        WHEN 1 THEN N'[T].[ReferenceTableId] < @ReferenceTableId'
-        WHEN 2 THEN N'[T].[ReferenceTableId] <= @ReferenceTableId'
-        WHEN 3 THEN N'[T].[ReferenceTableId] = @ReferenceTableId'
-        WHEN 4 THEN N'[T].[ReferenceTableId] <> @ReferenceTableId'
-        WHEN 5 THEN N'[T].[ReferenceTableId] >= @ReferenceTableId'
-        WHEN 6 THEN N'[T].[ReferenceTableId] > @ReferenceTableId'
-        WHEN 7 THEN N'[T].[ReferenceTableId] IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'
-        WHEN 8 THEN N'[T].[ReferenceTableId] NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'
-        WHEN 9 THEN N'[T].[ReferenceTableId] LIKE @ReferenceTableId'
-        WHEN 10 THEN N'[T].[ReferenceTableId] NOT LIKE @ReferenceTableId'
-        WHEN 11 THEN N'[T].[ReferenceTableId] BETWEEN @ReferenceTableId_v1 AND @ReferenceTableId_v2'
-        WHEN 12 THEN N'[T].[ReferenceTableId] NOT BETWEEN @ReferenceTableId_v1 AND @ReferenceTableId_v2'
-        WHEN 13 THEN N'[T].[ReferenceTableId] IS NULL'
-        WHEN 14 THEN N'[T].[ReferenceTableId] IS NOT NULL'
     END
                     IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
                 END
@@ -37860,11 +38783,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                             ORDER BY [Recno]'
         IF @_ IS NULL BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@ReferenceTableId bigint,@ReferenceTableId_v1 bigint,@ReferenceTableId_v2 bigint,@ReferenceTableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_v1 bit,@IsAutoIncrement_v2 bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_v1 bit,@IsRequired_v2 bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_v1 bit,@IsListable_v2 bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_v1 bit,@IsFilterable_v2 bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_v1 bit,@IsEditable_v2 bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_v1 bit,@IsGridable_v2 bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_v1 bit,@IsEncrypted_v2 bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_v1 bit,@IsInWords_v2 bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_v1 bit,@IsVirtual_v2 bit,@IsVirtual_vals NVARCHAR(MAX)'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_v1 bit,@IsAutoIncrement_v2 bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_v1 bit,@IsRequired_v2 bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_v1 bit,@IsListable_v2 bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_v1 bit,@IsFilterable_v2 bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_v1 bit,@IsEditable_v2 bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_v1 bit,@IsGridable_v2 bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_v1 bit,@IsEncrypted_v2 bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_v1 bit,@IsInWords_v2 bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_v1 bit,@IsVirtual_v2 bit,@IsVirtual_vals NVARCHAR(MAX)'
                                ,@T_Id = @WT_Id
                                ,@T_TableId = @WT_TableId
                                ,@T_DomainId = @WT_DomainId
-                               ,@T_ReferenceTableId = @WT_ReferenceTableId
                                ,@T_Name = @WT_Name
                                ,@T_Alias = @WT_Alias
                                ,@T_IsAutoIncrement = @WT_IsAutoIncrement
@@ -37888,10 +38810,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                ,@DomainId_v1 = @G_DomainId_v1
                                ,@DomainId_v2 = @G_DomainId_v2
                                ,@DomainId_vals = @G_DomainId_vals
-                               ,@ReferenceTableId = @G_ReferenceTableId_v
-                               ,@ReferenceTableId_v1 = @G_ReferenceTableId_v1
-                               ,@ReferenceTableId_v2 = @G_ReferenceTableId_v2
-                               ,@ReferenceTableId_vals = @G_ReferenceTableId_vals
                                ,@Name = @G_Name_v
                                ,@Name_v1 = @G_Name_v1
                                ,@Name_v2 = @G_Name_v2
@@ -37938,11 +38856,10 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                ,@IsVirtual_vals = @G_IsVirtual_vals
         END ELSE BEGIN
             EXEC sp_executesql @sql
-                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_ReferenceTableId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit'
+                               ,N'@T_Id bigint,@T_TableId bigint,@T_DomainId bigint,@T_Name nvarchar(25),@T_Alias nvarchar(25),@T_IsAutoIncrement bit,@T_IsRequired bit,@T_IsListable bit,@T_IsFilterable bit,@T_IsEditable bit,@T_IsGridable bit,@T_IsEncrypted bit,@T_IsInWords bit,@T_IsVirtual bit'
                                ,@T_Id = @WT_Id
                                ,@T_TableId = @WT_TableId
                                ,@T_DomainId = @WT_DomainId
-                               ,@T_ReferenceTableId = @WT_ReferenceTableId
                                ,@T_Name = @WT_Name
                                ,@T_Alias = @WT_Alias
                                ,@T_IsAutoIncrement = @WT_IsAutoIncrement
@@ -37985,11 +38902,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                    ,@S_DomainId_vals NVARCHAR(MAX)
                    ,@S_DomainId_v1 bigint
                    ,@S_DomainId_v2 bigint
-                   ,@S_ReferenceTableId_comparator TINYINT
-                   ,@S_ReferenceTableId_v bigint
-                   ,@S_ReferenceTableId_vals NVARCHAR(MAX)
-                   ,@S_ReferenceTableId_v1 bigint
-                   ,@S_ReferenceTableId_v2 bigint
                    ,@S_Name_comparator TINYINT
                    ,@S_Name_v nvarchar(25)
                    ,@S_Name_vals NVARCHAR(MAX)
@@ -38088,20 +39000,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 )
                 SELECT @S_DomainId_v1 = TRY_CAST(JSON_VALUE(@S_DomainId_vals, '$[0]') AS bigint)
                       ,@S_DomainId_v2 = TRY_CAST(JSON_VALUE(@S_DomainId_vals, '$[1]') AS bigint)
-                SELECT @S_ReferenceTableId_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.ReferenceTableId.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.ReferenceTableId') IS NOT NULL AND JSON_QUERY(@Search, '$.ReferenceTableId') IS NULL THEN 3 END
-                )
-                      ,@S_ReferenceTableId_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.ReferenceTableId.value') AS bigint),
-                    TRY_CAST(JSON_VALUE(@Search, '$.ReferenceTableId') AS bigint)
-                )
-                      ,@S_ReferenceTableId_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.ReferenceTableId.value'),
-                    JSON_QUERY(@Search, '$.ReferenceTableId')
-                )
-                SELECT @S_ReferenceTableId_v1 = TRY_CAST(JSON_VALUE(@S_ReferenceTableId_vals, '$[0]') AS bigint)
-                      ,@S_ReferenceTableId_v2 = TRY_CAST(JSON_VALUE(@S_ReferenceTableId_vals, '$[1]') AS bigint)
                 SELECT @S_Name_comparator = COALESCE(
                     TRY_CAST(JSON_VALUE(@Search, '$.Name.comparator') AS TINYINT),
                     CASE WHEN JSON_VALUE(@Search, '$.Name') IS NOT NULL AND JSON_QUERY(@Search, '$.Name') IS NULL THEN 9 END
@@ -38367,45 +39265,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
         WHEN 12 THEN N'COALESCE([D].[DomainId], [O].[DomainId]) NOT BETWEEN @DomainId_v1 AND @DomainId_v2'
         WHEN 13 THEN N'COALESCE([D].[DomainId], [O].[DomainId]) IS NULL'
         WHEN 14 THEN N'COALESCE([D].[DomainId], [O].[DomainId]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ReferenceTableId' AND [type] = 0) BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    SET @Where = @Where + 'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) IS NULL'
-                END ELSE
-                IF @S_ReferenceTableId_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_ReferenceTableId_comparator = 1 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 2 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 3 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 4 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 5 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 6 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 7 AND @S_ReferenceTableId_vals IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 8 AND @S_ReferenceTableId_vals IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 9 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 10 AND @S_ReferenceTableId_v IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 11 AND @S_ReferenceTableId_v1 IS NOT NULL AND @S_ReferenceTableId_v2 IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 12 AND @S_ReferenceTableId_v1 IS NOT NULL AND @S_ReferenceTableId_v2 IS NOT NULL)
-               OR (@S_ReferenceTableId_comparator = 13)
-               OR (@S_ReferenceTableId_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_ReferenceTableId_comparator
-        WHEN 1 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) < @ReferenceTableId'
-        WHEN 2 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) <= @ReferenceTableId'
-        WHEN 3 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) = @ReferenceTableId'
-        WHEN 4 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) <> @ReferenceTableId'
-        WHEN 5 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) >= @ReferenceTableId'
-        WHEN 6 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) > @ReferenceTableId'
-        WHEN 7 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'
-        WHEN 8 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@ReferenceTableId_vals))'
-        WHEN 9 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) LIKE @ReferenceTableId'
-        WHEN 10 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) NOT LIKE @ReferenceTableId'
-        WHEN 11 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) BETWEEN @ReferenceTableId_v1 AND @ReferenceTableId_v2'
-        WHEN 12 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) NOT BETWEEN @ReferenceTableId_v1 AND @ReferenceTableId_v2'
-        WHEN 13 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[ReferenceTableId], [O].[ReferenceTableId]) IS NOT NULL'
     END
                         SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
                     END
@@ -38846,7 +39705,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
-                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@ReferenceTableId bigint,@ReferenceTableId_v1 bigint,@ReferenceTableId_v2 bigint,@ReferenceTableId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_v1 bit,@IsAutoIncrement_v2 bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_v1 bit,@IsRequired_v2 bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_v1 bit,@IsListable_v2 bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_v1 bit,@IsFilterable_v2 bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_v1 bit,@IsEditable_v2 bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_v1 bit,@IsGridable_v2 bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_v1 bit,@IsEncrypted_v2 bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_v1 bit,@IsInWords_v2 bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_v1 bit,@IsVirtual_v2 bit,@IsVirtual_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@TableId bigint,@TableId_v1 bigint,@TableId_v2 bigint,@TableId_vals NVARCHAR(MAX),@DomainId bigint,@DomainId_v1 bigint,@DomainId_v2 bigint,@DomainId_vals NVARCHAR(MAX),@Name nvarchar(25),@Name_v1 nvarchar(25),@Name_v2 nvarchar(25),@Name_vals NVARCHAR(MAX),@Alias nvarchar(25),@Alias_v1 nvarchar(25),@Alias_v2 nvarchar(25),@Alias_vals NVARCHAR(MAX),@IsAutoIncrement bit,@IsAutoIncrement_v1 bit,@IsAutoIncrement_v2 bit,@IsAutoIncrement_vals NVARCHAR(MAX),@IsRequired bit,@IsRequired_v1 bit,@IsRequired_v2 bit,@IsRequired_vals NVARCHAR(MAX),@IsListable bit,@IsListable_v1 bit,@IsListable_v2 bit,@IsListable_vals NVARCHAR(MAX),@IsFilterable bit,@IsFilterable_v1 bit,@IsFilterable_v2 bit,@IsFilterable_vals NVARCHAR(MAX),@IsEditable bit,@IsEditable_v1 bit,@IsEditable_v2 bit,@IsEditable_vals NVARCHAR(MAX),@IsGridable bit,@IsGridable_v1 bit,@IsGridable_v2 bit,@IsGridable_vals NVARCHAR(MAX),@IsEncrypted bit,@IsEncrypted_v1 bit,@IsEncrypted_v2 bit,@IsEncrypted_vals NVARCHAR(MAX),@IsInWords bit,@IsInWords_v1 bit,@IsInWords_v2 bit,@IsInWords_vals NVARCHAR(MAX),@IsVirtual bit,@IsVirtual_v1 bit,@IsVirtual_v2 bit,@IsVirtual_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
                                        ,@Id = @S_Id_v
                                        ,@Id_v1 = @S_Id_v1
                                        ,@Id_v2 = @S_Id_v2
@@ -38859,10 +39718,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                        ,@DomainId_v1 = @S_DomainId_v1
                                        ,@DomainId_v2 = @S_DomainId_v2
                                        ,@DomainId_vals = @S_DomainId_vals
-                                       ,@ReferenceTableId = @S_ReferenceTableId_v
-                                       ,@ReferenceTableId_v1 = @S_ReferenceTableId_v1
-                                       ,@ReferenceTableId_v2 = @S_ReferenceTableId_v2
-                                       ,@ReferenceTableId_vals = @S_ReferenceTableId_vals
                                        ,@Name = @S_Name_v
                                        ,@Name_v1 = @S_Name_v1
                                        ,@Name_v2 = @S_Name_v2
@@ -38926,7 +39781,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bigint) AS [TableId]
                     ,CAST(NULL AS smallint) AS [Sequence]
                     ,CAST(NULL AS bigint) AS [DomainId]
-                    ,CAST(NULL AS bigint) AS [ReferenceTableId]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
                     ,CAST(NULL AS nvarchar(25)) AS [Alias]
                     ,CAST(NULL AS nvarchar(50)) AS [Description]
@@ -38953,7 +39807,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                               ,[T].[TableId]
                               ,[T].[Sequence]
                               ,[T].[DomainId]
-                              ,[T].[ReferenceTableId]
                               ,[T].[Name]
                               ,[T].[Alias]
                               ,[T].[Description]
@@ -38982,7 +39835,6 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                   ,[O].[TableId]
                                   ,[O].[Sequence]
                                   ,[O].[DomainId]
-                                  ,[O].[ReferenceTableId]
                                   ,[O].[Name]
                                   ,[O].[Alias]
                                   ,[O].[Description]
@@ -39013,25 +39865,12 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
-              ,[R].[ParentTableId]
               ,[R].[CurrentId]
             INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
         SELECT DISTINCT 'Domain' AS [Kind]
               ,[R].[Id]
               ,[R].[TypeId]
@@ -39048,7 +39887,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Domains] ON [#Domains](Id)
+        CREATE UNIQUE INDEX [#Domains] ON [#Domains]([Id])
         SELECT DISTINCT 'Type' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
@@ -39069,7 +39908,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             FROM [#Domains] [T]
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Types] ON [#Types](Id)
+        CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
         SELECT DISTINCT 'Category' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -39086,37 +39925,21 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
             FROM [#Types] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#result] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ReferenceTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
+        SELECT DISTINCT 'Mask' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Mask]
+            INTO [#Masks]
+            FROM [#Domains] [T]
+                INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Masks] ON [#Masks]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[TableId]
                       ,[Sequence]
                       ,[DomainId]
-                      ,[ReferenceTableId]
                       ,[Name]
                       ,[Alias]
                       ,[Description]
@@ -39136,10 +39959,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                       ,[IsInWords]
                       ,[IsVirtual]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
-              ,ISNULL((SELECT [Domains].* FROM [#Domains] AS [Domains] FOR JSON PATH), '[]') AS [Domains]
-              ,ISNULL((SELECT [Types].* FROM [#Types] AS [Types] FOR JSON PATH), '[]') AS [Types]
-              ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
+              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
+              ,ISNULL((SELECT [Domain].* FROM [#Domains] AS [Domain] FOR JSON PATH), '[]') AS [Domain]
+              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
+              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
+              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -39263,12 +40087,12 @@ ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_TableId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TableId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
-                THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
             IF @W_IsUnique IS NULL
                 THROW 51000, 'Valor de IsUnique em @ActualRecord é requerido.', 1
+            IF (@W_TableId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Tables', 1
         END
 
     RETURN @TransactionId
@@ -40358,25 +41182,12 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
-              ,[R].[ParentTableId]
               ,[R].[CurrentId]
             INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[TableId]
@@ -40384,7 +41195,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                       ,[Name] AS [ListItemValue]
                       ,[IsUnique]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
+              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -40507,8 +41318,6 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de IndexId em @ActualRecord é requerido.', 1
             IF @W_IndexId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de IndexId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId)
-                THROW 51000, 'Valor de IndexId em @ActualRecord inexiste em Indexes', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
             IF @W_Sequence < CAST('1' AS smallint)
@@ -40517,10 +41326,12 @@ ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ColumnId em @ActualRecord é requerido.', 1
             IF @W_ColumnId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de ColumnId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId)
-                THROW 51000, 'Valor de ColumnId em @ActualRecord inexiste em Columns', 1
             IF @W_IsDescending IS NULL
                 THROW 51000, 'Valor de IsDescending em @ActualRecord é requerido.', 1
+            IF (@W_IndexId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [Id] = @W_IndexId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Indexes', 1
+            IF (@W_ColumnId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Columns', 1
         END
 
     RETURN @TransactionId
@@ -41607,37 +42418,23 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Indexes] [R] ON [R].[Id] = [T].[IndexId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Indexes] ON [#Indexes](Id)
+        CREATE UNIQUE INDEX [#Indexes] ON [#Indexes]([Id])
         SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
-              ,[R].[ParentTableId]
               ,[R].[CurrentId]
             INTO [#Tables]
             FROM [#Indexes] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
         SELECT DISTINCT 'Column' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
               ,[R].[Sequence]
               ,[R].[DomainId]
-              ,[R].[ReferenceTableId]
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
@@ -41660,31 +42457,82 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Columns] ON [#Columns](Id)
+        CREATE UNIQUE INDEX [#Columns] ON [#Columns]([Id])
         INSERT INTO [#Tables]
             SELECT DISTINCT 'Table' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
                   ,[R].[Description]
-                  ,[R].[ParentTableId]
                   ,[R].[CurrentId]
                 FROM [#Columns] [T]
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        SELECT DISTINCT 'Domain' AS [Kind]
+              ,[R].[Id]
+              ,[R].[TypeId]
+              ,[R].[MaskId]
+              ,[R].[Name]
+              ,[R].[Length]
+              ,[R].[Decimals]
+              ,[R].[ValidValues]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[Codification]
+            INTO [#Domains]
+            FROM [#Columns] [T]
+                INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Domains] ON [#Domains]([Id])
+        SELECT DISTINCT 'Type' AS [Kind]
+              ,[R].[Id]
+              ,[R].[CategoryId]
+              ,[R].[Name]
+              ,[R].[MaxLength]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[AskLength]
+              ,[R].[AskDecimals]
+              ,[R].[AskPrimarykey]
+              ,[R].[AskAutoincrement]
+              ,[R].[AskFilterable]
+              ,[R].[AskGridable]
+              ,[R].[AskCodification]
+              ,[R].[IsLikeable]
+              ,[R].[IsActive]
+            INTO [#Types]
+            FROM [#Domains] [T]
+                INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
+        SELECT DISTINCT 'Category' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[HtmlInputType]
+              ,[R].[HtmlInputAlign]
+              ,[R].[AskEncrypted]
+              ,[R].[AskMask]
+              ,[R].[AskListable]
+              ,[R].[AskDefault]
+              ,[R].[AskMinimum]
+              ,[R].[AskMaximum]
+              ,[R].[AskInWords]
+            INTO [#Categories]
+            FROM [#Types] [T]
+                INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
+        SELECT DISTINCT 'Mask' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Mask]
+            INTO [#Masks]
+            FROM [#Domains] [T]
+                INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Masks] ON [#Masks]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[IndexId]
@@ -41692,9 +42540,13 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                       ,[ColumnId]
                       ,[IsDescending]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Indexes].* FROM [#Indexes] AS [Indexes] FOR JSON PATH), '[]') AS [Indexes]
-              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
-              ,ISNULL((SELECT [Columns].* FROM [#Columns] AS [Columns] FOR JSON PATH), '[]') AS [Columns]
+              ,ISNULL((SELECT [Index].* FROM [#Indexes] AS [Index] FOR JSON PATH), '[]') AS [Index]
+              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
+              ,ISNULL((SELECT [Column].* FROM [#Columns] AS [Column] FOR JSON PATH), '[]') AS [Column]
+              ,ISNULL((SELECT [Domain].* FROM [#Domains] AS [Domain] FOR JSON PATH), '[]') AS [Domain]
+              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
+              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
+              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -41824,16 +42676,16 @@ ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SystemId em @ActualRecord é requerido.', 1
             IF @W_SystemId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SystemId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
-                THROW 51000, 'Valor de SystemId em @ActualRecord inexiste em Systems', 1
             IF @W_UserId IS NULL
                 THROW 51000, 'Valor de UserId em @ActualRecord é requerido.', 1
             IF @W_UserId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de UserId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
-                THROW 51000, 'Valor de UserId em @ActualRecord inexiste em Users', 1
             IF @W_IsLogged IS NULL
                 THROW 51000, 'Valor de IsLogged em @ActualRecord é requerido.', 1
+            IF (@W_SystemId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Systems] WHERE [Id] = @W_SystemId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Systems', 1
+            IF (@W_UserId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Users] WHERE [Id] = @W_UserId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Users', 1
         END
 
     RETURN @TransactionId
@@ -42931,7 +43783,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
         SELECT DISTINCT 'User' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -42943,7 +43795,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Users] ON [#Users](Id)
+        CREATE UNIQUE INDEX [#Users] ON [#Users]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[SystemId]
@@ -42952,8 +43804,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                       ,[PublicKey]
                       ,[IsLogged]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
-              ,ISNULL((SELECT [Users].* FROM [#Users] AS [Users] FOR JSON PATH), '[]') AS [Users]
+              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
+              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -43074,8 +43926,8 @@ ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de SessionId em @ActualRecord é requerido.', 1
             IF @W_SessionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de SessionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [Id] = @W_SessionId)
-                THROW 51000, 'Valor de SessionId em @ActualRecord inexiste em Sessions', 1
+            IF (@W_SessionId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [Id] = @W_SessionId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Sessions', 1
         END
 
     RETURN @TransactionId
@@ -43524,7 +44376,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Sessions] ON [#Sessions](Id)
+        CREATE UNIQUE INDEX [#Sessions] ON [#Sessions]([Id])
         SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -43536,14 +44388,27 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
             FROM [#Sessions] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
+        SELECT DISTINCT 'User' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Password]
+              ,[R].[FullName]
+              ,[R].[RetryLogins]
+              ,[R].[IsActive]
+            INTO [#Users]
+            FROM [#Sessions] [T]
+                INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Users] ON [#Users]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[SessionId]
                       ,[IsConfirmed]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Sessions].* FROM [#Sessions] AS [Sessions] FOR JSON PATH), '[]') AS [Sessions]
-              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
+              ,ISNULL((SELECT [Session].* FROM [#Sessions] AS [Session] FOR JSON PATH), '[]') AS [Session]
+              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
+              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -43672,14 +44537,14 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TransactionId em @ActualRecord é requerido.', 1
             IF @W_TransactionId < CAST('1' AS bigint)
                 THROW 51000, 'Valor de TransactionId em @ActualRecord deve ser maior que ou igual a 1', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_TransactionId)
-                THROW 51000, 'Valor de TransactionId em @ActualRecord inexiste em Transactions', 1
             IF @W_TableName IS NULL
                 THROW 51000, 'Valor de TableName em @ActualRecord é requerido.', 1
             IF @W_Action IS NULL
                 THROW 51000, 'Valor de Action em @ActualRecord é requerido.', 1
             IF @W_ActualRecord IS NULL
                 THROW 51000, 'Valor de ActualRecord em @ActualRecord é requerido.', 1
+            IF (@W_TransactionId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @W_TransactionId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Transactions', 1
         END
 
     RETURN @TransactionId
@@ -44393,7 +45258,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Transactions] ON [#Transactions](Id)
+        CREATE UNIQUE INDEX [#Transactions] ON [#Transactions]([Id])
         SELECT DISTINCT 'Session' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
@@ -44405,7 +45270,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
             FROM [#Transactions] [T]
                 INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Sessions] ON [#Sessions](Id)
+        CREATE UNIQUE INDEX [#Sessions] ON [#Sessions]([Id])
         SELECT DISTINCT 'System' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
@@ -44417,7 +45282,19 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
             FROM [#Sessions] [T]
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Systems] ON [#Systems](Id)
+        CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
+        SELECT DISTINCT 'User' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Password]
+              ,[R].[FullName]
+              ,[R].[RetryLogins]
+              ,[R].[IsActive]
+            INTO [#Users]
+            FROM [#Sessions] [T]
+                INNER JOIN [dbo].[Users] [R] ON [R].[Id] = [T].[UserId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Users] ON [#Users]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[TransactionId]
@@ -44427,9 +45304,10 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                       ,[ActualRecord]
                       ,[IsConfirmed]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Transactions].* FROM [#Transactions] AS [Transactions] FOR JSON PATH), '[]') AS [Transactions]
-              ,ISNULL((SELECT [Sessions].* FROM [#Sessions] AS [Sessions] FOR JSON PATH), '[]') AS [Sessions]
-              ,ISNULL((SELECT [Systems].* FROM [#Systems] AS [Systems] FOR JSON PATH), '[]') AS [Systems]
+              ,ISNULL((SELECT [Transaction].* FROM [#Transactions] AS [Transaction] FOR JSON PATH), '[]') AS [Transaction]
+              ,ISNULL((SELECT [Session].* FROM [#Sessions] AS [Session] FOR JSON PATH), '[]') AS [Session]
+              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
+              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -44547,14 +45425,14 @@ ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
 
             IF @W_ColumnId1 IS NULL
                 THROW 51000, 'Valor de ColumnId1 em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId1)
-                THROW 51000, 'Valor de ColumnId1 em @ActualRecord inexiste em Columns', 1
             IF @W_ColumnId2 IS NULL
                 THROW 51000, 'Valor de ColumnId2 em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId2)
-                THROW 51000, 'Valor de ColumnId2 em @ActualRecord inexiste em Columns', 1
             IF @W_IsBidirectional IS NULL
                 THROW 51000, 'Valor de IsBidirectional em @ActualRecord é requerido.', 1
+            IF (@W_ColumnId1 IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId1)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Columns', 1
+            IF (@W_ColumnId2 IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Columns] WHERE [Id] = @W_ColumnId2)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Columns', 1
         END
 
     RETURN @TransactionId
@@ -45628,7 +46506,6 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
               ,[R].[TableId]
               ,[R].[Sequence]
               ,[R].[DomainId]
-              ,[R].[ReferenceTableId]
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
@@ -45651,38 +46528,88 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId1]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Columns] ON [#Columns](Id)
+        CREATE UNIQUE INDEX [#Columns] ON [#Columns]([Id])
         SELECT DISTINCT 'Table' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
-              ,[R].[ParentTableId]
               ,[R].[CurrentId]
             INTO [#Tables]
             FROM [#Columns] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
+        SELECT DISTINCT 'Domain' AS [Kind]
+              ,[R].[Id]
+              ,[R].[TypeId]
+              ,[R].[MaskId]
+              ,[R].[Name]
+              ,[R].[Length]
+              ,[R].[Decimals]
+              ,[R].[ValidValues]
+              ,[R].[Default]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[Codification]
+            INTO [#Domains]
+            FROM [#Columns] [T]
+                INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Domains] ON [#Domains]([Id])
+        SELECT DISTINCT 'Type' AS [Kind]
+              ,[R].[Id]
+              ,[R].[CategoryId]
+              ,[R].[Name]
+              ,[R].[MaxLength]
+              ,[R].[Minimum]
+              ,[R].[Maximum]
+              ,[R].[AskLength]
+              ,[R].[AskDecimals]
+              ,[R].[AskPrimarykey]
+              ,[R].[AskAutoincrement]
+              ,[R].[AskFilterable]
+              ,[R].[AskGridable]
+              ,[R].[AskCodification]
+              ,[R].[IsLikeable]
+              ,[R].[IsActive]
+            INTO [#Types]
+            FROM [#Domains] [T]
+                INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
+        SELECT DISTINCT 'Category' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[HtmlInputType]
+              ,[R].[HtmlInputAlign]
+              ,[R].[AskEncrypted]
+              ,[R].[AskMask]
+              ,[R].[AskListable]
+              ,[R].[AskDefault]
+              ,[R].[AskMinimum]
+              ,[R].[AskMaximum]
+              ,[R].[AskInWords]
+            INTO [#Categories]
+            FROM [#Types] [T]
+                INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
+        SELECT DISTINCT 'Mask' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Mask]
+            INTO [#Masks]
+            FROM [#Domains] [T]
+                INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Masks] ON [#Masks]([Id])
         INSERT INTO [#Columns]
             SELECT DISTINCT 'Column' AS [Kind]
                   ,[R].[Id]
                   ,[R].[TableId]
                   ,[R].[Sequence]
                   ,[R].[DomainId]
-                  ,[R].[ReferenceTableId]
                   ,[R].[Name]
                   ,[R].[Alias]
                   ,[R].[Description]
@@ -45711,23 +46638,74 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                   ,[R].[Name]
                   ,[R].[Alias]
                   ,[R].[Description]
-                  ,[R].[ParentTableId]
                   ,[R].[CurrentId]
                 FROM [#Columns] [T]
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
+        INSERT INTO [#Domains]
+            SELECT DISTINCT 'Domain' AS [Kind]
+                  ,[R].[Id]
+                  ,[R].[TypeId]
+                  ,[R].[MaskId]
+                  ,[R].[Name]
+                  ,[R].[Length]
+                  ,[R].[Decimals]
+                  ,[R].[ValidValues]
+                  ,[R].[Default]
+                  ,[R].[Minimum]
+                  ,[R].[Maximum]
+                  ,[R].[Codification]
+                FROM [#Columns] [T]
+                    INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Domains] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        INSERT INTO [#Types]
+            SELECT DISTINCT 'Type' AS [Kind]
+                  ,[R].[Id]
+                  ,[R].[CategoryId]
+                  ,[R].[Name]
+                  ,[R].[MaxLength]
+                  ,[R].[Minimum]
+                  ,[R].[Maximum]
+                  ,[R].[AskLength]
+                  ,[R].[AskDecimals]
+                  ,[R].[AskPrimarykey]
+                  ,[R].[AskAutoincrement]
+                  ,[R].[AskFilterable]
+                  ,[R].[AskGridable]
+                  ,[R].[AskCodification]
+                  ,[R].[IsLikeable]
+                  ,[R].[IsActive]
+                FROM [#Domains] [T]
+                    INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Types] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        INSERT INTO [#Categories]
+            SELECT DISTINCT 'Category' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
+                  ,[R].[HtmlInputType]
+                  ,[R].[HtmlInputAlign]
+                  ,[R].[AskEncrypted]
+                  ,[R].[AskMask]
+                  ,[R].[AskListable]
+                  ,[R].[AskDefault]
+                  ,[R].[AskMinimum]
+                  ,[R].[AskMaximum]
+                  ,[R].[AskInWords]
+                FROM [#Types] [T]
+                    INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Categories] WHERE [Id] = [R].[Id])
+                ORDER BY [R].[Id]
+        INSERT INTO [#Masks]
+            SELECT DISTINCT 'Mask' AS [Kind]
+                  ,[R].[Id]
+                  ,[R].[Name]
+                  ,[R].[Mask]
+                FROM [#Domains] [T]
+                    INNER JOIN [dbo].[Masks] [R] ON [R].[Id] = [T].[MaskId]
+                WHERE NOT EXISTS(SELECT 1 FROM [#Masks] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         SELECT (SELECT [Kind]
                       ,[Id]
@@ -45735,8 +46713,12 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                       ,[ColumnId2]
                       ,[IsBidirectional]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Columns].* FROM [#Columns] AS [Columns] FOR JSON PATH), '[]') AS [Columns]
-              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
+              ,ISNULL((SELECT [Column].* FROM [#Columns] AS [Column] FOR JSON PATH), '[]') AS [Column]
+              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
+              ,ISNULL((SELECT [Domain].* FROM [#Domains] AS [Domain] FOR JSON PATH), '[]') AS [Domain]
+              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
+              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
+              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -47065,12 +48047,12 @@ ALTER PROCEDURE [dbo].[RuleValidate](@SessionId BIGINT
 
             IF @W_CategoryId IS NULL
                 THROW 51000, 'Valor de CategoryId em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId)
-                THROW 51000, 'Valor de CategoryId em @ActualRecord inexiste em Categories', 1
             IF @W_ComparatorId IS NULL
                 THROW 51000, 'Valor de ComparatorId em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Comparators] WHERE [Id] = @W_ComparatorId)
-                THROW 51000, 'Valor de ComparatorId em @ActualRecord inexiste em Comparators', 1
+            IF (@W_CategoryId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Categories] WHERE [Id] = @W_CategoryId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Categories', 1
+            IF (@W_ComparatorId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Comparators] WHERE [Id] = @W_ComparatorId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Comparators', 1
         END
 
     RETURN @TransactionId
@@ -48016,7 +48998,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Categories] ON [#Categories](Id)
+        CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
         SELECT DISTINCT 'Comparator' AS [Kind]
               ,[R].[Id]
               ,[R].[Symbol]
@@ -48026,14 +49008,14 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
             FROM [#result] [T]
                 INNER JOIN [dbo].[Comparators] [R] ON [R].[Id] = [T].[ComparatorId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Comparators] ON [#Comparators](Id)
+        CREATE UNIQUE INDEX [#Comparators] ON [#Comparators]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[CategoryId]
                       ,[ComparatorId]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Categories].* FROM [#Categories] AS [Categories] FOR JSON PATH), '[]') AS [Categories]
-              ,ISNULL((SELECT [Comparators].* FROM [#Comparators] AS [Comparators] FOR JSON PATH), '[]') AS [Comparators]
+              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
+              ,ISNULL((SELECT [Comparator].* FROM [#Comparators] AS [Comparator] FOR JSON PATH), '[]') AS [Comparator]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -49758,10 +50740,10 @@ ALTER PROCEDURE [dbo].[ExpressionValidate](@SessionId BIGINT
 
             IF @W_TableId IS NULL
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
-            IF NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
-                THROW 51000, 'Valor de TableId em @ActualRecord inexiste em Tables', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
+            IF (@W_TableId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Tables', 1
         END
 
     RETURN @TransactionId
@@ -50696,31 +51678,18 @@ ALTER PROCEDURE [dbo].[ExpressionsRead](@Login NVARCHAR(MAX)
               ,[R].[Name]
               ,[R].[Alias]
               ,[R].[Description]
-              ,[R].[ParentTableId]
               ,[R].[CurrentId]
             INTO [#Tables]
             FROM [#result] [T]
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables](Id)
-        INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
-                  ,[R].[Id]
-                  ,[R].[Name]
-                  ,[R].[Alias]
-                  ,[R].[Description]
-                  ,[R].[ParentTableId]
-                  ,[R].[CurrentId]
-                FROM [#Tables] [T]
-                    INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[ParentTableId]
-                WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
-                ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[TableId]
                       ,[Name]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Tables].* FROM [#Tables] AS [Tables] FOR JSON PATH), '[]') AS [Tables]
+              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -55488,6 +56457,2373 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                       ,[PropertyId]
                       ,[Value]
                       ,[ElseValue]
+                    FROM [#result] FOR JSON PATH) AS [result]
+        SET @ReturnValue = @RowCount
+
+    RETURN 0
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferenceValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferenceValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferenceValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferenceValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
+        IF @TransactionId IS NULL
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@IsPendingCreate BIT = 0
+               ,@W_Id bigint
+
+        IF @Action = 'delete' BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        END ELSE BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        END
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[References] WHERE [Id] = @W_Id) AND @Action = 'create'
+            THROW 51000, 'Chave-primária já existe em References', 1
+        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
+                                    FROM [dbo].[Operations]
+                                    WHERE [TransactionId] = @TransactionId
+                                          AND [TableName] = 'References'
+                                          AND [IsConfirmed] IS NULL
+                                          AND [Action] = 'create'
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+            SET @IsPendingCreate = 1
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[References] WHERE [Id] = @W_Id)
+            THROW 51000, 'Chave-primária não existe em References', 1
+        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[References]
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [FkTableId] = JSON_VALUE(@LastRecord, '$.FkTableId')
+                                  AND [dbo].[IS_EQUAL]([PkTableId], JSON_VALUE(@LastRecord, '$.PkTableId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL]([Name], JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL]([IsParentChildren], JSON_VALUE(@LastRecord, '$.IsParentChildren'), 'bit') = 1)
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'References'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.FkTableId') = JSON_VALUE(@LastRecord, '$.FkTableId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PkTableId'), JSON_VALUE(@LastRecord, '$.PkTableId'), 'bigint') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name'), JSON_VALUE(@LastRecord, '$.Name'), 'nvarchar') = 1
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsParentChildren'), JSON_VALUE(@LastRecord, '$.IsParentChildren'), 'bit') = 1)
+                THROW 51000, 'Registro de References alterado por outro usuário', 1
+        END
+
+        IF @Action IN ('create', 'update') BEGIN
+
+            DECLARE @W_FkTableId nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.FkTableId') AS nvarchar(25))
+                   ,@W_PkTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PkTableId') AS bigint)
+                   ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+                   ,@W_IsParentChildren bit = CAST(JSON_VALUE(@ActualRecord, '$.IsParentChildren') AS bit)
+
+            IF @W_FkTableId IS NULL
+                THROW 51000, 'Valor de FkTableId em @ActualRecord é requerido.', 1
+        END
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencePersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencePersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencePersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencePersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(255)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint
+
+    IF @Action = 'delete' BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+    END ELSE BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    END
+    EXEC @TransactionId = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'References'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[LastRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@OperationId
+                                             ,@TransactionId
+                                             ,'References'
+                                             ,@Action
+                                             ,@LastRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        ELSE IF @ActionAux = 'create'
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[LastRecord] = @LastRecord
+                   ,[ActualRecord] = NULL
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+
+    RETURN CAST(@OperationId AS BIGINT)
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferenceCreate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferenceCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferenceCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferenceCreate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'References'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_FkTableId nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.FkTableId') AS nvarchar(25))
+               ,@W_PkTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PkTableId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+               ,@W_IsParentChildren bit = CAST(JSON_VALUE(@ActualRecord, '$.IsParentChildren') AS bit)
+
+        INSERT INTO [dbo].[References] ([Id]
+                                            ,[FkTableId]
+                                            ,[PkTableId]
+                                            ,[Name]
+                                            ,[IsParentChildren]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_FkTableId
+                                             ,@W_PkTableId
+                                             ,@W_Name
+                                             ,@W_IsParentChildren
+                                             ,GETDATE()
+                                             ,@UserName)
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferenceUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferenceUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferenceUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferenceUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'References'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_FkTableId nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.FkTableId') AS nvarchar(25))
+               ,@W_PkTableId bigint = CAST(JSON_VALUE(@ActualRecord, '$.PkTableId') AS bigint)
+               ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
+               ,@W_IsParentChildren bit = CAST(JSON_VALUE(@ActualRecord, '$.IsParentChildren') AS bit)
+
+        UPDATE [dbo].[References] SET [Id] = @W_Id
+                                          ,[FkTableId] = @W_FkTableId
+                                          ,[PkTableId] = @W_PkTableId
+                                          ,[Name] = @W_Name
+                                          ,[IsParentChildren] = @W_IsParentChildren
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferenceDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferenceDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferenceDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferenceDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'References'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[References] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencesRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencesRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencesRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencesRead](@Login NVARCHAR(MAX)
+                                          ,@Filter NVARCHAR(MAX)
+                                          ,@Search NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+        IF @Filter IS NULL
+            SET @Filter = '{}'
+        ELSE IF ISJSON(@Filter) = 0
+            THROW 51000, 'Valor de @Filter não está no formato JSON', 1
+        IF @Search IS NULL
+            SET @Search = '{}'
+        ELSE IF ISJSON(@Search) = 0
+            THROW 51000, 'Valor de @Search não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[T].[Id] ASC'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'References') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.FkTableId') AS nvarchar(25)) AS [FkTableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.PkTableId') AS bigint) AS [PkTableId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(50)) AS [Name]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsParentChildren') AS bit) AS [IsParentChildren]
+            INTO [#tmpOperations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'References'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@ComparatorPredicate NVARCHAR(MAX)
+               ,@sql NVARCHAR(MAX)
+
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+               ,@WT_FkTableId nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.FkTableId') AS nvarchar(25))
+               ,@WT_PkTableId bigint = CAST(JSON_VALUE(@Filter, '$.PkTableId') AS bigint)
+               ,@WT_Name nvarchar(50) = CAST(JSON_VALUE(@Filter, '$.Name') AS nvarchar(50))
+               ,@WT_IsParentChildren bit = CAST(JSON_VALUE(@Filter, '$.IsParentChildren') AS bit)
+
+        IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'FkTableId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[FkTableId] IS NULL'
+        ELSE IF @WT_FkTableId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[FkTableId] = @T_FkTableId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'PkTableId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[PkTableId] IS NULL'
+        ELSE IF @WT_PkTableId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[PkTableId] = @T_PkTableId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[Name] IS NULL'
+        ELSE IF @WT_Name IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Name] = @T_Name'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsParentChildren' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[IsParentChildren] IS NULL'
+        ELSE IF @WT_IsParentChildren IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[IsParentChildren] = @T_IsParentChildren'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @G_Id_comparator TINYINT
+                   ,@G_Id_v bigint
+                   ,@G_Id_vals NVARCHAR(MAX)
+                   ,@G_Id_v1 bigint
+                   ,@G_Id_v2 bigint
+                   ,@G_FkTableId_comparator TINYINT
+                   ,@G_FkTableId_v nvarchar(25)
+                   ,@G_FkTableId_vals NVARCHAR(MAX)
+                   ,@G_FkTableId_v1 nvarchar(25)
+                   ,@G_FkTableId_v2 nvarchar(25)
+                   ,@G_PkTableId_comparator TINYINT
+                   ,@G_PkTableId_v bigint
+                   ,@G_PkTableId_vals NVARCHAR(MAX)
+                   ,@G_PkTableId_v1 bigint
+                   ,@G_PkTableId_v2 bigint
+                   ,@G_Name_comparator TINYINT
+                   ,@G_Name_v nvarchar(50)
+                   ,@G_Name_vals NVARCHAR(MAX)
+                   ,@G_Name_v1 nvarchar(50)
+                   ,@G_Name_v2 nvarchar(50)
+                   ,@G_IsParentChildren_comparator TINYINT
+                   ,@G_IsParentChildren_v bit
+                   ,@G_IsParentChildren_vals NVARCHAR(MAX)
+                   ,@G_IsParentChildren_v1 bit
+                   ,@G_IsParentChildren_v2 bit
+
+            SELECT @G_Id_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Id') IS NOT NULL AND JSON_QUERY(@Filter, '$.Id') IS NULL THEN 3 END
+            )
+                  ,@G_Id_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+            )
+                  ,@G_Id_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Id.value'),
+                JSON_QUERY(@Filter, '$.Id')
+            )
+            SELECT @G_Id_v1 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[0]') AS bigint)
+                  ,@G_Id_v2 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[1]') AS bigint)
+            SELECT @G_FkTableId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.FkTableId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.FkTableId') IS NOT NULL AND JSON_QUERY(@Filter, '$.FkTableId') IS NULL THEN 3 END
+            )
+                  ,@G_FkTableId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.FkTableId.value') AS nvarchar(25)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.FkTableId') AS nvarchar(25))
+            )
+                  ,@G_FkTableId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.FkTableId.value'),
+                JSON_QUERY(@Filter, '$.FkTableId')
+            )
+            SELECT @G_FkTableId_v1 = TRY_CAST(JSON_VALUE(@G_FkTableId_vals, '$[0]') AS nvarchar(25))
+                  ,@G_FkTableId_v2 = TRY_CAST(JSON_VALUE(@G_FkTableId_vals, '$[1]') AS nvarchar(25))
+            SELECT @G_PkTableId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.PkTableId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.PkTableId') IS NOT NULL AND JSON_QUERY(@Filter, '$.PkTableId') IS NULL THEN 3 END
+            )
+                  ,@G_PkTableId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.PkTableId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.PkTableId') AS bigint)
+            )
+                  ,@G_PkTableId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.PkTableId.value'),
+                JSON_QUERY(@Filter, '$.PkTableId')
+            )
+            SELECT @G_PkTableId_v1 = TRY_CAST(JSON_VALUE(@G_PkTableId_vals, '$[0]') AS bigint)
+                  ,@G_PkTableId_v2 = TRY_CAST(JSON_VALUE(@G_PkTableId_vals, '$[1]') AS bigint)
+            SELECT @G_Name_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Name') IS NOT NULL AND JSON_QUERY(@Filter, '$.Name') IS NULL THEN 3 END
+            )
+                  ,@G_Name_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name.value') AS nvarchar(50)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Name') AS nvarchar(50))
+            )
+                  ,@G_Name_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Name.value'),
+                JSON_QUERY(@Filter, '$.Name')
+            )
+            SELECT @G_Name_v1 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[0]') AS nvarchar(50))
+                  ,@G_Name_v2 = TRY_CAST(JSON_VALUE(@G_Name_vals, '$[1]') AS nvarchar(50))
+            SELECT @G_IsParentChildren_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.IsParentChildren.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.IsParentChildren') IS NOT NULL AND JSON_QUERY(@Filter, '$.IsParentChildren') IS NULL THEN 3 END
+            )
+                  ,@G_IsParentChildren_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.IsParentChildren.value') AS bit),
+                TRY_CAST(JSON_VALUE(@Filter, '$.IsParentChildren') AS bit)
+            )
+                  ,@G_IsParentChildren_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.IsParentChildren.value'),
+                JSON_QUERY(@Filter, '$.IsParentChildren')
+            )
+            SELECT @G_IsParentChildren_v1 = TRY_CAST(JSON_VALUE(@G_IsParentChildren_vals, '$[0]') AS bit)
+                  ,@G_IsParentChildren_v2 = TRY_CAST(JSON_VALUE(@G_IsParentChildren_vals, '$[1]') AS bit)
+
+            IF @G_Id_comparator IS NOT NULL BEGIN
+                IF (@G_Id_comparator = 1 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 2 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 3 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 4 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 5 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 6 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 7 AND @G_Id_vals IS NOT NULL)
+               OR (@G_Id_comparator = 8 AND @G_Id_vals IS NOT NULL)
+               OR (@G_Id_comparator = 9 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 10 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 11 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR (@G_Id_comparator = 12 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR (@G_Id_comparator = 13)
+               OR (@G_Id_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_Id_comparator
+        WHEN 1 THEN N'[T].[Id] < @Id'
+        WHEN 2 THEN N'[T].[Id] <= @Id'
+        WHEN 3 THEN N'[T].[Id] = @Id'
+        WHEN 4 THEN N'[T].[Id] <> @Id'
+        WHEN 5 THEN N'[T].[Id] >= @Id'
+        WHEN 6 THEN N'[T].[Id] > @Id'
+        WHEN 7 THEN N'[T].[Id] IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 8 THEN N'[T].[Id] NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 9 THEN N'[T].[Id] LIKE @Id'
+        WHEN 10 THEN N'[T].[Id] NOT LIKE @Id'
+        WHEN 11 THEN N'[T].[Id] BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 12 THEN N'[T].[Id] NOT BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 13 THEN N'[T].[Id] IS NULL'
+        WHEN 14 THEN N'[T].[Id] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'FkTableId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[FkTableId] IS NULL'
+            ELSE
+            IF @G_FkTableId_comparator IS NOT NULL BEGIN
+                IF (@G_FkTableId_comparator = 1 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 2 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 3 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 4 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 5 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 6 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 7 AND @G_FkTableId_vals IS NOT NULL)
+               OR (@G_FkTableId_comparator = 8 AND @G_FkTableId_vals IS NOT NULL)
+               OR (@G_FkTableId_comparator = 9 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 10 AND @G_FkTableId_v IS NOT NULL)
+               OR (@G_FkTableId_comparator = 11 AND @G_FkTableId_v1 IS NOT NULL AND @G_FkTableId_v2 IS NOT NULL)
+               OR (@G_FkTableId_comparator = 12 AND @G_FkTableId_v1 IS NOT NULL AND @G_FkTableId_v2 IS NOT NULL)
+               OR (@G_FkTableId_comparator = 13)
+               OR (@G_FkTableId_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_FkTableId_comparator
+        WHEN 1 THEN N'[T].[FkTableId] < @FkTableId'
+        WHEN 2 THEN N'[T].[FkTableId] <= @FkTableId'
+        WHEN 3 THEN N'[T].[FkTableId] = @FkTableId'
+        WHEN 4 THEN N'[T].[FkTableId] <> @FkTableId'
+        WHEN 5 THEN N'[T].[FkTableId] >= @FkTableId'
+        WHEN 6 THEN N'[T].[FkTableId] > @FkTableId'
+        WHEN 7 THEN N'[T].[FkTableId] IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@FkTableId_vals))'
+        WHEN 8 THEN N'[T].[FkTableId] NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@FkTableId_vals))'
+        WHEN 9 THEN N'[T].[FkTableId] LIKE @FkTableId'
+        WHEN 10 THEN N'[T].[FkTableId] NOT LIKE @FkTableId'
+        WHEN 11 THEN N'[T].[FkTableId] BETWEEN @FkTableId_v1 AND @FkTableId_v2'
+        WHEN 12 THEN N'[T].[FkTableId] NOT BETWEEN @FkTableId_v1 AND @FkTableId_v2'
+        WHEN 13 THEN N'[T].[FkTableId] IS NULL'
+        WHEN 14 THEN N'[T].[FkTableId] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'PkTableId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[PkTableId] IS NULL'
+            ELSE
+            IF @G_PkTableId_comparator IS NOT NULL BEGIN
+                IF (@G_PkTableId_comparator = 1 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 2 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 3 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 4 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 5 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 6 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 7 AND @G_PkTableId_vals IS NOT NULL)
+               OR (@G_PkTableId_comparator = 8 AND @G_PkTableId_vals IS NOT NULL)
+               OR (@G_PkTableId_comparator = 9 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 10 AND @G_PkTableId_v IS NOT NULL)
+               OR (@G_PkTableId_comparator = 11 AND @G_PkTableId_v1 IS NOT NULL AND @G_PkTableId_v2 IS NOT NULL)
+               OR (@G_PkTableId_comparator = 12 AND @G_PkTableId_v1 IS NOT NULL AND @G_PkTableId_v2 IS NOT NULL)
+               OR (@G_PkTableId_comparator = 13)
+               OR (@G_PkTableId_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_PkTableId_comparator
+        WHEN 1 THEN N'[T].[PkTableId] < @PkTableId'
+        WHEN 2 THEN N'[T].[PkTableId] <= @PkTableId'
+        WHEN 3 THEN N'[T].[PkTableId] = @PkTableId'
+        WHEN 4 THEN N'[T].[PkTableId] <> @PkTableId'
+        WHEN 5 THEN N'[T].[PkTableId] >= @PkTableId'
+        WHEN 6 THEN N'[T].[PkTableId] > @PkTableId'
+        WHEN 7 THEN N'[T].[PkTableId] IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@PkTableId_vals))'
+        WHEN 8 THEN N'[T].[PkTableId] NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@PkTableId_vals))'
+        WHEN 9 THEN N'[T].[PkTableId] LIKE @PkTableId'
+        WHEN 10 THEN N'[T].[PkTableId] NOT LIKE @PkTableId'
+        WHEN 11 THEN N'[T].[PkTableId] BETWEEN @PkTableId_v1 AND @PkTableId_v2'
+        WHEN 12 THEN N'[T].[PkTableId] NOT BETWEEN @PkTableId_v1 AND @PkTableId_v2'
+        WHEN 13 THEN N'[T].[PkTableId] IS NULL'
+        WHEN 14 THEN N'[T].[PkTableId] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'Name' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[Name] IS NULL'
+            ELSE
+            IF @G_Name_comparator IS NOT NULL BEGIN
+                IF (@G_Name_comparator = 1 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 2 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 3 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 4 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 5 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 6 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 7 AND @G_Name_vals IS NOT NULL)
+               OR (@G_Name_comparator = 8 AND @G_Name_vals IS NOT NULL)
+               OR (@G_Name_comparator = 9 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 10 AND @G_Name_v IS NOT NULL)
+               OR (@G_Name_comparator = 11 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR (@G_Name_comparator = 12 AND @G_Name_v1 IS NOT NULL AND @G_Name_v2 IS NOT NULL)
+               OR (@G_Name_comparator = 13)
+               OR (@G_Name_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_Name_comparator
+        WHEN 1 THEN N'[T].[Name] < @Name'
+        WHEN 2 THEN N'[T].[Name] <= @Name'
+        WHEN 3 THEN N'[T].[Name] = @Name'
+        WHEN 4 THEN N'[T].[Name] <> @Name'
+        WHEN 5 THEN N'[T].[Name] >= @Name'
+        WHEN 6 THEN N'[T].[Name] > @Name'
+        WHEN 7 THEN N'[T].[Name] IN (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN 8 THEN N'[T].[Name] NOT IN (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN 9 THEN N'[T].[Name] LIKE @Name'
+        WHEN 10 THEN N'[T].[Name] NOT LIKE @Name'
+        WHEN 11 THEN N'[T].[Name] BETWEEN @Name_v1 AND @Name_v2'
+        WHEN 12 THEN N'[T].[Name] NOT BETWEEN @Name_v1 AND @Name_v2'
+        WHEN 13 THEN N'[T].[Name] IS NULL'
+        WHEN 14 THEN N'[T].[Name] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'IsParentChildren' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[IsParentChildren] IS NULL'
+            ELSE
+            IF @G_IsParentChildren_comparator IS NOT NULL BEGIN
+                IF (@G_IsParentChildren_comparator = 1 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 2 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 3 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 4 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 5 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 6 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 7 AND @G_IsParentChildren_vals IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 8 AND @G_IsParentChildren_vals IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 9 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 10 AND @G_IsParentChildren_v IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 11 AND @G_IsParentChildren_v1 IS NOT NULL AND @G_IsParentChildren_v2 IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 12 AND @G_IsParentChildren_v1 IS NOT NULL AND @G_IsParentChildren_v2 IS NOT NULL)
+               OR (@G_IsParentChildren_comparator = 13)
+               OR (@G_IsParentChildren_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_IsParentChildren_comparator
+        WHEN 1 THEN N'[T].[IsParentChildren] < @IsParentChildren'
+        WHEN 2 THEN N'[T].[IsParentChildren] <= @IsParentChildren'
+        WHEN 3 THEN N'[T].[IsParentChildren] = @IsParentChildren'
+        WHEN 4 THEN N'[T].[IsParentChildren] <> @IsParentChildren'
+        WHEN 5 THEN N'[T].[IsParentChildren] >= @IsParentChildren'
+        WHEN 6 THEN N'[T].[IsParentChildren] > @IsParentChildren'
+        WHEN 7 THEN N'[T].[IsParentChildren] IN (SELECT CAST([value] AS bit) FROM OPENJSON(@IsParentChildren_vals))'
+        WHEN 8 THEN N'[T].[IsParentChildren] NOT IN (SELECT CAST([value] AS bit) FROM OPENJSON(@IsParentChildren_vals))'
+        WHEN 9 THEN N'[T].[IsParentChildren] LIKE @IsParentChildren'
+        WHEN 10 THEN N'[T].[IsParentChildren] NOT LIKE @IsParentChildren'
+        WHEN 11 THEN N'[T].[IsParentChildren] BETWEEN @IsParentChildren_v1 AND @IsParentChildren_v2'
+        WHEN 12 THEN N'[T].[IsParentChildren] NOT BETWEEN @IsParentChildren_v1 AND @IsParentChildren_v2'
+        WHEN 13 THEN N'[T].[IsParentChildren] IS NULL'
+        WHEN 14 THEN N'[T].[IsParentChildren] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+        END ELSE
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[U].[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [dbo].[References] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_FkTableId nvarchar(25),@T_PkTableId bigint,@T_Name nvarchar(50),@T_IsParentChildren bit,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@FkTableId nvarchar(25),@FkTableId_v1 nvarchar(25),@FkTableId_v2 nvarchar(25),@FkTableId_vals NVARCHAR(MAX),@PkTableId bigint,@PkTableId_v1 bigint,@PkTableId_v2 bigint,@PkTableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX),@IsParentChildren bit,@IsParentChildren_v1 bit,@IsParentChildren_v2 bit,@IsParentChildren_vals NVARCHAR(MAX)'
+                               ,@T_Id = @WT_Id
+                               ,@T_FkTableId = @WT_FkTableId
+                               ,@T_PkTableId = @WT_PkTableId
+                               ,@T_Name = @WT_Name
+                               ,@T_IsParentChildren = @WT_IsParentChildren
+                               ,@Id = @G_Id_v
+                               ,@Id_v1 = @G_Id_v1
+                               ,@Id_v2 = @G_Id_v2
+                               ,@Id_vals = @G_Id_vals
+                               ,@FkTableId = @G_FkTableId_v
+                               ,@FkTableId_v1 = @G_FkTableId_v1
+                               ,@FkTableId_v2 = @G_FkTableId_v2
+                               ,@FkTableId_vals = @G_FkTableId_vals
+                               ,@PkTableId = @G_PkTableId_v
+                               ,@PkTableId_v1 = @G_PkTableId_v1
+                               ,@PkTableId_v2 = @G_PkTableId_v2
+                               ,@PkTableId_vals = @G_PkTableId_vals
+                               ,@Name = @G_Name_v
+                               ,@Name_v1 = @G_Name_v1
+                               ,@Name_v2 = @G_Name_v2
+                               ,@Name_vals = @G_Name_vals
+                               ,@IsParentChildren = @G_IsParentChildren_v
+                               ,@IsParentChildren_v1 = @G_IsParentChildren_v1
+                               ,@IsParentChildren_v2 = @G_IsParentChildren_v2
+                               ,@IsParentChildren_vals = @G_IsParentChildren_vals
+        END ELSE BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_FkTableId nvarchar(25),@T_PkTableId bigint,@T_Name nvarchar(50),@T_IsParentChildren bit'
+                               ,@T_Id = @WT_Id
+                               ,@T_FkTableId = @WT_FkTableId
+                               ,@T_PkTableId = @WT_PkTableId
+                               ,@T_Name = @WT_Name
+                               ,@T_IsParentChildren = @WT_IsParentChildren
+        END
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN
+                DECLARE @Recno BIGINT
+                   ,@S_Id_comparator TINYINT
+                   ,@S_Id_v bigint
+                   ,@S_Id_vals NVARCHAR(MAX)
+                   ,@S_Id_v1 bigint
+                   ,@S_Id_v2 bigint
+                   ,@S_FkTableId_comparator TINYINT
+                   ,@S_FkTableId_v nvarchar(25)
+                   ,@S_FkTableId_vals NVARCHAR(MAX)
+                   ,@S_FkTableId_v1 nvarchar(25)
+                   ,@S_FkTableId_v2 nvarchar(25)
+                   ,@S_PkTableId_comparator TINYINT
+                   ,@S_PkTableId_v bigint
+                   ,@S_PkTableId_vals NVARCHAR(MAX)
+                   ,@S_PkTableId_v1 bigint
+                   ,@S_PkTableId_v2 bigint
+                   ,@S_Name_comparator TINYINT
+                   ,@S_Name_v nvarchar(50)
+                   ,@S_Name_vals NVARCHAR(MAX)
+                   ,@S_Name_v1 nvarchar(50)
+                   ,@S_Name_v2 nvarchar(50)
+                   ,@S_IsParentChildren_comparator TINYINT
+                   ,@S_IsParentChildren_v bit
+                   ,@S_IsParentChildren_vals NVARCHAR(MAX)
+                   ,@S_IsParentChildren_v1 bit
+                   ,@S_IsParentChildren_v2 bit
+
+                SELECT @S_Id_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Id') IS NOT NULL AND JSON_QUERY(@Search, '$.Id') IS NULL THEN 3 END
+                )
+                      ,@S_Id_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id') AS bigint)
+                )
+                      ,@S_Id_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Id.value'),
+                    JSON_QUERY(@Search, '$.Id')
+                )
+                SELECT @S_Id_v1 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[0]') AS bigint)
+                      ,@S_Id_v2 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[1]') AS bigint)
+                SELECT @S_FkTableId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.FkTableId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.FkTableId') IS NOT NULL AND JSON_QUERY(@Search, '$.FkTableId') IS NULL THEN 9 END
+                )
+                      ,@S_FkTableId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.FkTableId.value') AS nvarchar(25)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.FkTableId') AS nvarchar(25))
+                )
+                      ,@S_FkTableId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.FkTableId.value'),
+                    JSON_QUERY(@Search, '$.FkTableId')
+                )
+                SELECT @S_FkTableId_v1 = TRY_CAST(JSON_VALUE(@S_FkTableId_vals, '$[0]') AS nvarchar(25))
+                      ,@S_FkTableId_v2 = TRY_CAST(JSON_VALUE(@S_FkTableId_vals, '$[1]') AS nvarchar(25))
+                SELECT @S_PkTableId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.PkTableId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.PkTableId') IS NOT NULL AND JSON_QUERY(@Search, '$.PkTableId') IS NULL THEN 3 END
+                )
+                      ,@S_PkTableId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.PkTableId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.PkTableId') AS bigint)
+                )
+                      ,@S_PkTableId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.PkTableId.value'),
+                    JSON_QUERY(@Search, '$.PkTableId')
+                )
+                SELECT @S_PkTableId_v1 = TRY_CAST(JSON_VALUE(@S_PkTableId_vals, '$[0]') AS bigint)
+                      ,@S_PkTableId_v2 = TRY_CAST(JSON_VALUE(@S_PkTableId_vals, '$[1]') AS bigint)
+                SELECT @S_Name_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Name') IS NOT NULL AND JSON_QUERY(@Search, '$.Name') IS NULL THEN 9 END
+                )
+                      ,@S_Name_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name.value') AS nvarchar(50)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Name') AS nvarchar(50))
+                )
+                      ,@S_Name_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Name.value'),
+                    JSON_QUERY(@Search, '$.Name')
+                )
+                SELECT @S_Name_v1 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[0]') AS nvarchar(50))
+                      ,@S_Name_v2 = TRY_CAST(JSON_VALUE(@S_Name_vals, '$[1]') AS nvarchar(50))
+                SELECT @S_IsParentChildren_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.IsParentChildren.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.IsParentChildren') IS NOT NULL AND JSON_QUERY(@Search, '$.IsParentChildren') IS NULL THEN 3 END
+                )
+                      ,@S_IsParentChildren_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.IsParentChildren.value') AS bit),
+                    TRY_CAST(JSON_VALUE(@Search, '$.IsParentChildren') AS bit)
+                )
+                      ,@S_IsParentChildren_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.IsParentChildren.value'),
+                    JSON_QUERY(@Search, '$.IsParentChildren')
+                )
+                SELECT @S_IsParentChildren_v1 = TRY_CAST(JSON_VALUE(@S_IsParentChildren_vals, '$[0]') AS bit)
+                      ,@S_IsParentChildren_v2 = TRY_CAST(JSON_VALUE(@S_IsParentChildren_vals, '$[1]') AS bit)
+
+                SET @Where = ''
+                IF @S_Id_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_Id_comparator = 1 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 2 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 3 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 4 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 5 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 6 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 7 AND @S_Id_vals IS NOT NULL)
+               OR (@S_Id_comparator = 8 AND @S_Id_vals IS NOT NULL)
+               OR (@S_Id_comparator = 9 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 10 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 11 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR (@S_Id_comparator = 12 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR (@S_Id_comparator = 13)
+               OR (@S_Id_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_Id_comparator
+        WHEN 1 THEN N'COALESCE([D].[Id], [O].[Id]) < @Id'
+        WHEN 2 THEN N'COALESCE([D].[Id], [O].[Id]) <= @Id'
+        WHEN 3 THEN N'COALESCE([D].[Id], [O].[Id]) = @Id'
+        WHEN 4 THEN N'COALESCE([D].[Id], [O].[Id]) <> @Id'
+        WHEN 5 THEN N'COALESCE([D].[Id], [O].[Id]) >= @Id'
+        WHEN 6 THEN N'COALESCE([D].[Id], [O].[Id]) > @Id'
+        WHEN 7 THEN N'COALESCE([D].[Id], [O].[Id]) IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 8 THEN N'COALESCE([D].[Id], [O].[Id]) NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 9 THEN N'COALESCE([D].[Id], [O].[Id]) LIKE @Id'
+        WHEN 10 THEN N'COALESCE([D].[Id], [O].[Id]) NOT LIKE @Id'
+        WHEN 11 THEN N'COALESCE([D].[Id], [O].[Id]) BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 12 THEN N'COALESCE([D].[Id], [O].[Id]) NOT BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 13 THEN N'COALESCE([D].[Id], [O].[Id]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[Id], [O].[Id]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'FkTableId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[FkTableId], [O].[FkTableId]) IS NULL'
+                END ELSE
+                IF @S_FkTableId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_FkTableId_comparator = 1 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 2 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 3 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 4 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 5 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 6 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 7 AND @S_FkTableId_vals IS NOT NULL)
+               OR (@S_FkTableId_comparator = 8 AND @S_FkTableId_vals IS NOT NULL)
+               OR (@S_FkTableId_comparator = 9 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 10 AND @S_FkTableId_v IS NOT NULL)
+               OR (@S_FkTableId_comparator = 11 AND @S_FkTableId_v1 IS NOT NULL AND @S_FkTableId_v2 IS NOT NULL)
+               OR (@S_FkTableId_comparator = 12 AND @S_FkTableId_v1 IS NOT NULL AND @S_FkTableId_v2 IS NOT NULL)
+               OR (@S_FkTableId_comparator = 13)
+               OR (@S_FkTableId_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_FkTableId_comparator
+        WHEN 1 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) < @FkTableId'
+        WHEN 2 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) <= @FkTableId'
+        WHEN 3 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) = @FkTableId'
+        WHEN 4 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) <> @FkTableId'
+        WHEN 5 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) >= @FkTableId'
+        WHEN 6 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) > @FkTableId'
+        WHEN 7 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@FkTableId_vals))'
+        WHEN 8 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@FkTableId_vals))'
+        WHEN 9 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) LIKE @FkTableId'
+        WHEN 10 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) NOT LIKE @FkTableId'
+        WHEN 11 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) BETWEEN @FkTableId_v1 AND @FkTableId_v2'
+        WHEN 12 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) NOT BETWEEN @FkTableId_v1 AND @FkTableId_v2'
+        WHEN 13 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[FkTableId], [O].[FkTableId]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'PkTableId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[PkTableId], [O].[PkTableId]) IS NULL'
+                END ELSE
+                IF @S_PkTableId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_PkTableId_comparator = 1 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 2 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 3 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 4 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 5 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 6 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 7 AND @S_PkTableId_vals IS NOT NULL)
+               OR (@S_PkTableId_comparator = 8 AND @S_PkTableId_vals IS NOT NULL)
+               OR (@S_PkTableId_comparator = 9 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 10 AND @S_PkTableId_v IS NOT NULL)
+               OR (@S_PkTableId_comparator = 11 AND @S_PkTableId_v1 IS NOT NULL AND @S_PkTableId_v2 IS NOT NULL)
+               OR (@S_PkTableId_comparator = 12 AND @S_PkTableId_v1 IS NOT NULL AND @S_PkTableId_v2 IS NOT NULL)
+               OR (@S_PkTableId_comparator = 13)
+               OR (@S_PkTableId_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_PkTableId_comparator
+        WHEN 1 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) < @PkTableId'
+        WHEN 2 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) <= @PkTableId'
+        WHEN 3 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) = @PkTableId'
+        WHEN 4 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) <> @PkTableId'
+        WHEN 5 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) >= @PkTableId'
+        WHEN 6 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) > @PkTableId'
+        WHEN 7 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@PkTableId_vals))'
+        WHEN 8 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@PkTableId_vals))'
+        WHEN 9 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) LIKE @PkTableId'
+        WHEN 10 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) NOT LIKE @PkTableId'
+        WHEN 11 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) BETWEEN @PkTableId_v1 AND @PkTableId_v2'
+        WHEN 12 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) NOT BETWEEN @PkTableId_v1 AND @PkTableId_v2'
+        WHEN 13 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[PkTableId], [O].[PkTableId]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'Name' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[Name], [O].[Name]) IS NULL'
+                END ELSE
+                IF @S_Name_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_Name_comparator = 1 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 2 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 3 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 4 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 5 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 6 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 7 AND @S_Name_vals IS NOT NULL)
+               OR (@S_Name_comparator = 8 AND @S_Name_vals IS NOT NULL)
+               OR (@S_Name_comparator = 9 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 10 AND @S_Name_v IS NOT NULL)
+               OR (@S_Name_comparator = 11 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR (@S_Name_comparator = 12 AND @S_Name_v1 IS NOT NULL AND @S_Name_v2 IS NOT NULL)
+               OR (@S_Name_comparator = 13)
+               OR (@S_Name_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_Name_comparator
+        WHEN 1 THEN N'COALESCE([D].[Name], [O].[Name]) < @Name'
+        WHEN 2 THEN N'COALESCE([D].[Name], [O].[Name]) <= @Name'
+        WHEN 3 THEN N'COALESCE([D].[Name], [O].[Name]) = @Name'
+        WHEN 4 THEN N'COALESCE([D].[Name], [O].[Name]) <> @Name'
+        WHEN 5 THEN N'COALESCE([D].[Name], [O].[Name]) >= @Name'
+        WHEN 6 THEN N'COALESCE([D].[Name], [O].[Name]) > @Name'
+        WHEN 7 THEN N'COALESCE([D].[Name], [O].[Name]) IN (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN 8 THEN N'COALESCE([D].[Name], [O].[Name]) NOT IN (SELECT CAST([value] AS nvarchar(50)) FROM OPENJSON(@Name_vals))'
+        WHEN 9 THEN N'COALESCE([D].[Name], [O].[Name]) LIKE @Name'
+        WHEN 10 THEN N'COALESCE([D].[Name], [O].[Name]) NOT LIKE @Name'
+        WHEN 11 THEN N'COALESCE([D].[Name], [O].[Name]) BETWEEN @Name_v1 AND @Name_v2'
+        WHEN 12 THEN N'COALESCE([D].[Name], [O].[Name]) NOT BETWEEN @Name_v1 AND @Name_v2'
+        WHEN 13 THEN N'COALESCE([D].[Name], [O].[Name]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[Name], [O].[Name]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'IsParentChildren' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) IS NULL'
+                END ELSE
+                IF @S_IsParentChildren_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_IsParentChildren_comparator = 1 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 2 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 3 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 4 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 5 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 6 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 7 AND @S_IsParentChildren_vals IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 8 AND @S_IsParentChildren_vals IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 9 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 10 AND @S_IsParentChildren_v IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 11 AND @S_IsParentChildren_v1 IS NOT NULL AND @S_IsParentChildren_v2 IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 12 AND @S_IsParentChildren_v1 IS NOT NULL AND @S_IsParentChildren_v2 IS NOT NULL)
+               OR (@S_IsParentChildren_comparator = 13)
+               OR (@S_IsParentChildren_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_IsParentChildren_comparator
+        WHEN 1 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) < @IsParentChildren'
+        WHEN 2 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) <= @IsParentChildren'
+        WHEN 3 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) = @IsParentChildren'
+        WHEN 4 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) <> @IsParentChildren'
+        WHEN 5 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) >= @IsParentChildren'
+        WHEN 6 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) > @IsParentChildren'
+        WHEN 7 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) IN (SELECT CAST([value] AS bit) FROM OPENJSON(@IsParentChildren_vals))'
+        WHEN 8 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) NOT IN (SELECT CAST([value] AS bit) FROM OPENJSON(@IsParentChildren_vals))'
+        WHEN 9 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) LIKE @IsParentChildren'
+        WHEN 10 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) NOT LIKE @IsParentChildren'
+        WHEN 11 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) BETWEEN @IsParentChildren_v1 AND @IsParentChildren_v2'
+        WHEN 12 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) NOT BETWEEN @IsParentChildren_v1 AND @IsParentChildren_v2'
+        WHEN 13 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[IsParentChildren], [O].[IsParentChildren]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[References] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@FkTableId nvarchar(25),@FkTableId_v1 nvarchar(25),@FkTableId_v2 nvarchar(25),@FkTableId_vals NVARCHAR(MAX),@PkTableId bigint,@PkTableId_v1 bigint,@PkTableId_v2 bigint,@PkTableId_vals NVARCHAR(MAX),@Name nvarchar(50),@Name_v1 nvarchar(50),@Name_v2 nvarchar(50),@Name_vals NVARCHAR(MAX),@IsParentChildren bit,@IsParentChildren_v1 bit,@IsParentChildren_v2 bit,@IsParentChildren_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id_v
+                                       ,@Id_v1 = @S_Id_v1
+                                       ,@Id_v2 = @S_Id_v2
+                                       ,@Id_vals = @S_Id_vals
+                                       ,@FkTableId = @S_FkTableId_v
+                                       ,@FkTableId_v1 = @S_FkTableId_v1
+                                       ,@FkTableId_v2 = @S_FkTableId_v2
+                                       ,@FkTableId_vals = @S_FkTableId_vals
+                                       ,@PkTableId = @S_PkTableId_v
+                                       ,@PkTableId_v1 = @S_PkTableId_v1
+                                       ,@PkTableId_v2 = @S_PkTableId_v2
+                                       ,@PkTableId_vals = @S_PkTableId_vals
+                                       ,@Name = @S_Name_v
+                                       ,@Name_v1 = @S_Name_v1
+                                       ,@Name_v2 = @S_Name_v2
+                                       ,@Name_vals = @S_Name_vals
+                                       ,@IsParentChildren = @S_IsParentChildren_v
+                                       ,@IsParentChildren_v1 = @S_IsParentChildren_v1
+                                       ,@IsParentChildren_v2 = @S_IsParentChildren_v2
+                                       ,@IsParentChildren_vals = @S_IsParentChildren_vals
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            ELSE IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [FkTableId]
+                    ,CAST(NULL AS bigint) AS [PkTableId]
+                    ,CAST(NULL AS nvarchar(50)) AS [Name]
+                    ,CAST(NULL AS bit) AS [IsParentChildren]
+            INTO [#result]
+        SET @sql = 'INSERT [#result]
+                        SELECT ''Reference'' AS [Kind]
+                              ,[#].[Recno]
+                              ,[T].[Id]
+                              ,[T].[FkTableId]
+                              ,[T].[PkTableId]
+                              ,[T].[Name]
+                              ,[T].[IsParentChildren]
+                            FROM [#tmpTable] [#]
+                                INNER JOIN [dbo].[References] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Reference'' AS [Kind]
+                                  ,[#].[Recno]
+                                  ,[O].[Id]
+                                  ,[O].[FkTableId]
+                                  ,[O].[PkTableId]
+                                  ,[O].[Name]
+                                  ,[O].[IsParentChildren]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[FkTableId]
+                      ,[PkTableId]
+                      ,[Name]
+                      ,[IsParentChildren]
+                    FROM [#result] FOR JSON PATH) AS [result]
+        SET @ReturnValue = @RowCount
+
+    RETURN 0
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencekeyValidate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencekeyValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyValidate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencekeyValidate](@SessionId BIGINT
+                                               ,@TransactionId BIGINT
+                                               ,@UserName NVARCHAR(25)
+                                               ,@Action NVARCHAR(15)
+                                               ,@LastRecord NVARCHAR(max)
+                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+    IF @SessionId IS NULL
+            THROW 51000, 'Valor de @SessionId é requerido', 1
+        IF @UserName IS NULL
+            THROW 51000, 'Valor de @UserName é requerido', 1
+        IF @Action IS NULL
+            THROW 51000, 'Valor de @Action é requerido', 1
+        IF @Action NOT IN ('create', 'update', 'delete')
+            THROW 51000, 'Valor de @Action é inválido', 1
+        IF @Action = 'delete' BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+        END ELSE BEGIN
+            IF @ActualRecord IS NULL
+                THROW 51000, 'Valor de @ActualRecord é requerido', 1
+            IF ISJSON(@ActualRecord) = 0
+                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
+        END
+        IF @TransactionId IS NULL
+            THROW 51000, 'Valor de @TransactionId é requerido', 1
+        DECLARE @IsConfirmed BIT
+               ,@CreatedBy NVARCHAR(25)
+               ,@IsPendingCreate BIT = 0
+               ,@W_Id bigint
+
+        IF @Action = 'delete' BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        END ELSE BEGIN
+            SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        END
+        SELECT @IsConfirmed = [IsConfirmed]
+              ,@CreatedBy = [CreatedBy]
+            FROM [dbo].[Transactions]
+            WHERE [Id] = @TransactionId
+                  AND [SessionId] = @SessionId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Transação inexistente', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1;
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @W_Id IS NULL BEGIN
+            SET @ErrorMessage = 'Valor de Id em @ActualRecord é requerido.';
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @W_Id < CAST('1' AS bigint)
+            THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Referencekeys] WHERE [Id] = @W_Id) AND @Action = 'create'
+            THROW 51000, 'Chave-primária já existe em Referencekeys', 1
+        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
+                                    FROM [dbo].[Operations]
+                                    WHERE [TransactionId] = @TransactionId
+                                          AND [TableName] = 'Referencekeys'
+                                          AND [IsConfirmed] IS NULL
+                                          AND [Action] = 'create'
+                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
+            SET @IsPendingCreate = 1
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Referencekeys] WHERE [Id] = @W_Id)
+            THROW 51000, 'Chave-primária não existe em Referencekeys', 1
+        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
+            IF @LastRecord IS NULL
+                THROW 51000, 'Valor de @LastRecord é requerido', 1
+            IF ISJSON(@LastRecord) = 0
+                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
+            IF NOT EXISTS(SELECT 1
+                            FROM [dbo].[Referencekeys]
+                            WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND [ReferenceId] = JSON_VALUE(@LastRecord, '$.ReferenceId')
+                                  AND [dbo].[IS_EQUAL]([FkColumnId], JSON_VALUE(@LastRecord, '$.FkColumnId'), 'bigint') = 1
+                                  AND [Sequence] = JSON_VALUE(@LastRecord, '$.Sequence'))
+            AND NOT EXISTS(SELECT 1
+                            FROM [dbo].[Operations]
+                            WHERE [TransactionId] = @TransactionId
+                                  AND [TableName] = 'Referencekeys'
+                                  AND [IsConfirmed] IS NULL
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ReferenceId') = JSON_VALUE(@LastRecord, '$.ReferenceId')
+                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.FkColumnId'), JSON_VALUE(@LastRecord, '$.FkColumnId'), 'bigint') = 1
+                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') = JSON_VALUE(@LastRecord, '$.Sequence'))
+                THROW 51000, 'Registro de Referencekeys alterado por outro usuário', 1
+        END
+
+        IF @Action IN ('create', 'update') BEGIN
+
+            DECLARE @W_ReferenceId nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceId') AS nvarchar(25))
+                   ,@W_FkColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.FkColumnId') AS bigint)
+                   ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+
+            IF @W_ReferenceId IS NULL
+                THROW 51000, 'Valor de ReferenceId em @ActualRecord é requerido.', 1
+            IF @W_Sequence IS NULL
+                THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
+            IF @W_Sequence < CAST('1' AS smallint)
+                THROW 51000, 'Valor de Sequence em @ActualRecord deve ser maior que ou igual a 1', 1
+        END
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencekeyPersist]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencekeyPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyPersist] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencekeyPersist](@Login NVARCHAR(MAX)
+                                              ,@TransactionId BIGINT
+                                              ,@Action NVARCHAR(15)
+                                              ,@LastRecord NVARCHAR(max)
+                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(255)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @OperationId BIGINT
+               ,@CreatedBy NVARCHAR(25)
+               ,@ActionAux NVARCHAR(15)
+               ,@IsConfirmed BIT
+               ,@W_Id bigint
+
+    IF @Action = 'delete' BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+    END ELSE BEGIN
+        SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+    END
+    EXEC @TransactionId = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        SELECT @OperationId = [Id]
+              ,@CreatedBy = [CreatedBy]
+              ,@ActionAux = [Action]
+              ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Referencekeys'
+                  AND [IsConfirmed] IS NULL
+                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
+        IF @@ROWCOUNT = 0 BEGIN
+            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
+            SET IDENTITY_INSERT [dbo].[Operations] ON
+            INSERT INTO [dbo].[Operations] ([Id]
+                                             ,[TransactionId]
+                                             ,[TableName]
+                                             ,[Action]
+                                             ,[LastRecord]
+                                             ,[ActualRecord]
+                                             ,[IsConfirmed]
+                                             ,[CreatedAt]
+                                             ,[CreatedBy])
+                                       VALUES(@OperationId
+                                             ,@TransactionId
+                                             ,'Referencekeys'
+                                             ,@Action
+                                             ,@LastRecord
+                                             ,@ActualRecord
+                                             ,NULL
+                                             ,GETDATE()
+                                             ,@UserName)
+            SET IDENTITY_INSERT [dbo].[Operations] OFF
+        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        ELSE IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        ELSE IF @ActionAux = 'delete'
+            THROW 51000, 'Registro excluído nesta transação', 1
+        ELSE IF @Action = 'create'
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE IF @Action = 'update' BEGIN
+            IF @ActionAux = 'create'
+                EXEC [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+            UPDATE [dbo].[Operations]
+                SET [ActualRecord] = @ActualRecord
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        END
+        ELSE IF @ActionAux = 'create'
+            UPDATE [dbo].[Operations] 
+                SET [IsConfirmed] = 0
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+        ELSE
+            UPDATE [dbo].[Operations]
+                SET [Action] = 'delete'
+                   ,[LastRecord] = @LastRecord
+                   ,[ActualRecord] = NULL
+                   ,[UpdatedAt] = GETDATE()
+                   ,[UpdatedBy] = @UserName
+                WHERE [Id] = @OperationId
+
+    RETURN CAST(@OperationId AS BIGINT)
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencekeyCreate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencekeyCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyCreate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencekeyCreate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Referencekeys'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'create'
+            THROW 51000, 'Ação da operação é inválida para Create', 1
+        EXEC @TransactionIdAux = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ReferenceId nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceId') AS nvarchar(25))
+               ,@W_FkColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.FkColumnId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+
+        INSERT INTO [dbo].[Referencekeys] ([Id]
+                                            ,[ReferenceId]
+                                            ,[FkColumnId]
+                                            ,[Sequence]
+                                            ,[CreatedAt]
+                                            ,[CreatedBy])
+                                      VALUES (@W_Id
+                                             ,@W_ReferenceId
+                                             ,@W_FkColumnId
+                                             ,@W_Sequence
+                                             ,GETDATE()
+                                             ,@UserName)
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencekeyUpdate]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencekeyUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyUpdate] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencekeyUpdate](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Referencekeys'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'update'
+            THROW 51000, 'Ação da operação é inválida para Update', 1
+        EXEC @TransactionIdAux = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
+
+        DECLARE @W_ReferenceId nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.ReferenceId') AS nvarchar(25))
+               ,@W_FkColumnId bigint = CAST(JSON_VALUE(@ActualRecord, '$.FkColumnId') AS bigint)
+               ,@W_Sequence smallint = CAST(JSON_VALUE(@ActualRecord, '$.Sequence') AS smallint)
+
+        UPDATE [dbo].[Referencekeys] SET [Id] = @W_Id
+                                          ,[ReferenceId] = @W_ReferenceId
+                                          ,[FkColumnId] = @W_FkColumnId
+                                          ,[Sequence] = @W_Sequence
+                                          ,[UpdatedAt] = GETDATE()
+                                          ,[UpdatedBy] = @UserName
+            WHERE [Id] = @W_Id
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencekeyDelete]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencekeyDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyDelete] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencekeyDelete](@Login NVARCHAR(MAX)
+                                             ,@OperationId BIGINT) AS BEGIN
+    DECLARE @ErrorMessage NVARCHAR(MAX)
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+    DECLARE @TransactionId BIGINT
+               ,@TransactionIdAux BIGINT
+               ,@TableName NVARCHAR(25)
+               ,@Action NVARCHAR(15)
+               ,@CreatedBy NVARCHAR(25)
+               ,@LastRecord NVARCHAR(max)
+               ,@ActualRecord NVARCHAR(max)
+               ,@IsConfirmed BIT
+
+    IF @OperationId IS NULL
+            THROW 51000, 'Valor de @OperationId requerido', 1
+        SELECT @TransactionId = [TransactionId]
+               ,@TableName = [TableName]
+               ,@Action = [Action]
+               ,@CreatedBy = [CreatedBy]
+               ,@LastRecord = [LastRecord]
+               ,@ActualRecord = [ActualRecord]
+               ,@IsConfirmed = [IsConfirmed]
+            FROM [dbo].[Operations]
+            WHERE [Id] = @OperationId
+        IF @@ROWCOUNT = 0
+            THROW 51000, 'Operação inexistente', 1
+        IF @TableName <> 'Referencekeys'
+            THROW 51000, 'Tabela da operação é inválida', 1
+        IF @IsConfirmed IS NOT NULL BEGIN
+            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
+            THROW 51000, @ErrorMessage, 1
+        END
+        IF @UserName <> @CreatedBy
+            THROW 51000, 'Erro grave de segurança', 1
+        IF @Action <> 'delete'
+            THROW 51000, 'Ação da operação é inválida para Delete', 1
+        EXEC @TransactionIdAux = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        IF @TransactionId <> @TransactionIdAux
+            THROW 51000, 'Transação da operação é inválida', 1
+        DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
+
+        DELETE FROM [dbo].[Referencekeys] WHERE [Id] = @W_Id
+
+        UPDATE [dbo].[Operations]
+            SET [IsConfirmed] = 1
+                ,[UpdatedAt] = GETDATE()
+                ,[UpdatedBy] = @UserName
+            WHERE [Id] = @OperationId
+
+    RETURN @TransactionId
+END
+GO
+
+/**********************************************************************************
+Criar stored procedure [dbo].[ReferencekeysRead]
+**********************************************************************************/
+IF(SELECT object_id('[dbo].[ReferencekeysRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ReferencekeysRead] AS PRINT 1')
+GO
+ALTER PROCEDURE [dbo].[ReferencekeysRead](@Login NVARCHAR(MAX)
+                                          ,@Filter NVARCHAR(MAX)
+                                          ,@Search NVARCHAR(MAX)
+                                          ,@OrderBy NVARCHAR(MAX)
+                                          ,@PaddingGridLastPage BIT
+                                          ,@IsActionList BIT
+                                          ,@PageNumber INT OUT
+                                          ,@LimitRows INT OUT
+                                          ,@MaxPage INT OUT
+                                          ,@ReturnValue BIGINT OUT) AS BEGIN
+
+    SET NOCOUNT ON
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+
+    DECLARE @SessionId BIGINT
+    DECLARE @LoginReturn BIGINT
+
+    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
+    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
+    IF @SessionId IS NULL
+        THROW 51000, 'SessionId é requerido', 1
+
+        IF @Filter IS NULL
+            SET @Filter = '{}'
+        ELSE IF ISJSON(@Filter) = 0
+            THROW 51000, 'Valor de @Filter não está no formato JSON', 1
+        IF @Search IS NULL
+            SET @Search = '{}'
+        ELSE IF ISJSON(@Search) = 0
+            THROW 51000, 'Valor de @Search não está no formato JSON', 1
+        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
+        IF @OrderBy = ''
+            SET @OrderBy = '[T].[Id] ASC'
+        ELSE BEGIN
+            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
+            IF EXISTS(SELECT 1 
+                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                           ELSE TRIM([value])
+                                      END AS [ColumnName]
+                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
+                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
+                                                    FROM [sys].[columns] [#1]
+                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
+                                                    WHERE [#2].[name] = 'Referencekeys') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                         WHERE [T].[ColumnName] IS NULL)
+                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
+            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
+                                                         ELSE TRIM([value])
+                                                    END) + '] ' + 
+                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
+                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
+                                                         ELSE 'ASC'
+                                                    END, ', ')
+                FROM STRING_SPLIT(@OrderBy, ',')
+        END
+
+        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
+
+        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
+            SET @TransactionId = NULL
+        SELECT [Action] AS [_]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ReferenceId') AS nvarchar(25)) AS [ReferenceId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.FkColumnId') AS bigint) AS [FkColumnId]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Sequence') AS smallint) AS [Sequence]
+            INTO [#tmpOperations]
+            FROM [dbo].[Operations]
+            WHERE [TransactionId] = @TransactionId
+                  AND [TableName] = 'Referencekeys'
+                  AND [IsConfirmed] IS NULL
+        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
+
+        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))
+               ,@Where NVARCHAR(MAX) = ''
+               ,@ComparatorPredicate NVARCHAR(MAX)
+               ,@sql NVARCHAR(MAX)
+
+        DECLARE @WT_Id bigint = CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+               ,@WT_ReferenceId nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.ReferenceId') AS nvarchar(25))
+               ,@WT_FkColumnId bigint = CAST(JSON_VALUE(@Filter, '$.FkColumnId') AS bigint)
+
+        IF @WT_Id IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[Id] = @T_Id'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ReferenceId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[ReferenceId] IS NULL'
+        ELSE IF @WT_ReferenceId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[ReferenceId] = @T_ReferenceId'
+        END
+        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'FkColumnId' AND [type] = 0)
+            SET @Where = @Where + ' AND [T].[FkColumnId] IS NULL'
+        ELSE IF @WT_FkColumnId IS NOT NULL BEGIN
+            SET @Where = @Where + ' AND [T].[FkColumnId] = @T_FkColumnId'
+        END
+        IF @_ IS NULL BEGIN
+            DECLARE @G_Id_comparator TINYINT
+                   ,@G_Id_v bigint
+                   ,@G_Id_vals NVARCHAR(MAX)
+                   ,@G_Id_v1 bigint
+                   ,@G_Id_v2 bigint
+                   ,@G_ReferenceId_comparator TINYINT
+                   ,@G_ReferenceId_v nvarchar(25)
+                   ,@G_ReferenceId_vals NVARCHAR(MAX)
+                   ,@G_ReferenceId_v1 nvarchar(25)
+                   ,@G_ReferenceId_v2 nvarchar(25)
+                   ,@G_FkColumnId_comparator TINYINT
+                   ,@G_FkColumnId_v bigint
+                   ,@G_FkColumnId_vals NVARCHAR(MAX)
+                   ,@G_FkColumnId_v1 bigint
+                   ,@G_FkColumnId_v2 bigint
+
+            SELECT @G_Id_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.Id') IS NOT NULL AND JSON_QUERY(@Filter, '$.Id') IS NULL THEN 3 END
+            )
+                  ,@G_Id_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.Id') AS bigint)
+            )
+                  ,@G_Id_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.Id.value'),
+                JSON_QUERY(@Filter, '$.Id')
+            )
+            SELECT @G_Id_v1 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[0]') AS bigint)
+                  ,@G_Id_v2 = TRY_CAST(JSON_VALUE(@G_Id_vals, '$[1]') AS bigint)
+            SELECT @G_ReferenceId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ReferenceId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.ReferenceId') IS NOT NULL AND JSON_QUERY(@Filter, '$.ReferenceId') IS NULL THEN 3 END
+            )
+                  ,@G_ReferenceId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.ReferenceId.value') AS nvarchar(25)),
+                TRY_CAST(JSON_VALUE(@Filter, '$.ReferenceId') AS nvarchar(25))
+            )
+                  ,@G_ReferenceId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.ReferenceId.value'),
+                JSON_QUERY(@Filter, '$.ReferenceId')
+            )
+            SELECT @G_ReferenceId_v1 = TRY_CAST(JSON_VALUE(@G_ReferenceId_vals, '$[0]') AS nvarchar(25))
+                  ,@G_ReferenceId_v2 = TRY_CAST(JSON_VALUE(@G_ReferenceId_vals, '$[1]') AS nvarchar(25))
+            SELECT @G_FkColumnId_comparator = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.FkColumnId.comparator') AS TINYINT),
+                CASE WHEN JSON_VALUE(@Filter, '$.FkColumnId') IS NOT NULL AND JSON_QUERY(@Filter, '$.FkColumnId') IS NULL THEN 3 END
+            )
+                  ,@G_FkColumnId_v = COALESCE(
+                TRY_CAST(JSON_VALUE(@Filter, '$.FkColumnId.value') AS bigint),
+                TRY_CAST(JSON_VALUE(@Filter, '$.FkColumnId') AS bigint)
+            )
+                  ,@G_FkColumnId_vals = COALESCE(
+                JSON_QUERY(@Filter, '$.FkColumnId.value'),
+                JSON_QUERY(@Filter, '$.FkColumnId')
+            )
+            SELECT @G_FkColumnId_v1 = TRY_CAST(JSON_VALUE(@G_FkColumnId_vals, '$[0]') AS bigint)
+                  ,@G_FkColumnId_v2 = TRY_CAST(JSON_VALUE(@G_FkColumnId_vals, '$[1]') AS bigint)
+
+            IF @G_Id_comparator IS NOT NULL BEGIN
+                IF (@G_Id_comparator = 1 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 2 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 3 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 4 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 5 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 6 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 7 AND @G_Id_vals IS NOT NULL)
+               OR (@G_Id_comparator = 8 AND @G_Id_vals IS NOT NULL)
+               OR (@G_Id_comparator = 9 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 10 AND @G_Id_v IS NOT NULL)
+               OR (@G_Id_comparator = 11 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR (@G_Id_comparator = 12 AND @G_Id_v1 IS NOT NULL AND @G_Id_v2 IS NOT NULL)
+               OR (@G_Id_comparator = 13)
+               OR (@G_Id_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_Id_comparator
+        WHEN 1 THEN N'[T].[Id] < @Id'
+        WHEN 2 THEN N'[T].[Id] <= @Id'
+        WHEN 3 THEN N'[T].[Id] = @Id'
+        WHEN 4 THEN N'[T].[Id] <> @Id'
+        WHEN 5 THEN N'[T].[Id] >= @Id'
+        WHEN 6 THEN N'[T].[Id] > @Id'
+        WHEN 7 THEN N'[T].[Id] IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 8 THEN N'[T].[Id] NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 9 THEN N'[T].[Id] LIKE @Id'
+        WHEN 10 THEN N'[T].[Id] NOT LIKE @Id'
+        WHEN 11 THEN N'[T].[Id] BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 12 THEN N'[T].[Id] NOT BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 13 THEN N'[T].[Id] IS NULL'
+        WHEN 14 THEN N'[T].[Id] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'ReferenceId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[ReferenceId] IS NULL'
+            ELSE
+            IF @G_ReferenceId_comparator IS NOT NULL BEGIN
+                IF (@G_ReferenceId_comparator = 1 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 2 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 3 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 4 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 5 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 6 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 7 AND @G_ReferenceId_vals IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 8 AND @G_ReferenceId_vals IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 9 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 10 AND @G_ReferenceId_v IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 11 AND @G_ReferenceId_v1 IS NOT NULL AND @G_ReferenceId_v2 IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 12 AND @G_ReferenceId_v1 IS NOT NULL AND @G_ReferenceId_v2 IS NOT NULL)
+               OR (@G_ReferenceId_comparator = 13)
+               OR (@G_ReferenceId_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_ReferenceId_comparator
+        WHEN 1 THEN N'[T].[ReferenceId] < @ReferenceId'
+        WHEN 2 THEN N'[T].[ReferenceId] <= @ReferenceId'
+        WHEN 3 THEN N'[T].[ReferenceId] = @ReferenceId'
+        WHEN 4 THEN N'[T].[ReferenceId] <> @ReferenceId'
+        WHEN 5 THEN N'[T].[ReferenceId] >= @ReferenceId'
+        WHEN 6 THEN N'[T].[ReferenceId] > @ReferenceId'
+        WHEN 7 THEN N'[T].[ReferenceId] IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@ReferenceId_vals))'
+        WHEN 8 THEN N'[T].[ReferenceId] NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@ReferenceId_vals))'
+        WHEN 9 THEN N'[T].[ReferenceId] LIKE @ReferenceId'
+        WHEN 10 THEN N'[T].[ReferenceId] NOT LIKE @ReferenceId'
+        WHEN 11 THEN N'[T].[ReferenceId] BETWEEN @ReferenceId_v1 AND @ReferenceId_v2'
+        WHEN 12 THEN N'[T].[ReferenceId] NOT BETWEEN @ReferenceId_v1 AND @ReferenceId_v2'
+        WHEN 13 THEN N'[T].[ReferenceId] IS NULL'
+        WHEN 14 THEN N'[T].[ReferenceId] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'FkColumnId' AND [type] = 0)
+                SET @Where = @Where + ' AND [T].[FkColumnId] IS NULL'
+            ELSE
+            IF @G_FkColumnId_comparator IS NOT NULL BEGIN
+                IF (@G_FkColumnId_comparator = 1 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 2 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 3 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 4 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 5 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 6 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 7 AND @G_FkColumnId_vals IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 8 AND @G_FkColumnId_vals IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 9 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 10 AND @G_FkColumnId_v IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 11 AND @G_FkColumnId_v1 IS NOT NULL AND @G_FkColumnId_v2 IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 12 AND @G_FkColumnId_v1 IS NOT NULL AND @G_FkColumnId_v2 IS NOT NULL)
+               OR (@G_FkColumnId_comparator = 13)
+               OR (@G_FkColumnId_comparator = 14) BEGIN
+                    SET @ComparatorPredicate = CASE @G_FkColumnId_comparator
+        WHEN 1 THEN N'[T].[FkColumnId] < @FkColumnId'
+        WHEN 2 THEN N'[T].[FkColumnId] <= @FkColumnId'
+        WHEN 3 THEN N'[T].[FkColumnId] = @FkColumnId'
+        WHEN 4 THEN N'[T].[FkColumnId] <> @FkColumnId'
+        WHEN 5 THEN N'[T].[FkColumnId] >= @FkColumnId'
+        WHEN 6 THEN N'[T].[FkColumnId] > @FkColumnId'
+        WHEN 7 THEN N'[T].[FkColumnId] IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@FkColumnId_vals))'
+        WHEN 8 THEN N'[T].[FkColumnId] NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@FkColumnId_vals))'
+        WHEN 9 THEN N'[T].[FkColumnId] LIKE @FkColumnId'
+        WHEN 10 THEN N'[T].[FkColumnId] NOT LIKE @FkColumnId'
+        WHEN 11 THEN N'[T].[FkColumnId] BETWEEN @FkColumnId_v1 AND @FkColumnId_v2'
+        WHEN 12 THEN N'[T].[FkColumnId] NOT BETWEEN @FkColumnId_v1 AND @FkColumnId_v2'
+        WHEN 13 THEN N'[T].[FkColumnId] IS NULL'
+        WHEN 14 THEN N'[T].[FkColumnId] IS NOT NULL'
+    END
+                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
+                END
+            END
+        END ELSE
+            SET @Where = @Where + ' AND [T].[Id] IN (' + @_ + ')'
+
+        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [Id] bigint)
+        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [Id])
+                        SELECT [_]
+                              ,[Recno]
+                              ,[U].[Id]
+                            FROM (SELECT ''T'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [dbo].[Referencekeys] [T]
+                                        LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
+                                    WHERE [#].[Id] IS NULL' + @Where + '
+                                  UNION ALL
+                                  SELECT ''O'' AS [_]
+                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
+                              ,[T].[Id]
+                                    FROM [#tmpOperations] [T]
+                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
+                            ORDER BY [Recno]'
+        IF @_ IS NULL BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ReferenceId nvarchar(25),@T_FkColumnId bigint,@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ReferenceId nvarchar(25),@ReferenceId_v1 nvarchar(25),@ReferenceId_v2 nvarchar(25),@ReferenceId_vals NVARCHAR(MAX),@FkColumnId bigint,@FkColumnId_v1 bigint,@FkColumnId_v2 bigint,@FkColumnId_vals NVARCHAR(MAX)'
+                               ,@T_Id = @WT_Id
+                               ,@T_ReferenceId = @WT_ReferenceId
+                               ,@T_FkColumnId = @WT_FkColumnId
+                               ,@Id = @G_Id_v
+                               ,@Id_v1 = @G_Id_v1
+                               ,@Id_v2 = @G_Id_v2
+                               ,@Id_vals = @G_Id_vals
+                               ,@ReferenceId = @G_ReferenceId_v
+                               ,@ReferenceId_v1 = @G_ReferenceId_v1
+                               ,@ReferenceId_v2 = @G_ReferenceId_v2
+                               ,@ReferenceId_vals = @G_ReferenceId_vals
+                               ,@FkColumnId = @G_FkColumnId_v
+                               ,@FkColumnId_v1 = @G_FkColumnId_v1
+                               ,@FkColumnId_v2 = @G_FkColumnId_v2
+                               ,@FkColumnId_vals = @G_FkColumnId_vals
+        END ELSE BEGIN
+            EXEC sp_executesql @sql
+                               ,N'@T_Id bigint,@T_ReferenceId nvarchar(25),@T_FkColumnId bigint'
+                               ,@T_Id = @WT_Id
+                               ,@T_ReferenceId = @WT_ReferenceId
+                               ,@T_FkColumnId = @WT_FkColumnId
+        END
+
+        DECLARE @RowCount INT = @@ROWCOUNT
+               ,@OffSet INT
+
+        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([Id])
+        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
+            SET @OffSet = 0
+            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
+            SET @PageNumber = 1
+            SET @MaxPage = 1
+        END ELSE BEGIN
+            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
+            DECLARE @SearchRecno BIGINT = NULL
+            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN
+                DECLARE @Recno BIGINT
+                   ,@S_Id_comparator TINYINT
+                   ,@S_Id_v bigint
+                   ,@S_Id_vals NVARCHAR(MAX)
+                   ,@S_Id_v1 bigint
+                   ,@S_Id_v2 bigint
+                   ,@S_ReferenceId_comparator TINYINT
+                   ,@S_ReferenceId_v nvarchar(25)
+                   ,@S_ReferenceId_vals NVARCHAR(MAX)
+                   ,@S_ReferenceId_v1 nvarchar(25)
+                   ,@S_ReferenceId_v2 nvarchar(25)
+                   ,@S_FkColumnId_comparator TINYINT
+                   ,@S_FkColumnId_v bigint
+                   ,@S_FkColumnId_vals NVARCHAR(MAX)
+                   ,@S_FkColumnId_v1 bigint
+                   ,@S_FkColumnId_v2 bigint
+
+                SELECT @S_Id_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.Id') IS NOT NULL AND JSON_QUERY(@Search, '$.Id') IS NULL THEN 3 END
+                )
+                      ,@S_Id_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.Id') AS bigint)
+                )
+                      ,@S_Id_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.Id.value'),
+                    JSON_QUERY(@Search, '$.Id')
+                )
+                SELECT @S_Id_v1 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[0]') AS bigint)
+                      ,@S_Id_v2 = TRY_CAST(JSON_VALUE(@S_Id_vals, '$[1]') AS bigint)
+                SELECT @S_ReferenceId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ReferenceId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.ReferenceId') IS NOT NULL AND JSON_QUERY(@Search, '$.ReferenceId') IS NULL THEN 9 END
+                )
+                      ,@S_ReferenceId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.ReferenceId.value') AS nvarchar(25)),
+                    TRY_CAST(JSON_VALUE(@Search, '$.ReferenceId') AS nvarchar(25))
+                )
+                      ,@S_ReferenceId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.ReferenceId.value'),
+                    JSON_QUERY(@Search, '$.ReferenceId')
+                )
+                SELECT @S_ReferenceId_v1 = TRY_CAST(JSON_VALUE(@S_ReferenceId_vals, '$[0]') AS nvarchar(25))
+                      ,@S_ReferenceId_v2 = TRY_CAST(JSON_VALUE(@S_ReferenceId_vals, '$[1]') AS nvarchar(25))
+                SELECT @S_FkColumnId_comparator = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.FkColumnId.comparator') AS TINYINT),
+                    CASE WHEN JSON_VALUE(@Search, '$.FkColumnId') IS NOT NULL AND JSON_QUERY(@Search, '$.FkColumnId') IS NULL THEN 3 END
+                )
+                      ,@S_FkColumnId_v = COALESCE(
+                    TRY_CAST(JSON_VALUE(@Search, '$.FkColumnId.value') AS bigint),
+                    TRY_CAST(JSON_VALUE(@Search, '$.FkColumnId') AS bigint)
+                )
+                      ,@S_FkColumnId_vals = COALESCE(
+                    JSON_QUERY(@Search, '$.FkColumnId.value'),
+                    JSON_QUERY(@Search, '$.FkColumnId')
+                )
+                SELECT @S_FkColumnId_v1 = TRY_CAST(JSON_VALUE(@S_FkColumnId_vals, '$[0]') AS bigint)
+                      ,@S_FkColumnId_v2 = TRY_CAST(JSON_VALUE(@S_FkColumnId_vals, '$[1]') AS bigint)
+
+                SET @Where = ''
+                IF @S_Id_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_Id_comparator = 1 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 2 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 3 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 4 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 5 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 6 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 7 AND @S_Id_vals IS NOT NULL)
+               OR (@S_Id_comparator = 8 AND @S_Id_vals IS NOT NULL)
+               OR (@S_Id_comparator = 9 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 10 AND @S_Id_v IS NOT NULL)
+               OR (@S_Id_comparator = 11 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR (@S_Id_comparator = 12 AND @S_Id_v1 IS NOT NULL AND @S_Id_v2 IS NOT NULL)
+               OR (@S_Id_comparator = 13)
+               OR (@S_Id_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_Id_comparator
+        WHEN 1 THEN N'COALESCE([D].[Id], [O].[Id]) < @Id'
+        WHEN 2 THEN N'COALESCE([D].[Id], [O].[Id]) <= @Id'
+        WHEN 3 THEN N'COALESCE([D].[Id], [O].[Id]) = @Id'
+        WHEN 4 THEN N'COALESCE([D].[Id], [O].[Id]) <> @Id'
+        WHEN 5 THEN N'COALESCE([D].[Id], [O].[Id]) >= @Id'
+        WHEN 6 THEN N'COALESCE([D].[Id], [O].[Id]) > @Id'
+        WHEN 7 THEN N'COALESCE([D].[Id], [O].[Id]) IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 8 THEN N'COALESCE([D].[Id], [O].[Id]) NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@Id_vals))'
+        WHEN 9 THEN N'COALESCE([D].[Id], [O].[Id]) LIKE @Id'
+        WHEN 10 THEN N'COALESCE([D].[Id], [O].[Id]) NOT LIKE @Id'
+        WHEN 11 THEN N'COALESCE([D].[Id], [O].[Id]) BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 12 THEN N'COALESCE([D].[Id], [O].[Id]) NOT BETWEEN @Id_v1 AND @Id_v2'
+        WHEN 13 THEN N'COALESCE([D].[Id], [O].[Id]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[Id], [O].[Id]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'ReferenceId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[ReferenceId], [O].[ReferenceId]) IS NULL'
+                END ELSE
+                IF @S_ReferenceId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_ReferenceId_comparator = 1 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 2 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 3 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 4 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 5 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 6 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 7 AND @S_ReferenceId_vals IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 8 AND @S_ReferenceId_vals IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 9 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 10 AND @S_ReferenceId_v IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 11 AND @S_ReferenceId_v1 IS NOT NULL AND @S_ReferenceId_v2 IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 12 AND @S_ReferenceId_v1 IS NOT NULL AND @S_ReferenceId_v2 IS NOT NULL)
+               OR (@S_ReferenceId_comparator = 13)
+               OR (@S_ReferenceId_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_ReferenceId_comparator
+        WHEN 1 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) < @ReferenceId'
+        WHEN 2 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) <= @ReferenceId'
+        WHEN 3 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) = @ReferenceId'
+        WHEN 4 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) <> @ReferenceId'
+        WHEN 5 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) >= @ReferenceId'
+        WHEN 6 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) > @ReferenceId'
+        WHEN 7 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@ReferenceId_vals))'
+        WHEN 8 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@ReferenceId_vals))'
+        WHEN 9 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) LIKE @ReferenceId'
+        WHEN 10 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) NOT LIKE @ReferenceId'
+        WHEN 11 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) BETWEEN @ReferenceId_v1 AND @ReferenceId_v2'
+        WHEN 12 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) NOT BETWEEN @ReferenceId_v1 AND @ReferenceId_v2'
+        WHEN 13 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[ReferenceId], [O].[ReferenceId]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'FkColumnId' AND [type] = 0) BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    SET @Where = @Where + 'COALESCE([D].[FkColumnId], [O].[FkColumnId]) IS NULL'
+                END ELSE
+                IF @S_FkColumnId_comparator IS NOT NULL BEGIN
+                    IF @Where <> '' SET @Where = @Where + ' AND '
+                    IF (@S_FkColumnId_comparator = 1 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 2 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 3 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 4 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 5 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 6 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 7 AND @S_FkColumnId_vals IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 8 AND @S_FkColumnId_vals IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 9 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 10 AND @S_FkColumnId_v IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 11 AND @S_FkColumnId_v1 IS NOT NULL AND @S_FkColumnId_v2 IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 12 AND @S_FkColumnId_v1 IS NOT NULL AND @S_FkColumnId_v2 IS NOT NULL)
+               OR (@S_FkColumnId_comparator = 13)
+               OR (@S_FkColumnId_comparator = 14) BEGIN
+                        SET @ComparatorPredicate = CASE @S_FkColumnId_comparator
+        WHEN 1 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) < @FkColumnId'
+        WHEN 2 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) <= @FkColumnId'
+        WHEN 3 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) = @FkColumnId'
+        WHEN 4 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) <> @FkColumnId'
+        WHEN 5 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) >= @FkColumnId'
+        WHEN 6 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) > @FkColumnId'
+        WHEN 7 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@FkColumnId_vals))'
+        WHEN 8 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) NOT IN (SELECT CAST([value] AS bigint) FROM OPENJSON(@FkColumnId_vals))'
+        WHEN 9 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) LIKE @FkColumnId'
+        WHEN 10 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) NOT LIKE @FkColumnId'
+        WHEN 11 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) BETWEEN @FkColumnId_v1 AND @FkColumnId_v2'
+        WHEN 12 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) NOT BETWEEN @FkColumnId_v1 AND @FkColumnId_v2'
+        WHEN 13 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) IS NULL'
+        WHEN 14 THEN N'COALESCE([D].[FkColumnId], [O].[FkColumnId]) IS NOT NULL'
+    END
+                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
+                    END
+                END
+                IF @Where <> '' BEGIN
+                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
+                                    FROM [#tmpTable] [#]
+                                        LEFT JOIN [dbo].[Referencekeys] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
+                                    WHERE ' + @Where
+                    EXEC sp_executesql @sql
+                                       ,N'@Id bigint,@Id_v1 bigint,@Id_v2 bigint,@Id_vals NVARCHAR(MAX),@ReferenceId nvarchar(25),@ReferenceId_v1 nvarchar(25),@ReferenceId_v2 nvarchar(25),@ReferenceId_vals NVARCHAR(MAX),@FkColumnId bigint,@FkColumnId_v1 bigint,@FkColumnId_v2 bigint,@FkColumnId_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
+                                       ,@Id = @S_Id_v
+                                       ,@Id_v1 = @S_Id_v1
+                                       ,@Id_v2 = @S_Id_v2
+                                       ,@Id_vals = @S_Id_vals
+                                       ,@ReferenceId = @S_ReferenceId_v
+                                       ,@ReferenceId_v1 = @S_ReferenceId_v1
+                                       ,@ReferenceId_v2 = @S_ReferenceId_v2
+                                       ,@ReferenceId_vals = @S_ReferenceId_vals
+                                       ,@FkColumnId = @S_FkColumnId_v
+                                       ,@FkColumnId_v1 = @S_FkColumnId_v1
+                                       ,@FkColumnId_v2 = @S_FkColumnId_v2
+                                       ,@FkColumnId_vals = @S_FkColumnId_vals
+                                       ,@r = @Recno OUTPUT
+                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
+                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
+                END
+            END
+            IF ABS(@PageNumber) > @MaxPage
+                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
+            ELSE IF @PageNumber < 0
+                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
+            SET @OffSet = (@PageNumber - 1) * @LimitRows
+            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
+                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
+        END
+        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
+                    ,CAST(NULL AS BIGINT) AS [Recno]
+                    ,CAST(NULL AS bigint) AS [Id]
+                    ,CAST(NULL AS nvarchar(25)) AS [ReferenceId]
+                    ,CAST(NULL AS bigint) AS [FkColumnId]
+                    ,CAST(NULL AS smallint) AS [Sequence]
+            INTO [#result]
+        SET @sql = 'INSERT [#result]
+                        SELECT ''Referencekey'' AS [Kind]
+                              ,[#].[Recno]
+                              ,[T].[Id]
+                              ,[T].[ReferenceId]
+                              ,[T].[FkColumnId]
+                              ,[T].[Sequence]
+                            FROM [#tmpTable] [#]
+                                INNER JOIN [dbo].[Referencekeys] [T] ON [T].[Id] = [#].[Id]
+                            WHERE [#].[_] = ''T''
+                        UNION ALL
+                            SELECT ''Referencekey'' AS [Kind]
+                                  ,[#].[Recno]
+                                  ,[O].[Id]
+                                  ,[O].[ReferenceId]
+                                  ,[O].[FkColumnId]
+                                  ,[O].[Sequence]
+                                FROM [#tmpTable] [#]
+                                    INNER JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id]
+                                WHERE [#].[_] = ''O''
+                        ORDER BY [Recno]
+                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
+                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
+        EXEC sp_executesql @sql
+        SELECT (SELECT [Kind]
+                      ,[Id]
+                      ,[ReferenceId]
+                      ,[FkColumnId]
+                      ,[Sequence]
                     FROM [#result] FOR JSON PATH) AS [result]
         SET @ReturnValue = @RowCount
 

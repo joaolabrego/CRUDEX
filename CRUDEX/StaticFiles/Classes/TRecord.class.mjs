@@ -17,9 +17,7 @@ export default class TRecord {
                 this[key] = value;
         }
         for (const column of table.Columns) {
-            if (TConfig.IsEmpty(column.ReferenceTableId))
-                continue;
-            const refTable = TSystem.GetTable(column.ReferenceTableId);
+            const refTable = TSystem.GetReferencePkTable(column);
             if (!refTable)
                 continue;
             const alias = refTable.Alias || refTable.Name;
@@ -49,10 +47,7 @@ export default class TRecord {
 
     getBrowseValue(column) {
         const value = this[column.Name];
-        if (TConfig.IsEmpty(column.ReferenceTableId))
-            return value;
-
-        const refTable = TSystem.GetTable(column.ReferenceTableId);
+        const refTable = TSystem.GetReferencePkTable(column);
         if (!refTable)
             return value ?? "";
 
@@ -67,14 +62,11 @@ export default class TRecord {
             if (!TConfig.IsEmpty(listValue))
                 return listValue;
         }
-        return ref.Id ?? value ?? "";
+        return TSystem.GetPrimaryKeyScalar(ref, refTable) ?? value ?? "";
     }
 
     getBrowseAlign(column) {
-        if (TConfig.IsEmpty(column.ReferenceTableId))
-            return column.Domain.Type.Category.HtmlInputAlign;
-
-        const refTable = TSystem.GetTable(column.ReferenceTableId);
+        const refTable = TSystem.GetReferencePkTable(column);
         if (!refTable)
             return column.Domain.Type.Category.HtmlInputAlign;
 

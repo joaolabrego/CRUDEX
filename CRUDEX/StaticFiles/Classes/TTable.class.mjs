@@ -10,7 +10,6 @@ export default class TTable {
     #Database = null;
     #Columns = [];
     #Indexes = [];
-    #References = [];
 
     constructor(database, rowTable) {
         if (!database instanceof TDatabase)
@@ -104,15 +103,9 @@ export default class TTable {
         return this.#Columns;
     }
     get References() {
-        if (this.#References === null) {
-            this.#References = [];
-            this.#Columns.filter(column => !TConfig.IsEmpty(column.ReferenceTableId))
-                .forEach(column => {
-                    this.#References.push(TSystem.GetTable(column.ReferenceTableId));
-                });
-        }
-
-        return this.#References;
+        return TSystem.GetReferencesForTable(this.Id)
+            .map(reference => TSystem.GetTable(reference.PkTableId))
+            .filter(table => table != null);
     }
     get Database() {
         return this.#Database;

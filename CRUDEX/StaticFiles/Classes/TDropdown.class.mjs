@@ -58,6 +58,8 @@ export default class TDropdown {
     #serverPage = 1;
     #serverPageCount = 1;
     #paginate = true;
+    #collapseSelectionOnBlur = false;
+    #inputEditing = false;
 
     static Initialize(styles) {
         if (styles.ClassName !== "Styles")
@@ -114,6 +116,7 @@ export default class TDropdown {
         this.#formatInput = options.formatInput ?? null;
         this.#loader = options.loader ?? null;
         this.#paginate = options.paginate !== false;
+        this.#collapseSelectionOnBlur = options.collapseSelectionOnBlur === true;
         this.#listSearch = options.listSearch === true || (this.#mode === TDropdown.Modes.MULTI && this.#loader != null);
 
         if (options.paginate === false)
@@ -309,11 +312,24 @@ export default class TDropdown {
                 void this.#filterItems(e.target.value.trim());
                 this.#showList();
             });
+            this.#input.addEventListener("focus", () => {
+                if (!this.#collapseSelectionOnBlur || !this.#isAddableMode())
+                    return;
+                this.#inputEditing = true;
+                this.#clearInputForEdit();
+            });
             this.#input.addEventListener("click", (e) => {
                 e.stopPropagation();
                 void this.#toggleList();
             });
             this.#input.addEventListener("blur", () => {
+                if (this.#collapseSelectionOnBlur && this.#isAddableMode()) {
+                    this.#inputEditing = false;
+                    this.#applyCollapsedInput();
+                    this.#hideList();
+                    this.#updateValidity();
+                    return;
+                }
                 this.#commitPendingInput(false);
                 this.#revertInput();
                 this.#hideList();
@@ -322,6 +338,20 @@ export default class TDropdown {
         }
 
         if (this.#trigger) {
+            if (this.#collapseSelectionOnBlur) {
+                const beginTriggerEdit = () => {
+                    this.#inputEditing = true;
+                    this.#trigger.textContent = "";
+                    this.#trigger.title = "";
+                    this.#trigger.classList.remove("tdropdown-collapsed");
+                };
+                this.#trigger.addEventListener("mousedown", beginTriggerEdit);
+                this.#trigger.addEventListener("focus", beginTriggerEdit);
+                this.#trigger.addEventListener("blur", () => {
+                    this.#inputEditing = false;
+                    this.#updateTriggerLabel();
+                });
+            }
             this.#trigger.addEventListener("click", (e) => {
                 e.stopPropagation();
                 this.dismissValidityBalloon();
@@ -668,14 +698,48 @@ export default class TDropdown {
     #updateTriggerLabel() {
         if (!this.#trigger)
             return;
+        if (this.#collapseSelectionOnBlur && this.#inputEditing)
+            return;
         const labels = this.#selected.map(s => s.label);
-        this.#trigger.textContent = labels.length
-            ? labels.join(", ")
-            : (this.#placeholder || "Selecionar...");
+        const full = labels.join(", ");
+        this.#trigger.textContent = full || (this.#placeholder || "Selecionar...");
+        this.#trigger.title = full;
+        this.#trigger.classList.toggle("tdropdown-collapsed", !!full);
     }
 
     #sanitize(value) {
         return (value ?? "").trim();
+    }
+
+    #formatSelectedLabels() {
+        if (this.#isAddableMode()) {
+            return this.#manualValues
+                .map(value => (this.#formatItem ? this.#formatItem(value) : String(value ?? "")))
+                .filter(label => label !== "")
+                .join(", ");
+        }
+        return this.#selected.map(item => item.label).join(", ");
+    }
+
+    #applyCollapsedInput() {
+        if (!this.#input || !this.#collapseSelectionOnBlur)
+            return;
+        const full = this.#formatSelectedLabels();
+        if (full) {
+            this.#input.value = full;
+            this.#input.title = full;
+            this.#input.classList.add("tdropdown-collapsed");
+        } else {
+            this.#clearInputForEdit();
+        }
+    }
+
+    #clearInputForEdit() {
+        if (!this.#input)
+            return;
+        this.#input.value = "";
+        this.#input.title = "";
+        this.#input.classList.remove("tdropdown-collapsed");
     }
 
     #addFromInput() {
@@ -740,6 +804,9 @@ export default class TDropdown {
         else if (!this.#loader)
             this.#filtered = [...this.#catalog];
         this.#updateTriggerLabel();
+        if (this.#collapseSelectionOnBlur && this.#isAddableMode()
+            && this.#input && document.activeElement !== this.#input)
+            this.#applyCollapsedInput();
         this.#updateValidity();
         this.#syncPlusVisibility();
         if (!this.#loader)

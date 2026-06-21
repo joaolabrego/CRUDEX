@@ -81,7 +81,6 @@ BEGIN
 				,[T].[Name]
 				,[T].[Alias]
 				,[T].[Description]
-				,[T].[ParentTableId]
 			INTO [#Tables]
 			FROM [dbo].[Tables] [T]
 				INNER JOIN [dbo].[DatabasesTables] [DT] ON [DT].[TableId] = [T].[Id]
@@ -98,7 +97,6 @@ BEGIN
 					,[C].[TableId]
 					,[C].[Sequence]
 					,[C].[DomainId]
-					,[C].[ReferenceTableId]
 					,[C].[Name]
 					,[C].[Alias]
 					,[C].[Description]
@@ -309,6 +307,27 @@ BEGIN
 				WHERE EXISTS(SELECT 1 FROM [#Columns] [C] WHERE [C].[Id] = [B].[ColumnId])
 					AND EXISTS(SELECT 1 FROM [#Expressions] [E] WHERE [E].[Id] = [B].[ExpressionId])
 					AND EXISTS(SELECT 1 FROM [#Properties] [P] WHERE [P].[Id] = [B].[PropertyId])
+
+			-- 18 [References]
+			SELECT 'Reference' AS [Kind]
+					,[R].[Id]
+					,[R].[FkTableId]
+					,[R].[PkTableId]
+					,[R].[Name]
+					,[R].[IsParentChildren] AS [IsParentChild]
+				INTO [#References]
+				FROM [dbo].[References] [R]
+				WHERE EXISTS(SELECT 1 FROM [#Tables] [T] WHERE [T].[Id] IN ([R].[FkTableId], [R].[PkTableId]))
+
+			-- 19 [Referencekeys]
+			SELECT 'Referencekey' AS [Kind]
+					,[RK].[Id]
+					,[RK].[ReferenceId]
+					,[RK].[FkColumnId]
+					,[RK].[Sequence]
+				INTO [#Referencekeys]
+				FROM [dbo].[Referencekeys] [RK]
+				WHERE EXISTS(SELECT 1 FROM [#References] [R] WHERE [R].[Id] = [RK].[ReferenceId])
 		END
 
 		-- Results
@@ -331,6 +350,8 @@ BEGIN
 			SELECT * FROM [#Conditions] ORDER BY [ExpressionId], [Sequence] -- 15 [#Conditions]
 			SELECT * FROM [#Properties] ORDER BY [Name] -- 16 [#Properties]
 			SELECT * FROM [#Behaviors] ORDER BY [ColumnId], [ExpressionId] -- 17 [#Behaviors]
+			SELECT * FROM [#References] ORDER BY [FkTableId], [PkTableId], [Name] -- 18 [#References]
+			SELECT * FROM [#Referencekeys] ORDER BY [ReferenceId], [Sequence] -- 19 [#Referencekeys]
 		END ELSE BEGIN
 			SELECT * FROM [#Connections] ORDER BY [Id] -- 1 [#Connections]]
 			SELECT * FROM [#Databases] ORDER BY [Name] -- 2 [#Databases]

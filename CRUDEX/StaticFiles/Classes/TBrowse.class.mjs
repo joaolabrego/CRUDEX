@@ -697,7 +697,8 @@ export default class TBrowse {
         return this.#Data?.[this.#RowNumber] ?? null;
     }
     get Primarykeys() {
-        return { Id: this.#Data[this.#RowNumber]["Id"] };
+        const record = this.#Data[this.#RowNumber];
+        return TSystem.GetPrimaryKeyValues(record, this.#Table) ?? {};
     }
     get OrderBy() {
         return this.#RecordSet.orderBy;

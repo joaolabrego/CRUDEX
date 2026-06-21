@@ -54,6 +54,8 @@ namespace CRUDEX.Classes
                     Conditions = ConfigTable(dataSet, 15),
                     Properties = ConfigTable(dataSet, 16),
                     Behaviors = ConfigTable(dataSet, 17),
+                    References = ConfigTable(dataSet, 18),
+                    Referencekeys = ConfigTable(dataSet, 19),
                     Actions = Actions.GetObject(),
                 };
                 config.Styles = new Styles();

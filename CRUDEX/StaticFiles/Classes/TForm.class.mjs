@@ -207,9 +207,7 @@ export default class TForm {
 
     #metadataDriverColumn() {
         for (const name of TForm.#METADATA_DRIVER_COLUMNS) {
-            const column = this.#Grid.Table.Columns.find(
-                item => item.Name === name && item.ReferenceTableId,
-            );
+            const column = this.#Grid.Table.Columns.find(item => item.Name === name && TSystem.IsFkColumn(item));
             if (column)
                 return name;
         }
@@ -418,7 +416,7 @@ export default class TForm {
             const section = document.createElement("section");
             section.className = "detail-grid-section";
 
-            const linkColumn = TSystem.GetParentLinkColumn(
+            const parentReference = TSystem.GetReferenceBetween(
                 childTable,
                 this.#detailParentTable,
                 this.#Grid.Table,
@@ -431,7 +429,7 @@ export default class TForm {
             childGrid.setEnabled(false);
             section.appendChild(childGrid.HostElement);
             this.#HTML.DetailGridPanel.appendChild(section);
-            this.#childGrids.push({ table: childTable, grid: childGrid, linkColumn, section, tab });
+            this.#childGrids.push({ table: childTable, grid: childGrid, parentReference, section, tab });
         });
 
         this.#selectChildTab(0, false);
@@ -457,23 +455,38 @@ export default class TForm {
         if (render && this.canAccessChildren)
             await this.#renderChildGrid(index);
     }
-    #resolveChildScopeId() {
-        const selected = this.#Grid.SelectedRecord;
-        return this.#actualRecord?.Id
-            ?? this.#lastRecord?.Id
-            ?? selected?.Id
-            ?? null;
+    #resolveParentRecord() {
+        return this.#actualRecord ?? this.#lastRecord ?? this.#Grid.SelectedRecord ?? null;
+    }
+    #hasResolvedParentKeys() {
+        const record = this.#resolveParentRecord();
+        if (!record)
+            return false;
+        const values = TSystem.GetPrimaryKeyValues(record, this.#Grid.Table);
+        return values != null && Object.values(values).every(value => value != null);
+    }
+    #buildParentChildTableFilter(childTable, parentReference) {
+        const parentRecord = this.#resolveParentRecord();
+        if (!parentRecord || !parentReference)
+            return null;
+        const filter = {};
+        for (const pair of parentReference.KeyPairs) {
+            const value = parentRecord[pair.pkColumn.Name];
+            if (value === null || value === undefined)
+                return null;
+            filter[pair.fkColumn.Name] = value;
+        }
+        return filter;
     }
     async #renderChildGrid(index) {
         const entry = this.#childGrids[index];
         if (!entry)
             return;
-        const parentId = this.#resolveChildScopeId();
-        if (!parentId)
+        const filter = this.#buildParentChildTableFilter(entry.table, entry.parentReference);
+        if (!filter)
             return;
-        const { grid, linkColumn } = entry;
-        if (linkColumn)
-            grid.RecordSet.setTableFilter({ [linkColumn.Name]: parentId });
+        const { grid } = entry;
+        grid.RecordSet.setTableFilter(filter);
         await grid.Renderize(1);
     }
     #updateDetailAccess() {
@@ -620,20 +633,22 @@ export default class TForm {
     #excludeParentLinkColumn(columns, setParentValue = false) {
         if (!this.#masterForm)
             return columns;
-        const linkColumn = TSystem.GetParentLinkColumn(
+        const parentReference = TSystem.GetReferenceBetween(
             this.#Grid.Table,
             this.#masterForm.parentTable,
             this.#masterForm.Table,
         );
-        if (!linkColumn)
+        if (!parentReference)
             return columns;
+        const linkColumns = new Set(parentReference.KeyPairs.map(pair => pair.fkColumn));
         if (setParentValue) {
-            const parentId = this.#masterForm.actualRecord?.Id
-                ?? this.#masterForm.lastRecord?.Id;
-            if (parentId != null)
-                this.#actualRecord[linkColumn.Name] = parentId;
+            const parentRecord = this.#masterForm.actualRecord ?? this.#masterForm.lastRecord;
+            if (parentRecord) {
+                for (const pair of parentReference.KeyPairs)
+                    this.#actualRecord[pair.fkColumn.Name] = parentRecord[pair.pkColumn.Name];
+            }
         }
-        return columns.filter(column => column !== linkColumn);
+        return columns.filter(column => !linkColumns.has(column));
     }
     async Configure() {
         let columns = this.#Grid.Table.Columns;
@@ -823,13 +838,13 @@ export default class TForm {
         return this.#lastRecord;
     }
     get canAccessChildren() {
-        const parentId = this.#resolveChildScopeId();
+        const hasParentKey = this.#hasResolvedParentKeys();
         if (this.#Action === TSystem.Actions.QUERY)
-            return parentId != null;
+            return hasParentKey;
         if (!this.#isPersistAction() || this.#Action === TSystem.Actions.DELETE)
             return false;
         if (this.#Action === TSystem.Actions.CREATE)
             return this.#isStaged;
-        return parentId != null && !this.#showsPersist();
+        return hasParentKey && !this.#showsPersist();
     }
 }

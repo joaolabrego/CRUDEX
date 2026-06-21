@@ -33,7 +33,8 @@
 | `Uni` | Unicities | Unicidade cruzada entre colunas |
 | `Exp` | Expressions | Agrupa condições (`Name`, `TableId`) |
 | `Cnd` | Conditions | Linhas lógicas: `Cmp`, AND/OR, parênteses, colunas/valores |
-| `Ref` | References | FKs: `ColumnId`, `TableId`, `Alias`, `ExpressionId`, `IsParentChild` |
+| `Ref` | References | Relação FK: `FkTableId`, `PkTableId`, `Name`, `IsParentChild` |
+| `Rfk` | Referencekeys | Colunas FK: `ReferenceId`, `FkColumnId`, `Sequence` |
 | `Usr` | Users | Usuários por `ClientId` (simples — dispensa detalhamento) |
 | `Prm` | Permissions | CRUD direto: `SystemId` + `UserId` + `TableId` + `CanCreate/Read/Update/Delete` (sem grupos) |
 | `Prp` | Properties | Catálogo de propriedades HTML/controle (nativas e customizadas) |
@@ -73,6 +74,24 @@ Flags `Ask*`: o que pode ser configurado em domínios/colunas daquela categoria 
 4. Map WHERE EngineId AND TypeId → nome físico (ex.: bigint / INT8 / NUMBER)
 5. Montar tipo: Map.Name + Dmn.Length + Dmn.Decimals
 ```
+
+## Comparadores (`Cmp`) e runtime
+
+Metadado (`Cmp` + `Rul`): `Symbol`, `Description`, `Arity` — **sem** `SqlComparator`/`JsComparator` (lógica no código, como `Prp` → `TProperty`).
+
+| Camada | Arquivo | Papel |
+|--------|---------|-------|
+| JS | `TComparator.class.mjs` | Registry por `Symbol`; `buildJs`, `parseValues` |
+| C# | `ComparatorRegistry.cs` | `BuildSqlPredicate`, validação por `Symbol`+`Arity`; usado em `Scripts.cs` |
+| Metadado | `Cmp`, `Rul` | Catálogo + quais operadores cada categoria pode usar |
+
+**Pendente — importante, implementar depois:** SQL dos comparadores **por Engine (`Eng`)**, engessado no código (`TComparator` / `ComparatorRegistry`), **não** tabela estilo `Map`. Predicados variam estruturalmente entre SGBDs (`IN` + OPENJSON vs `ANY`/unnest, `LIKE` vs `ILIKE`, etc.) — é lógica procedural, não troca de rótulo. JS permanece único (browser não usa dialeto SQL).
+
+**Resolução por engine (fallback):** metadado `Cmp` define **qual** operador (`Symbol`, `Arity`, `Rul`); `TComparator` / `ComparatorRegistry` define **como** montar SQL/JS. Fluxo: handler **padrão** engessado na classe; se existir versão **por engine** para aquele `Symbol`, **esta prevalece**; senão, padrão. Overrides **só onde o dialeto difere**.
+
+**Chaves por nome, não por Id:** registry e overrides indexados por **`Symbol`** (comparador) e **`Eng.Name`** (SGBD, ex.: `"MySQL"`, `"SQL Server"`) — nunca por `ComparatorId`/`EngineId` numérico. Alinhado a `TProperty`/`Prp.Name` e `Typ.Name`.
+
+Paralelo: `Typ`/`Map` = tradução declarativa; `Cmp`/registry = implementação fixa por engine.
 
 ## Tenant (`Cli`)
 
@@ -120,19 +139,30 @@ Tabelas filhas (`Ref.IsParentChild`): sem `MenuId` por convenção (master-detai
 
 Ação derivada: `grid/{Db.Name}/{Tbl.Name}`.
 
-## Referências (`Ref`)
+## Referências (`Ref` + `Rfk`)
 
-**Não existe `ParentTableId`.**
+Substituem `Col.ReferenceTableId` e `Tbl.ParentTableId` (1.0).
+
+**`References`** — cabeçalho (1 linha = 1 FK lógica ou master-detail):
 
 | Campo | Papel |
 |-------|--------|
-| `ColumnId` | Coluna FK (filho) |
-| `TableId` | Tabela referenciada (pai) |
-| `Alias` | Nome lógico da relação |
-| `ExpressionId` | Condição opcional (`Exp`/`Cnd`) |
+| `FkTableId` | Tabela filha (onde estão as FKs) |
+| `PkTableId` | Tabela referenciada (PK) |
+| `Name` | Nome lógico da relação (JSON, joins, UI) |
 | `IsParentChild` | `true` = FK + master-detail no formulário |
 
-DDL de FK gerado a partir de `Ref`, não de `Col.ReferenceTableId` (ausente no Novíssimo).
+**`Referencekeys`** — só o lado FK (PK inferida pela ordem canônica do pai):
+
+| Campo | Papel |
+|-------|--------|
+| `ReferenceId` | → `References` |
+| `FkColumnId` | Coluna FK na filha |
+| `Sequence` | Ordem relativa (ex.: 5, 10, 15…) — **não** precisa igualar `PkSequence` do pai |
+
+Gerador: `ORDER BY Sequence` em `Referencekeys` e `ORDER BY PkSequence`/`Sequence` na PK do `PkTableId`; pareamento por **posição** (1.ª FK → 1.ª PK, 2.ª → 2.ª…). Validar: mesma quantidade de chaves; `Sequence` única por `ReferenceId`.
+
+DDL: `FOREIGN KEY (fk1, fk2, …) REFERENCES pai (pk1, pk2, …)` — colunas PK **não** cadastradas em `Referencekeys`.
 
 ## Unicidades (`Uni`)
 
@@ -297,7 +327,7 @@ Operações pendentes **antes do commit**: `TransactionId`, `TableName`, `Action
 |----------|-------|-----------|
 | Aba Excel | `Name` | `Alias` |
 | Tipo SQL | `#DataType` em Types | `Map` × `Cli.EngineId` |
-| FK | `Col.ReferenceTableId` | `Ref` |
+| FK | `Col.ReferenceTableId` | `Ref` + `Rfk` |
 | Pai-filho | `Tbl.ParentTableId` | `Ref.IsParentChild` |
 | Menu item | `Menus.Action` | `Tbl.MenuId`… |
 | Unicidade cruzada | `Unicities` | `Uni` |
@@ -367,7 +397,7 @@ Parâmetros típicos: `@LoginId`, `@RecordFilter` (JSON), `@OrderBy`, `@PaddingG
 
 **Conector fixo `AND`** — reflete como o usuário pensa: na prática formula critérios encadeados (“nome contém X **e** data após Y **e** status Z”), raramente OR. A UI de filtro/pesquisa só monta condições em **AND** (sem escolher conector nem parênteses). Condições **complexas** (OR, parênteses) ficam em **`Exp`/`Cnd`** — analista/negócio, não o usuário final na grid.
 
-Compilação: `WHERE col1 op val1 AND col2 op val2 AND …` via `Cmp.CodeSQL`.
+Compilação: `WHERE col1 op val1 AND col2 op val2 AND …` via `ComparatorRegistry` / `TComparator` (SQL Server hoje; **por Engine depois** — ver seção Comparadores).
 
 **Emular OR sem OR na UI:** operadores `∈` (IN) e `∃` (BETWEEN) cobrem disjunção e faixas. OR explícito só em `Exp`/`Cnd`.
 
@@ -498,6 +528,8 @@ TDropdown.Cardinality(host2, {
 });
 ```
 - [ ] Gerador SQL Novíssimo (`Alias`, `#` lookups, `Map` × `Eng`)
+- [ ] **`Ref` + `Rfk`** — FK composta, master-detail (substituir `ReferenceTableId`/`ParentTableId`)
+- [ ] **`TComparator` / `ComparatorRegistry` por Engine** — SQL multi-SGBD no código (pendente; importante)
 - [ ] Procedures redesenhadas (multi-dialeto, `Prm`, `Uni`, `Ref`…)
 - [ ] **`{Table}Read`** — JSON filtro/pesquisa com operador + comparando (`Cmp`)
 - [ ] `Config` / backend multi-provider (`Eng.Provider`)

@@ -19,6 +19,13 @@
     text-align: left;
 }
 
+.tdropdown-input.tdropdown-collapsed,
+.tdropdown-trigger.tdropdown-collapsed {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .tdropdown-input.invalid {
     border-color: #c00;
 }

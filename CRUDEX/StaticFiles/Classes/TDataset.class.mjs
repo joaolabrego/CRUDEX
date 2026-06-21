@@ -66,8 +66,9 @@ export default class TDataset {
 
                     if (column)
                         return column
-                    if (table.ParentTableId)
-                        return getColumn(TSystem.GetTable(table.ParentTableId), columnName)
+                    const parentTableId = TSystem.GetParentTableId(table);
+                    if (parentTableId)
+                        return getColumn(TSystem.GetTable(parentTableId), columnName)
                     throw new Error(`Nome de coluna '${columnName}' não existe.`)
                 }
 

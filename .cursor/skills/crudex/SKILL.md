@@ -15,8 +15,16 @@ gerador SQL, integração Wordex (Reports, Queries, JSON, iframe) ou implementar
 A inteligência reside no **banco de dados** (stored procedures). C# e JavaScript são camadas finas.
 
 ```
-Planilha Excel → Gerador SQL → SQL Server ← ASP.NET ← Browser (SPA)
+Metadado (banco, via telas) → Procedures → SQL Server ← ASP.NET ← Browser (SPA)
 ```
+
+**Bootstrap do autor (fora do produto):** `CRUDEX.xlsm` → `Scripts.Generate()` → `SCRIPT-CRUDEX.sql` — só o mantenedor do SGSI; analistas e SIs usam **telas de cadastro**.
+
+## Excel — não é parte do sistema
+
+- A planilha é **ferramenta pessoal de desenvolvimento** do CRUDEX (semear metamodelo, regerar script). **Não** é interface de produção nem para analistas/devs de produto.
+- Fonte de verdade em runtime: **banco + cadastro pelo CRUDEX** (`Persist` → `Validate` → `Commit`).
+- Não propor Excel como fluxo normal; não documentar planilha como feature do SGSI para usuários finais.
 
 ## Dois modelos — não confundir
 
@@ -78,7 +86,9 @@ Detalhes de cada aba: [reference.md](reference.md).
 
 **Menu** — `Mnu` = títulos horizontais dos popups; itens vêm de `Tbl`. Tabelas filhas (`Ref.IsParentChild`) **sem `MenuId` por convenção** (só master-detail); tecnicamente pode ter menu, mas fica redundante.
 
-**Referências (`Ref`)** — Não existe `ParentTableId`. `ColumnId` (FK), `TableId` (pai), `Alias`, `ExpressionId` opcional, `IsParentChild`.
+**Referências (`Ref` + `Rfk`)** — Não existe `ParentTableId` nem `ReferenceTableId`. `References`: `FkTableId`, `PkTableId`, `Name`, `IsParentChild`. `Referencekeys`: `FkColumnId` + `Sequence`; PK do pai inferida por ordem.
+
+**Comparadores (`Cmp`)** — Metadado só catálogo (`Symbol`, `Arity`, `Rul`). SQL/JS no código: `TComparator` (JS), `ComparatorRegistry` (C#). **Pendente:** SQL por `Engine` no registry (não tabela `Map`).
 
 **Unicidades (`Uni`)** — Valor de `LeftColumnId` não pode existir em `RightColumnId` (mesma ou outra tabela). `IsBirectional = true`: vale nos dois sentidos (ex.: `Tbl.Name` × `Tbl.Alias`).
 
@@ -184,7 +194,8 @@ Metadados documentados nas 34 abas de `CRUDEX_Novissimo.xlsm`. Haverá extensõe
 | Área | Atual | A implementar |
 |------|-------|----------------|
 | Gerador SQL | `Scripts.cs` T-SQL + `CRUDEX.xlsm` | Novo gerador multi-SGBD, abas por `Alias`, `Map` |
-| Metadados | `ParentTableId`, `ReferenceTableId` | `Ref`, `Uni`, `Exp`/`Cnd`, `Prm`, `Mkg`… |
+| Metadados | `ParentTableId`, `ReferenceTableId` | `Ref`/`Rfk`, `Uni`, `Exp`/`Cnd`, `Prm`, `Mkg`… |
+| Comparadores SQL | `SqlComparator` no Excel (legado) | `TComparator`/`ComparatorRegistry` (1.0 ✓); **por Engine depois** |
 | Menu | `Menus` + `Action` | `Mnu` + `Tbl.MenuId`… |
 | Máscaras | `#` direto em `TMask` | ValidMask/EditMask semântico + `Mkg` |
 | Comportamentos | hardcode em `TForm` | `Prp`/`Bhv` a cada `change` |

@@ -97,9 +97,11 @@ namespace crudex.Classes
             var rulesByCategory = BuildRulesByCategory((dataSet.Tables["Rules"] ?? throw new Exception("Tabela Rules não existe.")).AsEnumerable().ToList());
             var tables = (dataSet.Tables["Tables"] ?? throw new Exception("Tabela Tables não existe.")).AsEnumerable().ToList();
             var unicities = (dataSet.Tables["Unicities"] ?? throw new Exception("Tabela Unicities não existe.")).AsEnumerable().ToList();
+            var referenceRows = (dataSet.Tables["References"] ?? throw new Exception("Tabela References não existe.")).AsEnumerable().ToList();
+            var referenceKeyRows = (dataSet.Tables["Referencekeys"] ?? throw new Exception("Tabela Referencekeys não existe.")).AsEnumerable().ToList();
             var databaseTables = (dataSet.Tables["DatabasesTables"] ?? throw new Exception("Tabela DatabasesTables não existe.")).AsEnumerable().ToList()
                 .FindAll(row => Settings.ToLong(row["DatabaseId"]) == Settings.ToLong(database["Id"]));
-            var references = new TDataRows();
+            var referenceModel = ReferenceModel.Build(referenceRows, referenceKeyRows, tables, columns);
             var firstTime = true;
             var databaseTableRows = GetDatabaseTableRows(databaseTables, tables, columns);
             if (databaseTableRows.Count == 0)
@@ -123,7 +125,7 @@ namespace crudex.Classes
                     result.AppendLine(GetScriptOthers().ToString());
                 result.AppendLine(GetScriptTransactions(tables, systemName, databaseName).ToString());
             }
-            result.AppendLine(GetScriptReferences(tables, columns).ToString());
+            result.AppendLine(GetScriptReferences(referenceModel).ToString());
             if (withInsertData)
             {
                 foreach (var table in tables)
@@ -135,7 +137,7 @@ namespace crudex.Classes
             }
             foreach (var table in databaseTableRows)
             {
-                result.AppendLine(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys, unicities).ToString());
+                result.AppendLine(GetScriptValidateTable(table, tables, columns, domains, types, indexes, indexkeys, unicities, referenceModel).ToString());
                 result.AppendLine(GetScriptPersistTable(table, columns, systemName, databaseName).ToString());
                 if (!HasDedicatedApiCreateProcedure(table))
                 {
@@ -143,7 +145,7 @@ namespace crudex.Classes
                     result.AppendLine(GetScriptOperationUpdate(table, columns).ToString());
                     result.AppendLine(GetScriptOperationDelete(table, columns).ToString());
                 }
-                result.AppendLine(GetScriptReadTable(table, columns, domains, types, comparators, rulesByCategory).ToString());
+                result.AppendLine(GetScriptReadTable(table, columns, domains, types, comparators, rulesByCategory, referenceModel).ToString());
             }
             if (saveInDisk)
             {
@@ -1222,46 +1224,65 @@ namespace crudex.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptReferences(TDataRows tables, TDataRows columns)
+        static string BuildReferenceJoinClause(ReferenceModel.ResolvedReference reference, string childAlias, string parentAlias) =>
+            string.Join(" AND ", reference.Keys.Select(key =>
+                $"[{parentAlias}].[{key.PkColumn["Name"]}] = [{childAlias}].[{key.FkColumn["Name"]}]"));
+
+        /// <summary>
+        /// Delete no catálogo Tables/Columns: integridade via References/Referencekeys (sem ParentTableId/ReferenceTableId).
+        /// </summary>
+        static void AppendCatalogTableDeleteChecks(StringBuilder result, DataRow table)
+        {
+            switch (TableName(table))
+            {
+                case "Tables":
+                    result.Append($"        IF @Action = 'delete' BEGIN\r\n");
+                    result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[References] WHERE [PkTableId] = @W_Id OR [FkTableId] = @W_Id)\r\n");
+                    result.Append($"                THROW 51000, 'Chave-primária referenciada em References', 1\r\n");
+                    result.Append($"        END\r\n");
+                    break;
+                case "Columns":
+                    result.Append($"        IF @Action = 'delete' BEGIN\r\n");
+                    result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[Referencekeys] WHERE [FkColumnId] = @W_Id)\r\n");
+                    result.Append($"                THROW 51000, 'Chave-primária referenciada em Referencekeys', 1\r\n");
+                    result.Append($"        END\r\n");
+                    break;
+            }
+        }
+
+        private static StringBuilder GetScriptReferences(List<ReferenceModel.ResolvedReference> references)
         {
             var result = new StringBuilder();
             var lastTableName = string.Empty;
-            var foreignColumns = columns.FindAll(column => Settings.ToString(column["ReferenceTableId"]) != string.Empty && !IsVirtualColumn(column));
 
-            if (foreignColumns.Count > 0)
+            if (references.Count == 0)
+                return result;
+
+            foreach (var reference in references)
             {
-                foreach (var foreign in foreignColumns)
-                {
-                    var primaryTable = RequireRow(tables, item => Settings.ToLong(item["Id"]) == Settings.ToLong(foreign["TableId"]),
-                        $"Columns referencia TableId {foreign["TableId"]} inexistente em Tables.");
-                    var foreignTable = RequireRow(tables, item => Settings.ToLong(item["Id"]) == Settings.ToLong(foreign["ReferenceTableId"]),
-                        $"Columns referencia ReferenceTableId {foreign["ReferenceTableId"]} inexistente em Tables.");
-                    var foreignKeyCandidates = columns.FindAll(column => Settings.ToLong(column["TableId"]) == Settings.ToLong(foreignTable["Id"]) && Settings.ToBoolean(column["IsPrimarykey"]));
-                    if (foreignKeyCandidates.Count == 0)
-                        throw new Exception($"Tabela referenciada '{foreignTable["Name"]}' não possui primary key para FK de '{foreign["Name"]}'.");
-                    if (foreignKeyCandidates.Count > 1)
-                        throw new Exception($"FK '{primaryTable["Name"]}_{foreignTable["Name"]}' não suporta primary key composta na tabela '{foreignTable["Name"]}'.");
-                    var foreignKey = foreignKeyCandidates[0];
-                    var foreignName = $"FK_{primaryTable["Name"]}_{foreignTable["Name"]}";
+                var fkTableName = reference.FkTableName;
+                var pkTableName = reference.PkTableName;
+                var fkColumns = string.Join(", ", reference.Keys.Select(key => $"[{key.FkColumn["Name"]}]"));
+                var pkColumns = string.Join(", ", reference.Keys.Select(key => $"[{key.PkColumn["Name"]}]"));
+                var foreignName = $"FK_{fkTableName}_{pkTableName}_{reference.Id}";
 
-                    if (primaryTable["Name"].ToString() != lastTableName)
-                    {
-                        result.Append($"/**********************************************************************************\r\n");
-                        result.Append($"Criar referências de [dbo].[{primaryTable["Name"]}]\r\n");
-                        result.Append($"**********************************************************************************/\r\n");
-                        lastTableName = primaryTable["Name"].ToString();
-                    }
-                    result.Append($"IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = '{foreignName}')\r\n");
-                    result.Append($"    ALTER TABLE [dbo].[{primaryTable["Name"]}] DROP CONSTRAINT {foreignName}\r\n");
-                    result.Append($"GO\r\n");
-                    result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] WITH CHECK \r\n");
-                    result.Append($"    ADD CONSTRAINT [{foreignName}] \r\n");
-                    result.Append($"    FOREIGN KEY([{foreign["Name"]}]) \r\n");
-                    result.Append($"    REFERENCES [dbo].[{foreignTable["Name"]}] ([{foreignKey["Name"]}])\r\n");
-                    result.Append($"GO\r\n");
-                    result.Append($"ALTER TABLE [dbo].[{primaryTable["Name"]}] CHECK CONSTRAINT [{foreignName}]\r\n");
-                    result.Append($"GO\r\n");
+                if (fkTableName != lastTableName)
+                {
+                    result.Append($"/**********************************************************************************\r\n");
+                    result.Append($"Criar referências de [dbo].[{fkTableName}]\r\n");
+                    result.Append($"**********************************************************************************/\r\n");
+                    lastTableName = fkTableName;
                 }
+                result.Append($"IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = '{foreignName}')\r\n");
+                result.Append($"    ALTER TABLE [dbo].[{fkTableName}] DROP CONSTRAINT {foreignName}\r\n");
+                result.Append($"GO\r\n");
+                result.Append($"ALTER TABLE [dbo].[{fkTableName}] WITH CHECK \r\n");
+                result.Append($"    ADD CONSTRAINT [{foreignName}] \r\n");
+                result.Append($"    FOREIGN KEY({fkColumns}) \r\n");
+                result.Append($"    REFERENCES [dbo].[{pkTableName}] ({pkColumns})\r\n");
+                result.Append($"GO\r\n");
+                result.Append($"ALTER TABLE [dbo].[{fkTableName}] CHECK CONSTRAINT [{foreignName}]\r\n");
+                result.Append($"GO\r\n");
             }
 
             return result;
@@ -1678,7 +1699,7 @@ namespace crudex.Classes
 
             return result;
         }
-        private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys, TDataRows unicities)
+        private static StringBuilder GetScriptValidateTable(DataRow table, TDataRows tables, TDataRows columns, TDataRows domains, TDataRows types, TDataRows indexes, TDataRows indexkeys, TDataRows unicities, List<ReferenceModel.ResolvedReference> referenceModel)
         {
             var result = new StringBuilder();
             var columnRows = GetTableColumnRows(columns, table);
@@ -1844,18 +1865,20 @@ namespace crudex.Classes
                 result.Append($"        END\r\n");
                 result.Append($"\r\n");
 
-                var referenceRows = columns.FindAll(column => Settings.ToLong(column["ReferenceTableId"]) == Settings.ToLong(table["Id"]));
+                var incomingReferences = ReferenceModel.IncomingTo(referenceModel, Settings.ToLong(table["Id"])).ToList();
 
-                if (referenceRows.Count > 0)
+                if (incomingReferences.Count > 0)
                 {
                     result.Append($"        IF @Action = 'delete' BEGIN\r\n");
-                    foreach (var reference in referenceRows)
+                    foreach (var incoming in incomingReferences)
                     {
-                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{reference["#TableName"]}] WHERE [{reference["Name"]}] = {PkVariableName(primaryColumns[0])})\r\n");
-                        result.Append($"                THROW 51000, 'Chave-primária referenciada em {reference["#TableName"]}', 1\r\n");
+                        var match = string.Join(" AND ", incoming.Keys.Select(key => $"[{key.FkColumn["Name"]}] = {PkVariableName(key.PkColumn)}"));
+                        result.Append($"            IF EXISTS(SELECT 1 FROM [dbo].[{incoming.FkTableName}] WHERE {match})\r\n");
+                        result.Append($"                THROW 51000, 'Chave-primária referenciada em {incoming.FkTableName}', 1\r\n");
                     }
                     result.Append($"        END\r\n");
                 }
+                AppendCatalogTableDeleteChecks(result, table);
                 result.Append($"        IF @Action IN ('create', 'update') BEGIN\r\n");
                 result.Append($"\r\n");
 
@@ -1893,16 +1916,13 @@ namespace crudex.Classes
                         result.Append($"            IF {(isRequired ? string.Empty : $"@W_{column["Name"]} IS NOT NULL AND ")}@W_{column["Name"]} > CAST('{constraintValue}' AS {column["#DataType"]})\r\n");
                         result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord deve ser menor que ou igual a {constraintValue}', 1\r\n");
                     }
-                    if (!Settings.IsNull(column["ReferenceTableId"]))
-                    {
-                        var referenceTable = RequireRow(tables, item => Settings.ToLong(item["Id"]) == Settings.ToLong(column["ReferenceTableId"]),
-                            $"Columns referencia ReferenceTableId {column["ReferenceTableId"]} inexistente em Tables.");
-                        var fkVariable = $"@W_{column["Name"]}";
-                        var existsPrefix = isRequired ? string.Empty : $"{fkVariable} IS NOT NULL AND ";
-
-                        result.Append($"            IF {existsPrefix}NOT EXISTS(SELECT 1 FROM [dbo].[{referenceTable["Name"]}] WHERE [Id] = {fkVariable})\r\n");
-                        result.Append($"                THROW 51000, 'Valor de {column["Name"]} em @ActualRecord inexiste em {referenceTable["Name"]}', 1\r\n");
-                    }
+                }
+                foreach (var outgoing in ReferenceModel.OutgoingFrom(referenceModel, Settings.ToLong(table["Id"])))
+                {
+                    var anyFkSet = string.Join(" OR ", outgoing.Keys.Select(key => $"@W_{key.FkColumn["Name"]} IS NOT NULL"));
+                    var parentMatch = string.Join(" AND ", outgoing.Keys.Select(key => $"[{key.PkColumn["Name"]}] = @W_{key.FkColumn["Name"]}"));
+                    result.Append($"            IF ({anyFkSet}) AND NOT EXISTS(SELECT 1 FROM [dbo].[{outgoing.PkTableName}] WHERE {parentMatch})\r\n");
+                    result.Append($"                THROW 51000, 'Valor de FK em @ActualRecord inexiste em {outgoing.PkTableName}', 1\r\n");
                 }
                 var uniqueRows = unicities.FindAll(unique => Settings.ToLong(unique["#TableId1"]) == Settings.ToLong(table["Id"]) ||
                                                            (Settings.ToBoolean(unique["IsBidirectional"]) &&
@@ -2016,23 +2036,24 @@ namespace crudex.Classes
             return result;
         }
         private static readonly List<long> ProcessedTableIds = [];
-        private static StringBuilder GetReferenceQueries(DataRow reference, TDataRows columns, TDictionary tmpNames, string tableName = "#result")
+        private static StringBuilder GetReferenceQueries(ReferenceModel.ResolvedReference reference, List<ReferenceModel.ResolvedReference> allReferences, TDataRows columns, TDictionary tmpNames, string tableName = "#result")
         {
             var result = new StringBuilder();
-            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]) && !IsVirtualColumn(row));
+            var columnRows = columns.FindAll(row => Settings.ToLong(row["TableId"]) == reference.PkTableId && !IsVirtualColumn(row));
             var firstTime = true;
-            var referenceTableName = Settings.ToString(reference["#ReferenceTableName"]);
+            var referenceTableName = reference.PkTableName;
+            var jsonKey = reference.JsonKey;
             var spaces = "";
             string tmpName;
 
-            if (tmpNames.TryGetValue(referenceTableName, out dynamic? value))
+            if (tmpNames.TryGetValue(jsonKey, out dynamic? value))
             {
                 tmpName = Settings.ToString(value);
                 spaces = new string(' ', 4);
             }
             else
-                tmpNames.Add(referenceTableName, tmpName = $"#{referenceTableName}");
-            ProcessedTableIds.Add(Settings.ToLong(reference["TableId"]));
+                tmpNames.Add(jsonKey, tmpName = $"#{referenceTableName}");
+            ProcessedTableIds.Add(reference.PkTableId);
             foreach (var column in columnRows)
             {
                 if (firstTime)
@@ -2048,29 +2069,32 @@ namespace crudex.Classes
             }
             if (spaces == "")
                 result.Append($"{spaces}            INTO [{tmpName}]\r\n");
+            var joinClause = BuildReferenceJoinClause(reference, "T", "R");
             result.Append($"{spaces}            FROM [{tableName}] [T]\r\n");
-            result.Append($"{spaces}                INNER JOIN [dbo].[{referenceTableName}] [R] ON [R].[Id] = [T].[{reference["Name"]}]\r\n");
+            result.Append($"{spaces}                INNER JOIN [dbo].[{referenceTableName}] [R] ON {joinClause}\r\n");
             if (spaces != "")
-                result.Append($"{spaces}            WHERE NOT EXISTS(SELECT 1 FROM [{tmpName}] WHERE [Id] = [R].[Id])\r\n");
-            result.Append($"{spaces}            ORDER BY [R].[Id]\r\n");
-            if (spaces == "")
-                result.Append($"        CREATE UNIQUE INDEX [{tmpName}] ON [{tmpName}](Id)\r\n");
-
-            var subReferences = columns.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]) &&
-                                                          Settings.ToLong(column["TableId"]) == Settings.ToLong(reference["ReferenceTableId"]));
-
-            foreach (var subReference in subReferences)
             {
-                if (!ProcessedTableIds.Contains(Settings.ToLong(subReference["TableId"])))
-                {
-                    result.Append(GetReferenceQueries(subReference, columns, tmpNames, tmpName));
-                }
+                var pkMatch = string.Join(" AND ", reference.Keys.Select(key => $"[{key.PkColumn["Name"]}] = [R].[{key.PkColumn["Name"]}]"));
+                result.Append($"{spaces}            WHERE NOT EXISTS(SELECT 1 FROM [{tmpName}] WHERE {pkMatch})\r\n");
+            }
+            var orderCol = reference.Keys[0].PkColumn["Name"];
+            result.Append($"{spaces}            ORDER BY [R].[{orderCol}]\r\n");
+            if (spaces == "")
+            {
+                var indexCols = string.Join(", ", reference.Keys.Select(key => $"[{key.PkColumn["Name"]}]"));
+                result.Append($"        CREATE UNIQUE INDEX [{tmpName}] ON [{tmpName}]({indexCols})\r\n");
+            }
+
+            foreach (var subReference in ReferenceModel.OutgoingFrom(allReferences, reference.PkTableId))
+            {
+                if (!ProcessedTableIds.Contains(subReference.PkTableId))
+                    result.Append(GetReferenceQueries(subReference, allReferences, columns, tmpNames, tmpName));
             }
 
             return result;
         }
 
-        private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDictionary[] comparators, Dictionary<long, List<long>> rulesByCategory)
+        private static StringBuilder GetScriptReadTable(DataRow table, TDataRows columns, TDataRows domains, TDataRows types, TDictionary[] comparators, Dictionary<long, List<long>> rulesByCategory, List<ReferenceModel.ResolvedReference> referenceModel)
         {
             var result = new StringBuilder();
             var columnRows = GetTableColumnRows(columns, table);
@@ -2431,13 +2455,13 @@ namespace crudex.Classes
                 result.Append($"                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'\r\n");
                 result.Append($"        EXEC sp_executesql @sql\r\n");
 
-                var references = physicalColumnRows.FindAll(column => !Settings.IsNull(column["ReferenceTableId"]));
+                var outgoingReferences = ReferenceModel.OutgoingFrom(referenceModel, Settings.ToLong(table["Id"])).ToList();
                 var tmpTemps = new TDictionary();
 
-                foreach (var reference in references)
+                foreach (var reference in outgoingReferences)
                 {
                     ProcessedTableIds.Clear();
-                    result.Append(GetReferenceQueries(reference, columns, tmpTemps));
+                    result.Append(GetReferenceQueries(reference, referenceModel, columns, tmpTemps));
                 }
 
                 result.Append($"        SELECT (SELECT [Kind]\r\n");

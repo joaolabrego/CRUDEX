@@ -21,6 +21,7 @@ import TIndexkey from "./TIndexkey.class.mjs";
 import TCategory from "./TCategory.class.mjs";
 import TMask from "./TMask.class.mjs";
 import TComparator from "./TComparator.class.mjs";
+import TReference from "./TReference.class.mjs";
 import TSpinner from "./TSpinner.class.mjs";
 export default class TSystem {
     static #Action = "";
@@ -40,6 +41,7 @@ export default class TSystem {
     static #Conditions = [];
     static #Properties = [];
     static #Behaviors = [];
+    static #References = [];
     static #Actions = null;
 
     static Run(withBackgroundImage = true) {
@@ -81,6 +83,13 @@ export default class TSystem {
                 this.#Conditions = config.Data.Conditions ?? [];
                 this.#Properties = config.Data.Properties ?? [];
                 this.#Behaviors = config.Data.Behaviors ?? [];
+                const referenceKeyRows = config.Data.Referencekeys ?? [];
+                (config.Data.References ?? []).forEach(row => {
+                    const keys = referenceKeyRows
+                        .filter(key => Number(key.ReferenceId) === Number(row.Id))
+                        .sort((left, right) => Number(left.Sequence) - Number(right.Sequence));
+                    this.#References.push(new TReference(row, keys));
+                });
                 config.Data.Databases.forEach(databaseRow => {
                     let database = new TDatabase(databaseRow);
 
@@ -111,6 +120,8 @@ export default class TSystem {
                         });
                     this.#Databases.push(database);
                 });
+                this.#resolveReferenceKeys();
+                this.#patchLegacyReferenceFields();
                 this.#Actions = config.Data.Actions;
                 this.Action = this.#Actions.SCREEN;
             })
@@ -211,20 +222,129 @@ export default class TSystem {
     static GetChildTables(table) {
         if (!table?.Id)
             return [];
-        return this.#Tables.filter(child => child.ParentTableId == table.Id);
+        const childIds = new Set(
+            this.#References
+                .filter(reference => reference.IsParentChild && Number(reference.PkTableId) === Number(table.Id))
+                .map(reference => reference.FkTableId),
+        );
+        return this.#Tables.filter(child => childIds.has(child.Id));
+    }
+    static GetReference(id) {
+        return this.#References.find(reference => Number(reference.Id) === Number(id));
+    }
+    static GetReferencesForTable(tableId) {
+        return this.#References.filter(reference => Number(reference.FkTableId) === Number(tableId));
+    }
+    static GetReferenceByFkColumn(columnId) {
+        return this.#References.find(reference =>
+            reference.KeyPairs.some(pair => Number(pair.fkColumnId) === Number(columnId))
+            || reference.Keys.some(key => Number(key.FkColumnId) === Number(columnId)),
+        ) ?? null;
+    }
+    static GetReferenceKeyPair(column) {
+        const reference = this.GetReferenceByFkColumn(column?.Id);
+        return reference?.getKeyPairForFkColumn(column?.Id) ?? null;
+    }
+    static GetPrimaryKeyColumns(table) {
+        if (!table?.Columns)
+            return [];
+        return table.Columns
+            .filter(column => column.IsPrimarykey && !column.IsVirtual)
+            .sort((left, right) => {
+                const leftSeq = left.PkSequence ?? left.Sequence ?? 0;
+                const rightSeq = right.PkSequence ?? right.Sequence ?? 0;
+                return Number(leftSeq) - Number(rightSeq);
+            });
+    }
+    static GetPrimaryKeyValues(record, table) {
+        const values = {};
+        for (const column of this.GetPrimaryKeyColumns(table)) {
+            if (!Object.hasOwn(record, column.Name))
+                return null;
+            values[column.Name] = record[column.Name];
+        }
+        return values;
+    }
+    static GetPrimaryKeyScalar(record, table) {
+        const columns = this.GetPrimaryKeyColumns(table);
+        if (columns.length === 0)
+            return record?.Id ?? null;
+        if (columns.length === 1)
+            return record[columns[0].Name];
+        const values = this.GetPrimaryKeyValues(record, table);
+        return values ? JSON.stringify(values) : null;
+    }
+    static GetReferenceBetween(childTable, parentTable, contextTable = null) {
+        if (!childTable || !parentTable)
+            return null;
+        let reference = this.#References.find(item =>
+            Number(item.FkTableId) === Number(childTable.Id)
+            && Number(item.PkTableId) === Number(parentTable.Id),
+        );
+        if (!reference && contextTable) {
+            reference = this.#References.find(item =>
+                Number(item.FkTableId) === Number(childTable.Id)
+                && Number(item.PkTableId) === Number(contextTable.Id),
+            );
+        }
+        return reference ?? null;
+    }
+    static IsFkColumn(column) {
+        return this.GetReferenceByFkColumn(column?.Id) != null;
+    }
+    static GetParentTableId(table) {
+        if (!table?.Id)
+            return null;
+        const reference = this.#References.find(item =>
+            item.IsParentChild && Number(item.FkTableId) === Number(table.Id),
+        );
+        return reference?.PkTableId ?? null;
+    }
+    static GetReferencePkTableId(column) {
+        return this.GetReferenceByFkColumn(column?.Id)?.PkTableId ?? null;
+    }
+    static GetReferencePkTable(column) {
+        const tableId = this.GetReferencePkTableId(column);
+        return tableId ? this.GetTable(tableId) : null;
+    }
+    static GetParentLinkColumn(childTable, parentTable, contextTable = null) {
+        const reference = this.GetReferenceBetween(childTable, parentTable, contextTable);
+        return reference?.KeyPairs[0]?.fkColumn ?? null;
+    }
+    static #resolveReferenceKeys() {
+        for (const reference of this.#References) {
+            const fkTable = this.GetTable(reference.FkTableId);
+            const pkTable = this.GetTable(reference.PkTableId);
+            reference.resolve(
+                fkTable,
+                pkTable,
+                this.GetPrimaryKeyColumns(pkTable),
+                columnId => this.GetColumn(columnId),
+            );
+        }
+    }
+    static #patchLegacyReferenceFields() {
+        for (const column of this.#Columns) {
+            const reference = this.GetReferenceByFkColumn(column.Id);
+            if (!reference)
+                continue;
+            Object.defineProperty(column, "ReferenceTableId", {
+                get: () => reference.PkTableId,
+                configurable: true,
+            });
+        }
+        for (const table of this.#Tables) {
+            const parentTableId = this.GetParentTableId(table);
+            if (!parentTableId)
+                continue;
+            Object.defineProperty(table, "ParentTableId", {
+                get: () => parentTableId,
+                configurable: true,
+            });
+        }
     }
     static IsSimpleTable(table) {
         return this.GetChildTables(table).length === 0;
-    }
-    static GetParentLinkColumn(childTable, parentTable, contextTable = null) {
-        if (!childTable || !parentTable)
-            return null;
-        let link = childTable.Columns.find(column => column.ReferenceTableId == parentTable.Id);
-        if (link)
-            return link;
-        if (contextTable)
-            link = childTable.Columns.find(column => column.ReferenceTableId == contextTable.Id);
-        return link ?? null;
     }
     /**
      * @param {number} value

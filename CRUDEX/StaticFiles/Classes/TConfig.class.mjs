@@ -198,8 +198,9 @@ export default class TConfig {
                 return column.Value;
 
             // Se a coluna não existir na tabela atual, verifica na tabela pai.
-            if (table.ParentTableId) {
-                const parentTable = TSystem.GetTable(table.ParentTableId);
+            const parentTableId = TSystem.GetParentTableId(table);
+            if (parentTableId) {
+                const parentTable = TSystem.GetTable(parentTableId);
                 return resolveColumnValue(parentTable, columnName);
             }
 

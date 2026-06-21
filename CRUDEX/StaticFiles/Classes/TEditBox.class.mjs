@@ -49,7 +49,7 @@ export default class TEditBox {
         if (!column)
             throw new Error("Argumento column é requerido.");
         this.#column = column;
-        this.#isReference = !TConfig.IsEmpty(column.ReferenceTableId);
+        this.#isReference = TSystem.IsFkColumn(column);
         this.#isCheckboxInline = !this.#isReference
             && column.Domain.Type.Category.HtmlInputType === "checkbox";
         if (this.#isCheckboxInline)
@@ -254,9 +254,13 @@ export default class TEditBox {
             this.#checkboxHost = null;
     }
 
+    #getRefTable() {
+        return TSystem.GetReferencePkTable(this.#column);
+    }
+
     #fieldWidthCh() {
         if (this.#isReference) {
-            const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
+            const refTable = this.#getRefTable();
             const listable = refTable?.GetListableColumn();
             const domain = listable?.Domain ?? this.#effectiveDomain();
             return TEditBox.#widthChFromDomain(domain);
@@ -728,16 +732,23 @@ export default class TEditBox {
             if (!TConfig.IsEmpty(listValue))
                 return listValue;
         }
-        return ref.ListItemValue ?? ref.Name ?? ref.Id ?? null;
+        return ref.ListItemValue ?? ref.Name ?? TSystem.GetPrimaryKeyScalar(ref, refTable) ?? null;
+    }
+
+    #getRefKeyPair() {
+        return TSystem.GetReferenceKeyPair(this.#column);
     }
 
     #resolveReferencePickerValue(refTable, fkValue) {
         const id = TCondition.normalizeCriterionValue(fkValue);
         if (TConfig.IsEmpty(id) || TCheckbox.isNullMarker(id))
             return;
-        const pkColumn = refTable.Columns.find(c => c.IsPrimarykey)?.Name ?? "Id";
+        const keyPair = this.#getRefKeyPair();
+        const pkColumn = keyPair?.pkColumn;
+        if (!pkColumn)
+            return;
         new TRecordSet(refTable, { showSpinner: false })
-            .readOne({ [pkColumn]: id })
+            .readOne({ [pkColumn.Name]: id })
             .then((refRecord) => {
                 if (!refRecord || !this.#dropdown)
                     return;
@@ -755,10 +766,14 @@ export default class TEditBox {
         if (!ids.length || !dropdown)
             return;
 
-        const pkColumn = refTable.Columns.find(c => c.IsPrimarykey)?.Name ?? "Id";
+        const keyPair = this.#getRefKeyPair();
+        const pkColumn = keyPair?.pkColumn;
+        if (!pkColumn || !dropdown)
+            return;
+
         Promise.all(ids.map(id =>
             new TRecordSet(refTable, { showSpinner: false })
-                .readOne({ [pkColumn]: id })
+                .readOne({ [pkColumn.Name]: id })
                 .then((refRecord) => {
                     if (!refRecord)
                         return { ListItemId: id, ListItemName: String(id) };
@@ -775,7 +790,7 @@ export default class TEditBox {
 
     #configureReferenceMulti(options, multiOptions = {}) {
         const { action, onConfirm, onCancel, onFirstInput, emit, parsed } = options;
-        const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
+        const refTable = this.#getRefTable();
         const raw = parsed?.value ?? null;
         const values = Array.isArray(raw)
             ? raw
@@ -790,6 +805,7 @@ export default class TEditBox {
             itemsPerPage: pageSize,
             placeholder: "Selecionar...",
             value: values,
+            collapseSelectionOnBlur: multiOptions.requireExact === true,
             loader: (query, page) => TRecordSet.fetchPickerPage(refTable, {
                 value: query,
                 pageNumber: page,
@@ -841,6 +857,7 @@ export default class TEditBox {
             allowEmpty: true,
             maxItems,
             validItemCounts,
+            collapseSelectionOnBlur: betweenSlots != null,
             placeholder: hasMask ? (editMask.placeholder ?? "") : "Type to add",
             value: Array.isArray(raw) ? raw : (TConfig.IsEmpty(raw) ? [] : [raw]),
             parseValue: (text) => {
@@ -891,9 +908,7 @@ export default class TEditBox {
     #getDisplayValue(record, sourceRecord) {
         const value = record[this.#column.Name];
 
-        if (TConfig.IsEmpty(this.#column.ReferenceTableId))
-            return value ?? "";
-        const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
+        const refTable = this.#getRefTable();
         if (!refTable)
             return value ?? "";
         const alias = refTable.Alias || refTable.Name;
@@ -939,17 +954,22 @@ export default class TEditBox {
         const { action, record, sourceRecord, onChange, onConfirm, onCancel, onFirstInput, valueChange } = options;
         const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
         this.#root.classList.remove("tedit-checkbox", "tedit-checkbox-inline");
-        const refTable = TSystem.GetTable(this.#column.ReferenceTableId);
-        const alias = refTable.Alias || refTable.Name;
+        const refTable = this.#getRefTable();
+        const alias = refTable?.Alias || refTable?.Name;
         const ref = sourceRecord?.references?.[alias];
         const listLabel = TEditBox.#getRefListLabel(refTable, ref);
         const catalog = [];
 
-        if (ref)
+        if (ref) {
+            const keyPair = this.#getRefKeyPair();
+            const listItemId = keyPair?.pkColumn
+                ? ref[keyPair.pkColumn.Name]
+                : TSystem.GetPrimaryKeyScalar(ref, refTable);
             catalog.push({
-                ListItemId: ref.Id,
+                ListItemId: listItemId,
                 ListItemName: listLabel,
             });
+        }
 
         const fkValue = record[this.#column.Name];
         const value = listLabel != null && !TConfig.IsEmpty(fkValue)

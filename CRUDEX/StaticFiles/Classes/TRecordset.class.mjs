@@ -117,9 +117,9 @@ export default class TRecordSet {
         const listable = table.GetListableColumn();
         const label = listable
             ? record.getBrowseValue(listable)
-            : (record.ListItemValue ?? record.Name ?? record.Id);
+            : (record.ListItemValue ?? record.Name ?? TSystem.GetPrimaryKeyScalar(record, table));
         return {
-            ListItemId: record.Id,
+            ListItemId: TSystem.GetPrimaryKeyScalar(record, table),
             ListItemName: label,
             record,
         };
@@ -195,8 +195,12 @@ export default class TRecordSet {
                 const alias = row.ClassName ?? row.Kind ?? name;
                 if (!lookup[alias])
                     lookup[alias] = new Map();
-                if (row.Id !== undefined && row.Id !== null)
-                    lookup[alias].set(row.Id, row);
+                const refTable = TSystem.GetTable(alias);
+                const key = refTable
+                    ? TSystem.GetPrimaryKeyScalar(row, refTable)
+                    : (row.Id ?? null);
+                if (key !== undefined && key !== null)
+                    lookup[alias].set(key, row);
             }
         }
         return lookup;
