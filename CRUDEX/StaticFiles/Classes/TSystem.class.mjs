@@ -27,7 +27,9 @@ export default class TSystem {
     static #Action = "";
     static #RowsPerPage = 0;
     static #RowsPerChildPage = 0;
+    static #RowsPerDropdownPage = 5;
     static #PaddingGridLastPage = false;
+    static #ReverseItemsWhenOpenUp = false;
     static #Types = [];
     static #Domains = [];
     static #Databases = [];
@@ -59,9 +61,12 @@ export default class TSystem {
                 TConfig.CreateProperties(config.Data.System[0], this);
                 this.#RowsPerPage = config.RowsPerPage;
                 this.#RowsPerChildPage = config.RowsPerChildPage;
+                this.#RowsPerDropdownPage = config.RowsPerDropdownPage;
                 document.documentElement.style.setProperty("--rows-per-page", String(this.#RowsPerPage));
                 document.documentElement.style.setProperty("--rows-per-child-page", String(this.#RowsPerChildPage));
+                document.documentElement.style.setProperty("--rows-per-dropdown-page", String(this.#RowsPerDropdownPage));
                 this.#PaddingGridLastPage = config.PaddingGridLastPage;
+                this.#ReverseItemsWhenOpenUp = config.ReverseItemsWhenOpenUp;
                 TConfig.IdleTimeInMinutesLimit = config.IdleTimeInMinutesLimit;
                 TLogin.Initialize(config.Styles);
                 TDialog.Initialize(config.Styles, config.Images);
@@ -402,8 +407,14 @@ export default class TSystem {
     static get RowsPerChildPage() {
         return this.#RowsPerChildPage;
     }
+    static get RowsPerDropdownPage() {
+        return this.#RowsPerDropdownPage;
+    }
     static get PaddingGridLastPage() {
         return this.#PaddingGridLastPage;
+    }
+    static get ReverseItemsWhenOpenUp() {
+        return this.#ReverseItemsWhenOpenUp;
     }
     static get Types() {
         return this.#Types;

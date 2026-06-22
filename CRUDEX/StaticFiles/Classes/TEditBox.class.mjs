@@ -12,8 +12,6 @@ import TProperty from "./TProperty.class.mjs";
 
 export default class TEditBox {
     static #operatorMenuCloseBound = false;
-    /** Paginação única para todo picker (`TDropdown`) — FK, ValidValues, ListValues (futuro). */
-    static #PICKER_PAGE_SIZE = 5;
 
     #column = null;
     #root = null;
@@ -822,7 +820,7 @@ export default class TEditBox {
         const values = Array.isArray(raw)
             ? raw
             : (TConfig.IsEmpty(raw) ? [] : [raw]);
-        const pageSize = TEditBox.#PICKER_PAGE_SIZE;
+        const pageSize = TSystem.RowsPerDropdownPage;
 
         this.#conditionValueDropdown = TDropdown.Multi(this.#body, {
             allowEmpty: true,
@@ -833,7 +831,7 @@ export default class TEditBox {
             placeholder: "Selecionar...",
             value: values,
             collapseSelectionOnBlur: multiOptions.requireExact === true,
-            loader: (query, page) => TRecordSet.fetchPickerPage(refTable, {
+            loader: (query, page) => TRecordSet.readPickerPage(refTable, {
                 value: query,
                 pageNumber: page,
                 limitRows: pageSize,
@@ -984,7 +982,7 @@ export default class TEditBox {
             valueAs: "id",
             idField: "ListItemId",
             labelField: "ListItemName",
-            itemsPerPage: TEditBox.#PICKER_PAGE_SIZE,
+            itemsPerPage: TSystem.RowsPerDropdownPage,
             placeholder: "",
             required,
             allowEmpty: !required,
@@ -1050,10 +1048,10 @@ export default class TEditBox {
             TConfig.IsEmpty(fkValue) ? null : value,
             isRequired,
             readOnly,
-            (query, page) => TRecordSet.fetchPickerPage(refTable, {
+            (query, page) => TRecordSet.readPickerPage(refTable, {
                 value: query,
                 pageNumber: page,
-                limitRows: TEditBox.#PICKER_PAGE_SIZE,
+                limitRows: TSystem.RowsPerDropdownPage,
             }),
         ));
 
@@ -1092,10 +1090,10 @@ export default class TEditBox {
             TConfig.IsEmpty(rawValue) ? null : rawValue,
             isRequired,
             readOnly,
-            (query, page) => TListValues.fetchPickerPage(validValuesRaw, {
+            (query, page) => TListValues.readPickerPage(validValuesRaw, {
                 value: query,
                 pageNumber: page,
-                limitRows: TEditBox.#PICKER_PAGE_SIZE,
+                limitRows: TSystem.RowsPerDropdownPage,
             }),
         ));
 

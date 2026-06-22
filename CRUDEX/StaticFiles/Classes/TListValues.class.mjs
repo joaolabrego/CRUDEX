@@ -1,5 +1,7 @@
 "use strict";
 
+import TSystem from "./TSystem.class.mjs";
+
 export default class TListValues {
     #data = [];
     #filtered = [];
@@ -13,7 +15,7 @@ export default class TListValues {
 
     constructor(values, options = {}) {
         const separator = options.separator ?? ";";
-        this.#pageSize = options.rowsPerPage ?? options.limitRows ?? 5;
+        this.#pageSize = options.rowsPerPage ?? options.limitRows ?? TSystem.RowsPerDropdownPage;
         this.#data = TListValues.#parseValues(values, separator);
     }
 
@@ -71,7 +73,7 @@ export default class TListValues {
         });
     }
 
-    static async fetchPickerPage(values, { value = "", pageNumber = 1, limitRows = 5, separator = ";", paddingGridLastPage = true } = {}) {
+    static async readPickerPage(values, { value = "", pageNumber = 1, limitRows = TSystem.RowsPerDropdownPage, separator = ";", paddingGridLastPage = true } = {}) {
         const listValues = new TListValues(values, { separator, rowsPerPage: limitRows });
         listValues.readPickerPage({ value, pageNumber, limitRows, paddingGridLastPage });
         return {

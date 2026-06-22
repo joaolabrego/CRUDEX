@@ -1,6 +1,7 @@
 "use strict";
 
 import TCheckbox from "./TCheckbox.class.mjs";
+import TSystem from "./TSystem.class.mjs";
 
 export default class TDropdown {
     static Modes = {
@@ -238,6 +239,7 @@ export default class TDropdown {
         }
 
         this.#itemsBox = document.createElement("div");
+        this.#itemsBox.className = "tdropdown-items";
         this.#list.append(this.#itemsBox);
 
         const pagination = document.createElement("div");
@@ -615,6 +617,11 @@ export default class TDropdown {
             this.#list.style.bottom = "auto";
         }
 
+        this.#itemsBox.classList.toggle(
+            "tdropdown-items-open-up-reverse",
+            openUp && TSystem.ReverseItemsWhenOpenUp,
+        );
+
         this.#list.style.visibility = "visible";
         this.#list.classList.add("open");
         this.#listSearchInput?.focus();
@@ -625,6 +632,7 @@ export default class TDropdown {
         this.#list.style.display = "none";
         this.#list.style.top = "";
         this.#list.style.bottom = "";
+        this.#itemsBox.classList.remove("tdropdown-items-open-up-reverse");
     }
 
     #revertInput() {

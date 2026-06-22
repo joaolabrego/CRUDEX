@@ -146,7 +146,7 @@ export default class TRecordSet {
         return this;
     }
 
-    static async fetchPickerPage(table, { value = "", pageNumber = 1, limitRows = 5, showSpinner = false } = {}) {
+    static async readPickerPage(table, { value = "", pageNumber = 1, limitRows = TSystem.RowsPerDropdownPage, showSpinner = false } = {}) {
         const recordSet = new TRecordSet(table, { showSpinner, rowsPerPage: limitRows });
         await recordSet.readPickerPage({ value, pageNumber, limitRows });
         return {

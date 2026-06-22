@@ -99,6 +99,11 @@
     display: block;
 }
 
+.tdropdown-items.tdropdown-items-open-up-reverse {
+    display: flex;
+    flex-direction: column-reverse;
+}
+
 .tdropdown-item {
     display: flex;
     align-items: center;

@@ -245,11 +245,11 @@ Classe em `TListValues.class.mjs`. Construtor: **string** de valores + separador
 | | **`TRecordSet`** | **`TListValues`** |
 |--|------------------|-------------------|
 | Fonte | Servidor (`{Table}Read`) | `data` em memória (`Dmn.ValidValues`, futuro `ListValues`) |
-| Paginação | `readPickerPage`, `fetchPickerPage` | **Idêntica** — fatia `data` localmente |
+| Paginação | `readPickerPage` (instância e estático) | **Idêntica** — fatia `data` localmente |
 | Filtro picker | `Picker.Value` no `Read` | `includes` case-insensitive sobre `data` |
 | Última página | `PaddingGridLastPage: true` no `Read` | Mesma regra — janela deslocada para preencher `limitRows` |
 
-**`TDropdown.loader`:** FK → `TRecordSet.fetchPickerPage`; `ValidValues` → `TListValues.fetchPickerPage`.
+**`TDropdown.loader`:** FK → `TRecordSet.readPickerPage`; `ValidValues` → `TListValues.readPickerPage`.
 
 ## Máscaras (`Msk`)
 
@@ -527,7 +527,7 @@ POST /{sys}.{env}/login     → Login
 POST /{sys}.{env}/execute   → Procedures
 ```
 
-`appsettings.json`: `ConnectionString`, `CONFIG_PROCEDURE`, `ROWS_PER_PAGE`, `FILENAME_EXCEL`, etc.
+`appsettings.json`: `ConnectionString`, `CONFIG_PROCEDURE`, `ROWS_PER_PAGE`, `ROWS_PER_DROPDOWN_PAGE`, `REVERSE_ITEMS_WHEN_OPEN_UP`, `FILENAME_EXCEL`, etc.
 
 `CRUDEX_ENVIRONMENT`: nome de um registro em **`Env`** (1.0: `dev` | `hml` | `prd` fixos)
 
@@ -681,6 +681,8 @@ Filtro atual: JSON plano coluna→valor; depois trocar serialização para array
 | `multi` | `TDropdown.Multi(...)` | Vários itens da lista (checkbox) |
 | `addable` | `TDropdown.Addable(...)` | IN — digitar e incluir com `+` / remover com `−` |
 | `cardinality` | `TDropdown.Cardinality(...)` | BETWEEN — `exactItems: 2`, `requireExact: true` |
+
+**`REVERSE_ITEMS_WHEN_OPEN_UP`** em `appsettings.json` (→ `TSystem.ReverseItemsWhenOpenUp`): quando a lista abre **para cima**, aplica `flex-direction: column-reverse` nos itens — 1.ª linha fica perto do campo. Único ponto de configuração; o `TDropdown` lê direto do `TSystem`.
 
 ```javascript
 import TDropdown from "./Classes/TDropdown.class.mjs";
