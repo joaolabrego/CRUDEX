@@ -94,7 +94,7 @@ IF (SELECT object_id('[dbo].[Categories]', 'U')) IS NOT NULL
     DROP TABLE [dbo].[Categories]
 CREATE TABLE [dbo].[Categories]([Id] tinyint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS tinyint))
                                     ,[Name] nvarchar(25) NOT NULL
-                                    ,[HtmlInputType] nvarchar(10) NULL
+                                    ,[HtmlInputType] nvarchar(8) NULL
                                     ,[HtmlInputAlign] nvarchar(6) NULL
                                     ,[AskEncrypted] bit NOT NULL
                                     ,[AskMask] bit NOT NULL
@@ -456,7 +456,7 @@ IF (SELECT object_id('[dbo].[Operations]', 'U')) IS NOT NULL
 CREATE TABLE [dbo].[Operations]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[TransactionId] bigint NOT NULL CHECK ([TransactionId] >= CAST('1' AS bigint))
                                     ,[TableName] nvarchar(25) NOT NULL
-                                    ,[Action] nvarchar(15) NOT NULL
+                                    ,[Action] nvarchar(6) NOT NULL
                                     ,[LastRecord] nvarchar(max) NULL
                                     ,[ActualRecord] nvarchar(max) NULL
                                     ,[IsConfirmed] bit NULL
@@ -517,26 +517,6 @@ CREATE TABLE [dbo].[Rules]([Id] tinyint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CA
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
 ALTER TABLE [dbo].[Rules] ADD CONSTRAINT PK_Rules PRIMARY KEY CLUSTERED ([Id])
-
-/**********************************************************************************
-Criar tabela [dbo].[testes]
-**********************************************************************************/
-IF (SELECT object_id('[dbo].[testes]', 'U')) IS NOT NULL
-    DROP TABLE [dbo].[testes]
-CREATE TABLE [dbo].[testes]([pk1] tinyint NOT NULL CHECK ([pk1] >= CAST('1' AS tinyint))
-                                    ,[pk2] tinyint NOT NULL
-                                    ,[pk3] tinyint NOT NULL
-                                    ,[cpo1] nvarchar(25) NULL
-                                    ,[cpo2] nvarchar(25) NULL
-                                    ,[cpo3] nvarchar(25) NULL
-                                    ,[cpo4] tinyint NULL
-                                    ,[CreatedAt] datetime NOT NULL
-                                    ,[CreatedBy] nvarchar(25) NOT NULL
-                                    ,[UpdatedAt] datetime NULL
-                                    ,[UpdatedBy] nvarchar(25) NULL
-                                    ,[ClientId] bigint NOT NULL DEFAULT 1
-                                    ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
-ALTER TABLE [dbo].[testes] ADD CONSTRAINT PK_testes PRIMARY KEY CLUSTERED ([pk1], [pk2], [pk3])
 
 /**********************************************************************************
 Criar tabela [dbo].[Expressions]
@@ -2490,17 +2470,17 @@ GO
 ALTER TABLE [dbo].[Rules] CHECK CONSTRAINT [FK_Rules_Comparators_25]
 GO
 /**********************************************************************************
-Criar referências de [dbo].[Expressions]
+Criar referências de [dbo].[Conditions]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Expressions_Tables_26')
-    ALTER TABLE [dbo].[Expressions] DROP CONSTRAINT FK_Expressions_Tables_26
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Conditions_Tables_26')
+    ALTER TABLE [dbo].[Conditions] DROP CONSTRAINT FK_Conditions_Tables_26
 GO
-ALTER TABLE [dbo].[Expressions] WITH CHECK 
-    ADD CONSTRAINT [FK_Expressions_Tables_26] 
-    FOREIGN KEY([TableId]) 
+ALTER TABLE [dbo].[Conditions] WITH CHECK 
+    ADD CONSTRAINT [FK_Conditions_Tables_26] 
+    FOREIGN KEY([LeftColumnId]) 
     REFERENCES [dbo].[Tables] ([Id])
 GO
-ALTER TABLE [dbo].[Expressions] CHECK CONSTRAINT [FK_Expressions_Tables_26]
+ALTER TABLE [dbo].[Conditions] CHECK CONSTRAINT [FK_Conditions_Tables_26]
 GO
 
 /**********************************************************************************
@@ -2524,7 +2504,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS tinyint)
                                 ,CAST(N'string' AS nvarchar(25))
-                                ,CAST(N'text' AS nvarchar(10))
+                                ,CAST(N'text' AS nvarchar(8))
                                 ,CAST(N'left' AS nvarchar(6))
                                 ,CAST('1' AS bit)
                                 ,CAST('1' AS bit)
@@ -2555,7 +2535,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('2' AS tinyint)
                                 ,CAST(N'number' AS nvarchar(25))
-                                ,CAST(N'text' AS nvarchar(10))
+                                ,CAST(N'text' AS nvarchar(8))
                                 ,CAST(N'right' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -2586,7 +2566,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('3' AS tinyint)
                                 ,CAST(N'date' AS nvarchar(25))
-                                ,CAST(N'date' AS nvarchar(10))
+                                ,CAST(N'date' AS nvarchar(8))
                                 ,CAST(N'right' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -2617,7 +2597,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS tinyint)
                                 ,CAST(N'datetime' AS nvarchar(25))
-                                ,CAST(N'datetime-local' AS nvarchar(10))
+                                ,CAST(N'datetime-local' AS nvarchar(8))
                                 ,CAST(N'right' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -2648,7 +2628,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('5' AS tinyint)
                                 ,CAST(N'boolean' AS nvarchar(25))
-                                ,CAST(N'checkbox' AS nvarchar(10))
+                                ,CAST(N'checkbox' AS nvarchar(8))
                                 ,CAST(N'center' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2679,7 +2659,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('6' AS tinyint)
                                 ,CAST(N'time' AS nvarchar(25))
-                                ,CAST(N'time' AS nvarchar(10))
+                                ,CAST(N'time' AS nvarchar(8))
                                 ,CAST(N'right' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('1' AS bit)
@@ -2710,7 +2690,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('7' AS tinyint)
                                 ,CAST(N'text' AS nvarchar(25))
-                                ,CAST(N'textarea' AS nvarchar(10))
+                                ,CAST(N'textarea' AS nvarchar(8))
                                 ,CAST(N'left' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2741,7 +2721,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('8' AS tinyint)
                                 ,CAST(N'image' AS nvarchar(25))
-                                ,CAST(N'image' AS nvarchar(10))
+                                ,CAST(N'image' AS nvarchar(8))
                                 ,CAST(N'left' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2772,7 +2752,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('9' AS tinyint)
                                 ,CAST(N'binary' AS nvarchar(25))
-                                ,CAST(N'file' AS nvarchar(10))
+                                ,CAST(N'file' AS nvarchar(8))
                                 ,NULL
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -2803,7 +2783,7 @@ INSERT INTO [dbo].[Categories] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('10' AS tinyint)
                                 ,CAST(N'undefined' AS nvarchar(25))
-                                ,CAST(N'textarea' AS nvarchar(10))
+                                ,CAST(N'textarea' AS nvarchar(8))
                                 ,CAST(N'left' AS nvarchar(6))
                                 ,CAST('0' AS bit)
                                 ,CAST('0' AS bit)
@@ -5230,9 +5210,9 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('20' AS tinyint)
                                 ,NULL
                                 ,CAST(N'HtmlInputType' AS nvarchar(25))
-                                ,CAST('10' AS smallint)
+                                ,CAST('8' AS smallint)
                                 ,NULL
-                                ,CAST(N'text;checkbox;textarea;image;file' AS nvarchar(max))
+                                ,CAST(N'text;checkbox;textarea;image;file;left;center;right;create;update;delete;dev;hml;prd' AS nvarchar(max))
                                 ,NULL
                                 ,NULL
                                 ,NULL
@@ -5292,7 +5272,7 @@ INSERT INTO [dbo].[Domains] ([Id]
                                 ,CAST('20' AS tinyint)
                                 ,NULL
                                 ,CAST(N'Operation' AS nvarchar(25))
-                                ,CAST('15' AS smallint)
+                                ,CAST('6' AS smallint)
                                 ,NULL
                                 ,CAST(N'create;update;delete' AS nvarchar(max))
                                 ,NULL
@@ -5729,6 +5709,29 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
+INSERT INTO [dbo].[Menus] ([Id]
+                                ,[SystemId]
+                                ,[Sequence]
+                                ,[Caption]
+                                ,[Message]
+                                ,[Action]
+                                ,[ParentMenuId]
+                                ,[CreatedAt]
+                                ,[CreatedBy]
+                                ,[UpdatedAt]
+                                ,[UpdatedBy])
+                         VALUES (CAST('14' AS bigint)
+                                ,CAST('1' AS bigint)
+                                ,CAST('70' AS smallint)
+                                ,CAST(N'Categorias' AS nvarchar(20))
+                                ,CAST(N'Cadastro de categorias' AS nvarchar(50))
+                                ,CAST(N'grid/crudex/Categories' AS nvarchar(50))
+                                ,CAST('1' AS bigint)
+                                ,GETDATE()
+                                ,'crudex'
+                                ,NULL
+                                ,NULL)
+GO
 SET IDENTITY_INSERT [dbo].[Menus] OFF
 
 /**********************************************************************************
@@ -6006,7 +6009,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Menus' AS nvarchar(25))
                                 ,CAST(N'Menu' AS nvarchar(25))
                                 ,CAST(N'Menus de sistemas' AS nvarchar(50))
-                                ,CAST('13' AS bigint)
+                                ,CAST('14' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6120,7 +6123,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Tables' AS nvarchar(25))
                                 ,CAST(N'Table' AS nvarchar(25))
                                 ,CAST(N'Tabelas de bancos-de-dados' AS nvarchar(50))
-                                ,CAST('29' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6139,7 +6142,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'DatabasesTables' AS nvarchar(25))
                                 ,CAST(N'DatabaseTable' AS nvarchar(25))
                                 ,CAST(N'Bancos-de-Dados x Tabelas' AS nvarchar(50))
-                                ,CAST('29' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6158,7 +6161,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Columns' AS nvarchar(25))
                                 ,CAST(N'Column' AS nvarchar(25))
                                 ,CAST(N'Colunas de tabelas' AS nvarchar(50))
-                                ,CAST('187' AS bigint)
+                                ,CAST('178' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6272,7 +6275,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,CAST(N'Unicities' AS nvarchar(25))
                                 ,CAST(N'Unicity' AS nvarchar(25))
                                 ,CAST(N'Unicidades cruzadas' AS nvarchar(50))
-                                ,CAST('1' AS bigint)
+                                ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6326,25 +6329,6 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('23' AS bigint)
-                                ,CAST(N'testes' AS nvarchar(25))
-                                ,CAST(N'teste' AS nvarchar(25))
-                                ,CAST(N'Tabela de teste de PKs múltiplas' AS nvarchar(50))
-                                ,CAST('1' AS bigint)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Tables] ([Id]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[CurrentId]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('24' AS bigint)
                                 ,CAST(N'Expressions' AS nvarchar(25))
                                 ,CAST(N'Expression' AS nvarchar(25))
                                 ,CAST(N'Expressões lógicas' AS nvarchar(50))
@@ -6363,11 +6347,11 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('25' AS bigint)
+                         VALUES (CAST('24' AS bigint)
                                 ,CAST(N'Conditions' AS nvarchar(25))
                                 ,CAST(N'Condition' AS nvarchar(25))
                                 ,CAST(N'Condições lógicas' AS nvarchar(50))
-                                ,CAST('1' AS bigint)
+                                ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6382,7 +6366,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('26' AS bigint)
+                         VALUES (CAST('25' AS bigint)
                                 ,CAST(N'Properties' AS nvarchar(25))
                                 ,CAST(N'Property' AS nvarchar(25))
                                 ,CAST(N'Propriedades HTML' AS nvarchar(50))
@@ -6401,7 +6385,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('27' AS bigint)
+                         VALUES (CAST('26' AS bigint)
                                 ,CAST(N'Behaviors' AS nvarchar(25))
                                 ,CAST(N'Behavior' AS nvarchar(25))
                                 ,CAST(N'Comportamentos' AS nvarchar(50))
@@ -6420,11 +6404,11 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('28' AS bigint)
+                         VALUES (CAST('27' AS bigint)
                                 ,CAST(N'References' AS nvarchar(25))
                                 ,CAST(N'Reference' AS nvarchar(25))
                                 ,CAST(N'Referências' AS nvarchar(50))
-                                ,CAST('27' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6439,11 +6423,11 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('29' AS bigint)
+                         VALUES (CAST('28' AS bigint)
                                 ,CAST(N'Referencekeys' AS nvarchar(25))
                                 ,CAST(N'Referencekey' AS nvarchar(25))
                                 ,CAST(N'Chaves de referências' AS nvarchar(50))
-                                ,CAST('27' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6840,7 +6824,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('23' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('23' AS bigint)
-                                ,CAST(N'crudex x testes' AS nvarchar(50))
+                                ,CAST(N'crudex x Expressions' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6857,7 +6841,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('24' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('24' AS bigint)
-                                ,CAST(N'crudex x Expressions' AS nvarchar(50))
+                                ,CAST(N'crudex x Conditions' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6874,7 +6858,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('25' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('25' AS bigint)
-                                ,CAST(N'crudex x Conditions' AS nvarchar(50))
+                                ,CAST(N'crudex x Properties' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6891,7 +6875,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('26' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('26' AS bigint)
-                                ,CAST(N'crudex x Properties' AS nvarchar(50))
+                                ,CAST(N'crudex x Behaviors' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6908,7 +6892,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('27' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('27' AS bigint)
-                                ,CAST(N'crudex x Behaviors' AS nvarchar(50))
+                                ,CAST(N'crudex x References' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6925,23 +6909,6 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('28' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('28' AS bigint)
-                                ,CAST(N'crudex x References' AS nvarchar(50))
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[DatabasesTables] ([Id]
-                                ,[DatabaseId]
-                                ,[TableId]
-                                ,[Name]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('29' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('29' AS bigint)
                                 ,CAST(N'crudex x Referencekeys' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
@@ -14668,377 +14635,6 @@ INSERT INTO [dbo].[Columns] ([Id]
                          VALUES (CAST('146' AS bigint)
                                 ,CAST('23' AS bigint)
                                 ,CAST('5' AS smallint)
-                                ,CAST('5' AS bigint)
-                                ,CAST(N'pk1' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'ID do comparador' AS nvarchar(50))
-                                ,CAST(N'ID' AS nvarchar(25))
-                                ,CAST(N'ID' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'1' AS nvarchar(max))
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('147' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('10' AS smallint)
-                                ,CAST('5' AS bigint)
-                                ,CAST(N'pk2' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Símbolo do comparador' AS nvarchar(50))
-                                ,CAST(N'Nome' AS nvarchar(25))
-                                ,CAST(N'Símbolo' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('148' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('15' AS smallint)
-                                ,CAST('5' AS bigint)
-                                ,CAST(N'pk3' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Descrição do comparador' AS nvarchar(50))
-                                ,CAST(N'SQL' AS nvarchar(25))
-                                ,CAST(N'Descrição' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('149' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('20' AS smallint)
-                                ,CAST('9' AS bigint)
-                                ,CAST(N'cpo1' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Aridade do comparador' AS nvarchar(50))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('150' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('25' AS smallint)
-                                ,CAST('9' AS bigint)
-                                ,CAST(N'cpo2' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Aridade do comparador' AS nvarchar(50))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('151' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('30' AS smallint)
-                                ,CAST('9' AS bigint)
-                                ,CAST(N'cpo3' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Aridade do comparador' AS nvarchar(50))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,CAST('0' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('152' AS bigint)
-                                ,CAST('23' AS bigint)
-                                ,CAST('35' AS smallint)
-                                ,CAST('5' AS bigint)
-                                ,CAST(N'cpo4' AS nvarchar(25))
-                                ,NULL
-                                ,CAST(N'Aridade do comparador' AS nvarchar(50))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,CAST(N'Aridade' AS nvarchar(25))
-                                ,NULL
-                                ,NULL
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('1' AS bit)
-                                ,CAST('0' AS bit)
-                                ,NULL
-                                ,CAST('0' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-INSERT INTO [dbo].[Columns] ([Id]
-                                ,[TableId]
-                                ,[Sequence]
-                                ,[DomainId]
-                                ,[Name]
-                                ,[Alias]
-                                ,[Description]
-                                ,[Title]
-                                ,[Caption]
-                                ,[Default]
-                                ,[Minimum]
-                                ,[Maximum]
-                                ,[IsPrimarykey]
-                                ,[IsAutoIncrement]
-                                ,[IsRequired]
-                                ,[IsListable]
-                                ,[IsFilterable]
-                                ,[IsEditable]
-                                ,[IsGridable]
-                                ,[IsEncrypted]
-                                ,[IsInWords]
-                                ,[IsVirtual]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('153' AS bigint)
-                                ,CAST('24' AS bigint)
-                                ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'Id' AS nvarchar(25))
                                 ,NULL
@@ -15089,8 +14685,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('154' AS bigint)
-                                ,CAST('24' AS bigint)
+                         VALUES (CAST('147' AS bigint)
+                                ,CAST('23' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'TableId' AS nvarchar(25))
@@ -15142,8 +14738,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('155' AS bigint)
-                                ,CAST('24' AS bigint)
+                         VALUES (CAST('148' AS bigint)
+                                ,CAST('23' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('9' AS bigint)
                                 ,CAST(N'Name' AS nvarchar(25))
@@ -15195,8 +14791,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('156' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('149' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'Id' AS nvarchar(25))
@@ -15248,8 +14844,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('157' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('150' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'ExpressionId' AS nvarchar(25))
@@ -15301,8 +14897,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('158' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('151' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('4' AS bigint)
                                 ,CAST(N'Sequence' AS nvarchar(25))
@@ -15354,8 +14950,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('159' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('152' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('7' AS bigint)
                                 ,CAST(N'Connector' AS nvarchar(25))
@@ -15407,8 +15003,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('160' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('153' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('8' AS bigint)
                                 ,CAST(N'LeftParenthesis' AS nvarchar(25))
@@ -15460,8 +15056,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('161' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('154' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'LeftColumnId' AS nvarchar(25))
@@ -15513,8 +15109,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('162' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('155' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('35' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'ComparatorId' AS nvarchar(25))
@@ -15566,8 +15162,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('163' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('156' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('40' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'RightColumnId' AS nvarchar(25))
@@ -15619,8 +15215,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('164' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('157' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('45' AS smallint)
                                 ,CAST('12' AS bigint)
                                 ,CAST(N'RightValues' AS nvarchar(25))
@@ -15672,8 +15268,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('165' AS bigint)
-                                ,CAST('25' AS bigint)
+                         VALUES (CAST('158' AS bigint)
+                                ,CAST('24' AS bigint)
                                 ,CAST('50' AS smallint)
                                 ,CAST('8' AS bigint)
                                 ,CAST(N'RightParenthesis' AS nvarchar(25))
@@ -15725,8 +15321,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('166' AS bigint)
-                                ,CAST('26' AS bigint)
+                         VALUES (CAST('159' AS bigint)
+                                ,CAST('25' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'Id' AS nvarchar(25))
@@ -15778,8 +15374,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('167' AS bigint)
-                                ,CAST('26' AS bigint)
+                         VALUES (CAST('160' AS bigint)
+                                ,CAST('25' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
                                 ,CAST(N'Name' AS nvarchar(25))
@@ -15831,8 +15427,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('168' AS bigint)
-                                ,CAST('26' AS bigint)
+                         VALUES (CAST('161' AS bigint)
+                                ,CAST('25' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'CategoryId' AS nvarchar(25))
@@ -15884,8 +15480,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('169' AS bigint)
-                                ,CAST('26' AS bigint)
+                         VALUES (CAST('162' AS bigint)
+                                ,CAST('25' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
                                 ,CAST(N'Description' AS nvarchar(25))
@@ -15937,8 +15533,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('170' AS bigint)
-                                ,CAST('26' AS bigint)
+                         VALUES (CAST('163' AS bigint)
+                                ,CAST('25' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
                                 ,CAST(N'IsActive' AS nvarchar(25))
@@ -15990,8 +15586,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('171' AS bigint)
-                                ,CAST('27' AS bigint)
+                         VALUES (CAST('164' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'Id' AS nvarchar(25))
@@ -16043,8 +15639,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('172' AS bigint)
-                                ,CAST('27' AS bigint)
+                         VALUES (CAST('165' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,CAST('30' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'ColumnId' AS nvarchar(25))
@@ -16096,8 +15692,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('173' AS bigint)
-                                ,CAST('27' AS bigint)
+                         VALUES (CAST('166' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'ExpressionId' AS nvarchar(25))
@@ -16149,8 +15745,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('174' AS bigint)
-                                ,CAST('27' AS bigint)
+                         VALUES (CAST('167' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'PropertyId' AS nvarchar(25))
@@ -16202,8 +15798,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('175' AS bigint)
-                                ,CAST('27' AS bigint)
+                         VALUES (CAST('168' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('12' AS bigint)
                                 ,CAST(N'Value' AS nvarchar(25))
@@ -16255,8 +15851,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('176' AS bigint)
-                                ,CAST('27' AS bigint)
+                         VALUES (CAST('169' AS bigint)
+                                ,CAST('26' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('12' AS bigint)
                                 ,CAST(N'ElseValue' AS nvarchar(25))
@@ -16308,8 +15904,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('177' AS bigint)
-                                ,CAST('28' AS bigint)
+                         VALUES (CAST('170' AS bigint)
+                                ,CAST('27' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'Id' AS nvarchar(25))
@@ -16361,8 +15957,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('178' AS bigint)
-                                ,CAST('28' AS bigint)
+                         VALUES (CAST('171' AS bigint)
+                                ,CAST('27' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
                                 ,CAST(N'FkTableId' AS nvarchar(25))
@@ -16414,8 +16010,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('179' AS bigint)
-                                ,CAST('28' AS bigint)
+                         VALUES (CAST('172' AS bigint)
+                                ,CAST('27' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'PkTableId' AS nvarchar(25))
@@ -16467,8 +16063,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('180' AS bigint)
-                                ,CAST('28' AS bigint)
+                         VALUES (CAST('173' AS bigint)
+                                ,CAST('27' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('10' AS bigint)
                                 ,CAST(N'Name' AS nvarchar(25))
@@ -16520,8 +16116,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('181' AS bigint)
-                                ,CAST('28' AS bigint)
+                         VALUES (CAST('174' AS bigint)
+                                ,CAST('27' AS bigint)
                                 ,CAST('25' AS smallint)
                                 ,CAST('6' AS bigint)
                                 ,CAST(N'IsParentChildren' AS nvarchar(25))
@@ -16573,8 +16169,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('182' AS bigint)
-                                ,CAST('29' AS bigint)
+                         VALUES (CAST('175' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,CAST('5' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'Id' AS nvarchar(25))
@@ -16626,8 +16222,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('183' AS bigint)
-                                ,CAST('29' AS bigint)
+                         VALUES (CAST('176' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,CAST('10' AS smallint)
                                 ,CAST('9' AS bigint)
                                 ,CAST(N'ReferenceId' AS nvarchar(25))
@@ -16679,8 +16275,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('184' AS bigint)
-                                ,CAST('29' AS bigint)
+                         VALUES (CAST('177' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,CAST('15' AS smallint)
                                 ,CAST('1' AS bigint)
                                 ,CAST(N'FkColumnId' AS nvarchar(25))
@@ -16732,8 +16328,8 @@ INSERT INTO [dbo].[Columns] ([Id]
                                 ,[CreatedBy]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
-                         VALUES (CAST('185' AS bigint)
-                                ,CAST('29' AS bigint)
+                         VALUES (CAST('178' AS bigint)
+                                ,CAST('28' AS bigint)
                                 ,CAST('20' AS smallint)
                                 ,CAST('4' AS bigint)
                                 ,CAST(N'Sequence' AS nvarchar(25))
@@ -16766,28 +16362,6 @@ SET IDENTITY_INSERT [dbo].[Columns] OFF
 
 
 
-/**********************************************************************************
-Inserir dados na tabela [dbo].[Unicities]
-**********************************************************************************/
-SET IDENTITY_INSERT [dbo].[Unicities] ON
-INSERT INTO [dbo].[Unicities] ([Id]
-                                ,[ColumnId1]
-                                ,[ColumnId2]
-                                ,[IsBidirectional]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS bigint)
-                                ,CAST('87' AS bigint)
-                                ,CAST('88' AS bigint)
-                                ,CAST('1' AS bit)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-SET IDENTITY_INSERT [dbo].[Unicities] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Comparators]
@@ -18120,33 +17694,6 @@ GO
 SET IDENTITY_INSERT [dbo].[Rules] OFF
 
 /**********************************************************************************
-Inserir dados na tabela [dbo].[testes]
-**********************************************************************************/
-INSERT INTO [dbo].[testes] ([pk1]
-                                ,[pk2]
-                                ,[pk3]
-                                ,[cpo1]
-                                ,[cpo2]
-                                ,[cpo3]
-                                ,[cpo4]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS tinyint)
-                                ,CAST('2' AS tinyint)
-                                ,CAST('3' AS tinyint)
-                                ,CAST(N'joao' AS nvarchar(25))
-                                ,CAST(N'juca' AS nvarchar(25))
-                                ,CAST(N'jeca' AS nvarchar(25))
-                                ,CAST('5' AS tinyint)
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-
-/**********************************************************************************
 Inserir dados na tabela [dbo].[Expressions]
 **********************************************************************************/
 SET IDENTITY_INSERT [dbo].[Expressions] ON
@@ -18167,38 +17714,6 @@ INSERT INTO [dbo].[Expressions] ([Id]
 GO
 SET IDENTITY_INSERT [dbo].[Expressions] OFF
 
-/**********************************************************************************
-Inserir dados na tabela [dbo].[Conditions]
-**********************************************************************************/
-INSERT INTO [dbo].[Conditions] ([Id]
-                                ,[ExpressionId]
-                                ,[Sequence]
-                                ,[Connector]
-                                ,[LeftParenthesis]
-                                ,[LeftColumnId]
-                                ,[ComparatorId]
-                                ,[RightColumnId]
-                                ,[RightValues]
-                                ,[RightParenthesis]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('5' AS smallint)
-                                ,NULL
-                                ,NULL
-                                ,CAST('94' AS bigint)
-                                ,CAST('3' AS bigint)
-                                ,NULL
-                                ,CAST(N'teste' AS nvarchar(max))
-                                ,NULL
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Properties]
@@ -19080,7 +18595,7 @@ INSERT INTO [dbo].[References] ([Id]
                          VALUES (CAST('26' AS bigint)
                                 ,CAST(N'24' AS nvarchar(25))
                                 ,CAST('12' AS bigint)
-                                ,CAST(N'Expressions x Tables' AS nvarchar(50))
+                                ,CAST(N'Conditions x Tables' AS nvarchar(50))
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -19660,7 +19175,7 @@ ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
         IF @Action IN ('create', 'update') BEGIN
 
             DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-                   ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+                   ,@W_HtmlInputType nvarchar(8) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(8))
                    ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
                    ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
                    ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
@@ -19879,7 +19394,7 @@ ALTER PROCEDURE [dbo].[CategoryCreate](@Login NVARCHAR(MAX)
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-               ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+               ,@W_HtmlInputType nvarchar(8) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(8))
                ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
                ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
                ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
@@ -19987,7 +19502,7 @@ ALTER PROCEDURE [dbo].[CategoryUpdate](@Login NVARCHAR(MAX)
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
 
         DECLARE @W_Name nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(25))
-               ,@W_HtmlInputType nvarchar(10) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(10))
+               ,@W_HtmlInputType nvarchar(8) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputType') AS nvarchar(8))
                ,@W_HtmlInputAlign nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.HtmlInputAlign') AS nvarchar(6))
                ,@W_AskEncrypted bit = CAST(JSON_VALUE(@ActualRecord, '$.AskEncrypted') AS bit)
                ,@W_AskMask bit = CAST(JSON_VALUE(@ActualRecord, '$.AskMask') AS bit)
@@ -20165,7 +19680,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
         SELECT [Action] AS [_]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS tinyint) AS [Id]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') AS nvarchar(25)) AS [Name]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputType') AS nvarchar(10)) AS [HtmlInputType]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputType') AS nvarchar(8)) AS [HtmlInputType]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.HtmlInputAlign') AS nvarchar(6)) AS [HtmlInputAlign]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskEncrypted') AS bit) AS [AskEncrypted]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.AskMask') AS bit) AS [AskMask]
@@ -21440,7 +20955,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS BIGINT) AS [Recno]
                     ,CAST(NULL AS tinyint) AS [Id]
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
-                    ,CAST(NULL AS nvarchar(10)) AS [HtmlInputType]
+                    ,CAST(NULL AS nvarchar(8)) AS [HtmlInputType]
                     ,CAST(NULL AS nvarchar(6)) AS [HtmlInputAlign]
                     ,CAST(NULL AS bit) AS [AskEncrypted]
                     ,CAST(NULL AS bit) AS [AskMask]
@@ -34863,8 +34378,8 @@ ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
                 THROW 51000, 'Chave-primária referenciada em Columns', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Indexes] WHERE [TableId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Indexes', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[Expressions] WHERE [TableId] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em Expressions', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Conditions] WHERE [LeftColumnId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Conditions', 1
         END
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[References] WHERE [PkTableId] = @W_Id OR [FkTableId] = @W_Id)
@@ -35986,15 +35501,6 @@ ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de FK em @ActualRecord inexiste em Databases', 1
             IF (@W_TableId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
                 THROW 51000, 'Valor de FK em @ActualRecord inexiste em Tables', 1
-            IF @Action = 'create' BEGIN
-                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_Name)
-                    THROW 51000, 'Unicidade cruzada de [DatabaseTable].[TableId] => [DatabaseTable].[Name] já existe', 1
-                IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_TableId)
-                    THROW 51000, 'Unicidade cruzada de [DatabaseTable].[Name] => [DatabaseTable].[TableId] já existe', 1
-            END ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [TableId] = @W_Name AND [Id] <> @W_Id) 
-                THROW 51000, 'Unicidade cruzada de [DatabaseTable].[TableId] => [DatabaseTable].[Name] já existe', 1
-            ELSE IF EXISTS(SELECT 1 FROM [dbo].[DatabasesTables] WHERE [Name] = @W_TableId AND [Id] <> @W_Id) 
-                THROW 51000, 'Unicidade cruzada de [DatabaseTable].[Name] => [DatabaseTable].[TableId] já existe', 1
         END
 
     RETURN @TransactionId
@@ -44528,7 +44034,7 @@ ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
 
             DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
                    ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
-                   ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
+                   ,@W_Action nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(6))
                    ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
                    ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
                    ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
@@ -44739,7 +44245,7 @@ ALTER PROCEDURE [dbo].[OperationCreate](@Login NVARCHAR(MAX)
 
         DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
                ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
-               ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
+               ,@W_Action nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(6))
                ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
                ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
                ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
@@ -44835,7 +44341,7 @@ ALTER PROCEDURE [dbo].[OperationUpdate](@Login NVARCHAR(MAX)
 
         DECLARE @W_TransactionId bigint = CAST(JSON_VALUE(@ActualRecord, '$.TransactionId') AS bigint)
                ,@W_TableName nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.TableName') AS nvarchar(25))
-               ,@W_Action nvarchar(15) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(15))
+               ,@W_Action nvarchar(6) = CAST(JSON_VALUE(@ActualRecord, '$.Action') AS nvarchar(6))
                ,@W_LastRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.LastRecord') AS nvarchar(max))
                ,@W_ActualRecord nvarchar(max) = CAST(JSON_VALUE(@ActualRecord, '$.ActualRecord') AS nvarchar(max))
                ,@W_IsConfirmed bit = CAST(JSON_VALUE(@ActualRecord, '$.IsConfirmed') AS bit)
@@ -45002,7 +44508,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) AS [Id]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TransactionId') AS bigint) AS [TransactionId]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.TableName') AS nvarchar(25)) AS [TableName]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Action') AS nvarchar(15)) AS [Action]
+              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Action') AS nvarchar(6)) AS [Action]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.LastRecord') AS nvarchar(max)) AS [LastRecord]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.ActualRecord') AS nvarchar(max)) AS [ActualRecord]
               ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.IsConfirmed') AS bit) AS [IsConfirmed]
@@ -45215,7 +44721,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bigint) AS [Id]
                     ,CAST(NULL AS bigint) AS [TransactionId]
                     ,CAST(NULL AS nvarchar(25)) AS [TableName]
-                    ,CAST(NULL AS nvarchar(15)) AS [Action]
+                    ,CAST(NULL AS nvarchar(6)) AS [Action]
                     ,CAST(NULL AS nvarchar(max)) AS [LastRecord]
                     ,CAST(NULL AS nvarchar(max)) AS [ActualRecord]
                     ,CAST(NULL AS bit) AS [IsConfirmed]
@@ -49023,1616 +48529,6 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[testeValidate]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[testeValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[testeValidate] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[testeValidate](@SessionId BIGINT
-                                               ,@TransactionId BIGINT
-                                               ,@UserName NVARCHAR(25)
-                                               ,@Action NVARCHAR(15)
-                                               ,@LastRecord NVARCHAR(max)
-                                               ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-    IF @SessionId IS NULL
-            THROW 51000, 'Valor de @SessionId é requerido', 1
-        IF @UserName IS NULL
-            THROW 51000, 'Valor de @UserName é requerido', 1
-        IF @Action IS NULL
-            THROW 51000, 'Valor de @Action é requerido', 1
-        IF @Action NOT IN ('create', 'update', 'delete')
-            THROW 51000, 'Valor de @Action é inválido', 1
-        IF @Action = 'delete' BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-        END ELSE BEGIN
-            IF @ActualRecord IS NULL
-                THROW 51000, 'Valor de @ActualRecord é requerido', 1
-            IF ISJSON(@ActualRecord) = 0
-                THROW 51000, 'Valor de @ActualRecord não está no formato JSON', 1
-        END
-        IF @TransactionId IS NULL
-            THROW 51000, 'Valor de @TransactionId é requerido', 1
-        DECLARE @IsConfirmed BIT
-               ,@CreatedBy NVARCHAR(25)
-               ,@IsPendingCreate BIT = 0
-               ,@W_pk1 tinyint
-               ,@W_pk2 tinyint
-               ,@W_pk3 tinyint
-
-        IF @Action = 'delete' BEGIN
-            SET @W_pk1 = CAST(JSON_VALUE(@LastRecord, '$.pk1') AS tinyint)
-            SET @W_pk2 = CAST(JSON_VALUE(@LastRecord, '$.pk2') AS tinyint)
-            SET @W_pk3 = CAST(JSON_VALUE(@LastRecord, '$.pk3') AS tinyint)
-
-        END ELSE BEGIN
-            SET @W_pk1 = CAST(JSON_VALUE(@ActualRecord, '$.pk1') AS tinyint)
-            SET @W_pk2 = CAST(JSON_VALUE(@ActualRecord, '$.pk2') AS tinyint)
-            SET @W_pk3 = CAST(JSON_VALUE(@ActualRecord, '$.pk3') AS tinyint)
-
-        END
-        SELECT @IsConfirmed = [IsConfirmed]
-              ,@CreatedBy = [CreatedBy]
-            FROM [dbo].[Transactions]
-            WHERE [Id] = @TransactionId
-                  AND [SessionId] = @SessionId
-        IF @@ROWCOUNT = 0
-            THROW 51000, 'Transação inexistente', 1
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = 'Transação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1;
-        END
-        IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        IF @W_pk1 IS NULL BEGIN
-            SET @ErrorMessage = 'Valor de pk1 em @ActualRecord é requerido.';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @W_pk1 < CAST('1' AS tinyint)
-            THROW 51000, 'Valor de pk1 em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF @W_pk2 IS NULL BEGIN
-            SET @ErrorMessage = 'Valor de pk2 em @ActualRecord é requerido.';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @W_pk3 IS NULL BEGIN
-            SET @ErrorMessage = 'Valor de pk3 em @ActualRecord é requerido.';
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF EXISTS(SELECT 1 FROM [dbo].[testes] WHERE [pk1] = @W_pk1      AND [pk2] = @W_pk2      AND [pk3] = @W_pk3) AND @Action = 'create'
-            THROW 51000, 'Chave-primária já existe em testes', 1
-        ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
-                                    FROM [dbo].[Operations]
-                                    WHERE [TransactionId] = @TransactionId
-                                          AND [TableName] = 'testes'
-                                          AND [IsConfirmed] IS NULL
-                                          AND [Action] = 'create'
-                                          AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk1') AS tinyint) = @W_pk1                                                AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk2') AS tinyint) = @W_pk2                                                AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk3') AS tinyint) = @W_pk3)
-            SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[testes] WHERE [pk1] = @W_pk1      AND [pk2] = @W_pk2      AND [pk3] = @W_pk3)
-            THROW 51000, 'Chave-primária não existe em testes', 1
-        IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
-            IF @LastRecord IS NULL
-                THROW 51000, 'Valor de @LastRecord é requerido', 1
-            IF ISJSON(@LastRecord) = 0
-                THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
-            IF NOT EXISTS(SELECT 1
-                            FROM [dbo].[testes]
-                            WHERE [pk1] = JSON_VALUE(@LastRecord, '$.pk1')
-                                  AND [pk2] = JSON_VALUE(@LastRecord, '$.pk2')
-                                  AND [pk3] = JSON_VALUE(@LastRecord, '$.pk3')
-                                  AND [dbo].[IS_EQUAL]([cpo1], JSON_VALUE(@LastRecord, '$.cpo1'), 'nvarchar') = 1
-                                  AND [dbo].[IS_EQUAL]([cpo2], JSON_VALUE(@LastRecord, '$.cpo2'), 'nvarchar') = 1
-                                  AND [dbo].[IS_EQUAL]([cpo3], JSON_VALUE(@LastRecord, '$.cpo3'), 'nvarchar') = 1
-                                  AND [dbo].[IS_EQUAL]([cpo4], JSON_VALUE(@LastRecord, '$.cpo4'), 'tinyint') = 1)
-            AND NOT EXISTS(SELECT 1
-                            FROM [dbo].[Operations]
-                            WHERE [TransactionId] = @TransactionId
-                                  AND [TableName] = 'testes'
-                                  AND [IsConfirmed] IS NULL
-                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk1') = JSON_VALUE(@LastRecord, '$.pk1')
-                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk2') = JSON_VALUE(@LastRecord, '$.pk2')
-                                  AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk3') = JSON_VALUE(@LastRecord, '$.pk3')
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo1'), JSON_VALUE(@LastRecord, '$.cpo1'), 'nvarchar') = 1
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo2'), JSON_VALUE(@LastRecord, '$.cpo2'), 'nvarchar') = 1
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo3'), JSON_VALUE(@LastRecord, '$.cpo3'), 'nvarchar') = 1
-                                  AND [dbo].[IS_EQUAL](JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo4'), JSON_VALUE(@LastRecord, '$.cpo4'), 'tinyint') = 1)
-                THROW 51000, 'Registro de testes alterado por outro usuário', 1
-        END
-
-        IF @Action IN ('create', 'update') BEGIN
-
-            DECLARE @W_cpo1 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo1') AS nvarchar(25))
-                   ,@W_cpo2 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo2') AS nvarchar(25))
-                   ,@W_cpo3 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo3') AS nvarchar(25))
-                   ,@W_cpo4 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.cpo4') AS tinyint)
-
-        END
-
-    RETURN @TransactionId
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[testePersist]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[testePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[testePersist] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[testePersist](@Login NVARCHAR(MAX)
-                                              ,@TransactionId BIGINT
-                                              ,@Action NVARCHAR(15)
-                                              ,@LastRecord NVARCHAR(max)
-                                              ,@ActualRecord NVARCHAR(max)) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(255)
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-    DECLARE @SessionId BIGINT
-           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
-    DECLARE @LoginReturn BIGINT
-
-    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @SessionId IS NULL
-        THROW 51000, 'SessionId é requerido', 1
-
-    DECLARE @OperationId BIGINT
-               ,@CreatedBy NVARCHAR(25)
-               ,@ActionAux NVARCHAR(15)
-               ,@IsConfirmed BIT
-               ,@W_pk1 tinyint
-               ,@W_pk2 tinyint
-               ,@W_pk3 tinyint
-
-    IF @Action = 'delete' BEGIN
-        SET @W_pk1 = CAST(JSON_VALUE(@LastRecord, '$.pk1') AS tinyint)
-        SET @W_pk2 = CAST(JSON_VALUE(@LastRecord, '$.pk2') AS tinyint)
-        SET @W_pk3 = CAST(JSON_VALUE(@LastRecord, '$.pk3') AS tinyint)
-
-    END ELSE BEGIN
-        SET @W_pk1 = CAST(JSON_VALUE(@ActualRecord, '$.pk1') AS tinyint)
-        SET @W_pk2 = CAST(JSON_VALUE(@ActualRecord, '$.pk2') AS tinyint)
-        SET @W_pk3 = CAST(JSON_VALUE(@ActualRecord, '$.pk3') AS tinyint)
-
-    END
-    EXEC @TransactionId = [dbo].[testeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
-        SELECT @OperationId = [Id]
-              ,@CreatedBy = [CreatedBy]
-              ,@ActionAux = [Action]
-              ,@IsConfirmed = [IsConfirmed]
-            FROM [dbo].[Operations]
-            WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'testes'
-                  AND [IsConfirmed] IS NULL
-                  AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk1') AS tinyint) = @W_pk1      AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk2') AS tinyint) = @W_pk2      AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk3') AS tinyint) = @W_pk3
-        IF @@ROWCOUNT = 0 BEGIN
-            EXEC [dbo].[NewOperationId] 'crudex', 'crudex', @OperationId OUT
-            SET IDENTITY_INSERT [dbo].[Operations] ON
-            INSERT INTO [dbo].[Operations] ([Id]
-                                             ,[TransactionId]
-                                             ,[TableName]
-                                             ,[Action]
-                                             ,[LastRecord]
-                                             ,[ActualRecord]
-                                             ,[IsConfirmed]
-                                             ,[CreatedAt]
-                                             ,[CreatedBy])
-                                       VALUES(@OperationId
-                                             ,@TransactionId
-                                             ,'testes'
-                                             ,@Action
-                                             ,@LastRecord
-                                             ,@ActualRecord
-                                             ,NULL
-                                             ,GETDATE()
-                                             ,@UserName)
-            SET IDENTITY_INSERT [dbo].[Operations] OFF
-        END ELSE IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        ELSE IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        ELSE IF @ActionAux = 'delete'
-            THROW 51000, 'Registro excluído nesta transação', 1
-        ELSE IF @Action = 'create'
-            UPDATE [dbo].[Operations]
-                SET [ActualRecord] = @ActualRecord
-                   ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @UserName
-                WHERE [Id] = @OperationId
-        ELSE IF @Action = 'update' BEGIN
-            IF @ActionAux = 'create'
-                EXEC [dbo].[testeValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
-            UPDATE [dbo].[Operations]
-                SET [ActualRecord] = @ActualRecord
-                   ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @UserName
-                WHERE [Id] = @OperationId
-        END
-        ELSE IF @ActionAux = 'create'
-            UPDATE [dbo].[Operations] 
-                SET [IsConfirmed] = 0
-                   ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @UserName
-                WHERE [Id] = @OperationId
-        ELSE
-            UPDATE [dbo].[Operations]
-                SET [Action] = 'delete'
-                   ,[LastRecord] = @LastRecord
-                   ,[ActualRecord] = NULL
-                   ,[UpdatedAt] = GETDATE()
-                   ,[UpdatedBy] = @UserName
-                WHERE [Id] = @OperationId
-
-    RETURN CAST(@OperationId AS BIGINT)
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[testeCreate]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[testeCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[testeCreate] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[testeCreate](@Login NVARCHAR(MAX)
-                                             ,@OperationId BIGINT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-    DECLARE @SessionId BIGINT
-           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
-    DECLARE @LoginReturn BIGINT
-
-    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @SessionId IS NULL
-        THROW 51000, 'SessionId é requerido', 1
-
-    DECLARE @TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@TableName NVARCHAR(25)
-               ,@Action NVARCHAR(15)
-               ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
-               ,@ActualRecord NVARCHAR(max)
-               ,@IsConfirmed BIT
-
-    IF @OperationId IS NULL
-            THROW 51000, 'Valor de @OperationId requerido', 1
-        SELECT @TransactionId = [TransactionId]
-               ,@TableName = [TableName]
-               ,@Action = [Action]
-               ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
-               ,@ActualRecord = [ActualRecord]
-               ,@IsConfirmed = [IsConfirmed]
-            FROM [dbo].[Operations]
-            WHERE [Id] = @OperationId
-        IF @@ROWCOUNT = 0
-            THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'testes'
-            THROW 51000, 'Tabela da operação é inválida', 1
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        IF @Action <> 'create'
-            THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[testeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId <> @TransactionIdAux
-            THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_pk1 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.pk1') AS tinyint)
-               ,@W_pk2 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.pk2') AS tinyint)
-               ,@W_pk3 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.pk3') AS tinyint)
-
-        DECLARE @W_cpo1 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo1') AS nvarchar(25))
-               ,@W_cpo2 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo2') AS nvarchar(25))
-               ,@W_cpo3 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo3') AS nvarchar(25))
-               ,@W_cpo4 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.cpo4') AS tinyint)
-
-        INSERT INTO [dbo].[testes] ([pk1]
-                                            ,[pk2]
-                                            ,[pk3]
-                                            ,[cpo1]
-                                            ,[cpo2]
-                                            ,[cpo3]
-                                            ,[cpo4]
-                                            ,[CreatedAt]
-                                            ,[CreatedBy])
-                                      VALUES (@W_pk1
-                                             ,@W_pk2
-                                             ,@W_pk3
-                                             ,@W_cpo1
-                                             ,@W_cpo2
-                                             ,@W_cpo3
-                                             ,@W_cpo4
-                                             ,GETDATE()
-                                             ,@UserName)
-        UPDATE [dbo].[Operations]
-            SET [IsConfirmed] = 1
-                ,[UpdatedAt] = GETDATE()
-                ,[UpdatedBy] = @UserName
-            WHERE [Id] = @OperationId
-
-    RETURN @TransactionId
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[testeUpdate]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[testeUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[testeUpdate] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[testeUpdate](@Login NVARCHAR(MAX)
-                                             ,@OperationId BIGINT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-    DECLARE @SessionId BIGINT
-           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
-    DECLARE @LoginReturn BIGINT
-
-    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @SessionId IS NULL
-        THROW 51000, 'SessionId é requerido', 1
-
-    DECLARE @TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@TableName NVARCHAR(25)
-               ,@Action NVARCHAR(15)
-               ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
-               ,@ActualRecord NVARCHAR(max)
-               ,@IsConfirmed BIT
-
-    IF @OperationId IS NULL
-            THROW 51000, 'Valor de @OperationId requerido', 1
-        SELECT @TransactionId = [TransactionId]
-               ,@TableName = [TableName]
-               ,@Action = [Action]
-               ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
-               ,@ActualRecord = [ActualRecord]
-               ,@IsConfirmed = [IsConfirmed]
-            FROM [dbo].[Operations]
-            WHERE [Id] = @OperationId
-        IF @@ROWCOUNT = 0
-            THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'testes'
-            THROW 51000, 'Tabela da operação é inválida', 1
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        IF @Action <> 'update'
-            THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[testeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId <> @TransactionIdAux
-            THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_pk1 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.pk1') AS tinyint)
-               ,@W_pk2 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.pk2') AS tinyint)
-               ,@W_pk3 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.pk3') AS tinyint)
-
-        DECLARE @W_cpo1 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo1') AS nvarchar(25))
-               ,@W_cpo2 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo2') AS nvarchar(25))
-               ,@W_cpo3 nvarchar(25) = CAST(JSON_VALUE(@ActualRecord, '$.cpo3') AS nvarchar(25))
-               ,@W_cpo4 tinyint = CAST(JSON_VALUE(@ActualRecord, '$.cpo4') AS tinyint)
-
-        UPDATE [dbo].[testes] SET [pk1] = @W_pk1
-                                          ,[pk2] = @W_pk2
-                                          ,[pk3] = @W_pk3
-                                          ,[cpo1] = @W_cpo1
-                                          ,[cpo2] = @W_cpo2
-                                          ,[cpo3] = @W_cpo3
-                                          ,[cpo4] = @W_cpo4
-                                          ,[UpdatedAt] = GETDATE()
-                                          ,[UpdatedBy] = @UserName
-            WHERE [pk1] = @W_pk1      AND [pk2] = @W_pk2      AND [pk3] = @W_pk3
-        UPDATE [dbo].[Operations]
-            SET [IsConfirmed] = 1
-                ,[UpdatedAt] = GETDATE()
-                ,[UpdatedBy] = @UserName
-            WHERE [Id] = @OperationId
-
-    RETURN @TransactionId
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[testeDelete]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[testeDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[testeDelete] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[testeDelete](@Login NVARCHAR(MAX)
-                                             ,@OperationId BIGINT) AS BEGIN
-    DECLARE @ErrorMessage NVARCHAR(MAX)
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-    DECLARE @SessionId BIGINT
-           ,@UserName NVARCHAR(25) = CAST(JSON_VALUE(@Login, '$.UserName') AS NVARCHAR(25))
-    DECLARE @LoginReturn BIGINT
-
-    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @SessionId IS NULL
-        THROW 51000, 'SessionId é requerido', 1
-
-    DECLARE @TransactionId BIGINT
-               ,@TransactionIdAux BIGINT
-               ,@TableName NVARCHAR(25)
-               ,@Action NVARCHAR(15)
-               ,@CreatedBy NVARCHAR(25)
-               ,@LastRecord NVARCHAR(max)
-               ,@ActualRecord NVARCHAR(max)
-               ,@IsConfirmed BIT
-
-    IF @OperationId IS NULL
-            THROW 51000, 'Valor de @OperationId requerido', 1
-        SELECT @TransactionId = [TransactionId]
-               ,@TableName = [TableName]
-               ,@Action = [Action]
-               ,@CreatedBy = [CreatedBy]
-               ,@LastRecord = [LastRecord]
-               ,@ActualRecord = [ActualRecord]
-               ,@IsConfirmed = [IsConfirmed]
-            FROM [dbo].[Operations]
-            WHERE [Id] = @OperationId
-        IF @@ROWCOUNT = 0
-            THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'testes'
-            THROW 51000, 'Tabela da operação é inválida', 1
-        IF @IsConfirmed IS NOT NULL BEGIN
-            SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
-            THROW 51000, @ErrorMessage, 1
-        END
-        IF @UserName <> @CreatedBy
-            THROW 51000, 'Erro grave de segurança', 1
-        IF @Action <> 'delete'
-            THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[testeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
-        IF @TransactionId <> @TransactionIdAux
-            THROW 51000, 'Transação da operação é inválida', 1
-        DECLARE @W_pk1 tinyint = CAST(JSON_VALUE(@LastRecord, '$.pk1') AS tinyint)
-               ,@W_pk2 tinyint = CAST(JSON_VALUE(@LastRecord, '$.pk2') AS tinyint)
-               ,@W_pk3 tinyint = CAST(JSON_VALUE(@LastRecord, '$.pk3') AS tinyint)
-
-        DELETE FROM [dbo].[testes] WHERE [pk1] = @W_pk1      AND [pk2] = @W_pk2      AND [pk3] = @W_pk3
-
-        UPDATE [dbo].[Operations]
-            SET [IsConfirmed] = 1
-                ,[UpdatedAt] = GETDATE()
-                ,[UpdatedBy] = @UserName
-            WHERE [Id] = @OperationId
-
-    RETURN @TransactionId
-END
-GO
-
-/**********************************************************************************
-Criar stored procedure [dbo].[testesRead]
-**********************************************************************************/
-IF(SELECT object_id('[dbo].[testesRead]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[testesRead] AS PRINT 1')
-GO
-ALTER PROCEDURE [dbo].[testesRead](@Login NVARCHAR(MAX)
-                                          ,@Filter NVARCHAR(MAX)
-                                          ,@Search NVARCHAR(MAX)
-                                          ,@OrderBy NVARCHAR(MAX)
-                                          ,@PaddingGridLastPage BIT
-                                          ,@IsActionList BIT
-                                          ,@PageNumber INT OUT
-                                          ,@LimitRows INT OUT
-                                          ,@MaxPage INT OUT
-                                          ,@ReturnValue BIGINT OUT) AS BEGIN
-
-    SET NOCOUNT ON
-    SET TRANSACTION ISOLATION LEVEL READ COMMITTED
-
-    DECLARE @SessionId BIGINT
-    DECLARE @LoginReturn BIGINT
-
-    EXEC [dbo].[Login] @Parameters = @Login, @ReturnValue = @LoginReturn OUTPUT
-    SET @SessionId = CAST(JSON_VALUE(@Login, '$.LoginId') AS BIGINT)
-    IF @SessionId IS NULL
-        THROW 51000, 'SessionId é requerido', 1
-
-        IF @Filter IS NULL
-            SET @Filter = '{}'
-        ELSE IF ISJSON(@Filter) = 0
-            THROW 51000, 'Valor de @Filter não está no formato JSON', 1
-        IF @Search IS NULL
-            SET @Search = '{}'
-        ELSE IF ISJSON(@Search) = 0
-            THROW 51000, 'Valor de @Search não está no formato JSON', 1
-        SET @OrderBy = TRIM(ISNULL(@OrderBy, ''))
-        IF @OrderBy = ''
-            SET @OrderBy = '[T].[pk1] ASC, [T].[pk2] ASC, [T].[pk3] ASC'
-        ELSE BEGIN
-            SET @OrderBy = REPLACE(REPLACE(@OrderBy, '[', ''), ']', '')
-            IF EXISTS(SELECT 1 
-                         FROM (SELECT CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
-                                           WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
-                                           ELSE TRIM([value])
-                                      END AS [ColumnName]
-                                  FROM STRING_SPLIT(@OrderBy, ',')) AS [O]
-                                      LEFT JOIN (SELECT [#1].[name] AS ColumnName
-                                                    FROM [sys].[columns] [#1]
-                                                        INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
-                                                    WHERE [#2].[name] = 'testes') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
-                         WHERE [T].[ColumnName] IS NULL)
-                THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
-            SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
-                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 3)
-                                                         ELSE TRIM([value])
-                                                    END) + '] ' + 
-                                                    CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN 'DESC'
-                                                         WHEN TRIM(RIGHT([value], 3)) = 'ASC' THEN 'ASC'
-                                                         ELSE 'ASC'
-                                                    END, ', ')
-                FROM STRING_SPLIT(@OrderBy, ',')
-        END
-
-        DECLARE @TransactionId BIGINT = (SELECT MAX([Id]) FROM [dbo].[Transactions] WHERE [SessionId] = @SessionId)
-
-        IF NOT EXISTS(SELECT 1 FROM [dbo].[Transactions] WHERE [Id] = @TransactionId AND [IsConfirmed] IS NULL)
-            SET @TransactionId = NULL
-        SELECT [Action] AS [_]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk1') AS tinyint) AS [pk1]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk2') AS tinyint) AS [pk2]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.pk3') AS tinyint) AS [pk3]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo1') AS nvarchar(25)) AS [cpo1]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo2') AS nvarchar(25)) AS [cpo2]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo3') AS nvarchar(25)) AS [cpo3]
-              ,CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.cpo4') AS tinyint) AS [cpo4]
-            INTO [#tmpOperations]
-            FROM [dbo].[Operations]
-            WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'testes'
-                  AND [IsConfirmed] IS NULL
-        CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([pk1], [pk2], [pk3])
-
-        DECLARE @_ NVARCHAR(MAX) = (SELECT STRING_AGG(value, ',') FROM OPENJSON(@Filter, '$._'))
-               ,@Where NVARCHAR(MAX) = ''
-               ,@ComparatorPredicate NVARCHAR(MAX)
-               ,@sql NVARCHAR(MAX)
-
-        DECLARE @WT_pk1 tinyint = CAST(JSON_VALUE(@Filter, '$.pk1') AS tinyint)
-               ,@WT_pk2 tinyint = CAST(JSON_VALUE(@Filter, '$.pk2') AS tinyint)
-               ,@WT_pk3 tinyint = CAST(JSON_VALUE(@Filter, '$.pk3') AS tinyint)
-               ,@WT_cpo1 nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.cpo1') AS nvarchar(25))
-               ,@WT_cpo2 nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.cpo2') AS nvarchar(25))
-               ,@WT_cpo3 nvarchar(25) = CAST(JSON_VALUE(@Filter, '$.cpo3') AS nvarchar(25))
-               ,@WT_cpo4 tinyint = CAST(JSON_VALUE(@Filter, '$.cpo4') AS tinyint)
-
-        IF @WT_pk1 IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[pk1] = @T_pk1'
-        END
-        IF @WT_pk2 IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[pk2] = @T_pk2'
-        END
-        IF @WT_pk3 IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[pk3] = @T_pk3'
-        END
-        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo1' AND [type] = 0)
-            SET @Where = @Where + ' AND [T].[cpo1] IS NULL'
-        ELSE IF @WT_cpo1 IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[cpo1] = @T_cpo1'
-        END
-        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo2' AND [type] = 0)
-            SET @Where = @Where + ' AND [T].[cpo2] IS NULL'
-        ELSE IF @WT_cpo2 IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[cpo2] = @T_cpo2'
-        END
-        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo3' AND [type] = 0)
-            SET @Where = @Where + ' AND [T].[cpo3] IS NULL'
-        ELSE IF @WT_cpo3 IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[cpo3] = @T_cpo3'
-        END
-        IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo4' AND [type] = 0)
-            SET @Where = @Where + ' AND [T].[cpo4] IS NULL'
-        ELSE IF @WT_cpo4 IS NOT NULL BEGIN
-            SET @Where = @Where + ' AND [T].[cpo4] = @T_cpo4'
-        END
-        IF @_ IS NULL BEGIN
-            DECLARE @G_pk1_comparator TINYINT
-                   ,@G_pk1_v tinyint
-                   ,@G_pk1_vals NVARCHAR(MAX)
-                   ,@G_pk1_v1 tinyint
-                   ,@G_pk1_v2 tinyint
-                   ,@G_pk2_comparator TINYINT
-                   ,@G_pk2_v tinyint
-                   ,@G_pk2_vals NVARCHAR(MAX)
-                   ,@G_pk2_v1 tinyint
-                   ,@G_pk2_v2 tinyint
-                   ,@G_pk3_comparator TINYINT
-                   ,@G_pk3_v tinyint
-                   ,@G_pk3_vals NVARCHAR(MAX)
-                   ,@G_pk3_v1 tinyint
-                   ,@G_pk3_v2 tinyint
-                   ,@G_cpo1_comparator TINYINT
-                   ,@G_cpo1_v nvarchar(25)
-                   ,@G_cpo1_vals NVARCHAR(MAX)
-                   ,@G_cpo1_v1 nvarchar(25)
-                   ,@G_cpo1_v2 nvarchar(25)
-                   ,@G_cpo2_comparator TINYINT
-                   ,@G_cpo2_v nvarchar(25)
-                   ,@G_cpo2_vals NVARCHAR(MAX)
-                   ,@G_cpo2_v1 nvarchar(25)
-                   ,@G_cpo2_v2 nvarchar(25)
-                   ,@G_cpo3_comparator TINYINT
-                   ,@G_cpo3_v nvarchar(25)
-                   ,@G_cpo3_vals NVARCHAR(MAX)
-                   ,@G_cpo3_v1 nvarchar(25)
-                   ,@G_cpo3_v2 nvarchar(25)
-                   ,@G_cpo4_comparator TINYINT
-                   ,@G_cpo4_v tinyint
-                   ,@G_cpo4_vals NVARCHAR(MAX)
-                   ,@G_cpo4_v1 tinyint
-                   ,@G_cpo4_v2 tinyint
-
-            SELECT @G_pk1_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk1.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.pk1') IS NOT NULL AND JSON_QUERY(@Filter, '$.pk1') IS NULL THEN 3 END
-            )
-                  ,@G_pk1_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk1.value') AS tinyint),
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk1') AS tinyint)
-            )
-                  ,@G_pk1_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.pk1.value'),
-                JSON_QUERY(@Filter, '$.pk1')
-            )
-            SELECT @G_pk1_v1 = TRY_CAST(JSON_VALUE(@G_pk1_vals, '$[0]') AS tinyint)
-                  ,@G_pk1_v2 = TRY_CAST(JSON_VALUE(@G_pk1_vals, '$[1]') AS tinyint)
-            SELECT @G_pk2_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk2.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.pk2') IS NOT NULL AND JSON_QUERY(@Filter, '$.pk2') IS NULL THEN 3 END
-            )
-                  ,@G_pk2_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk2.value') AS tinyint),
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk2') AS tinyint)
-            )
-                  ,@G_pk2_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.pk2.value'),
-                JSON_QUERY(@Filter, '$.pk2')
-            )
-            SELECT @G_pk2_v1 = TRY_CAST(JSON_VALUE(@G_pk2_vals, '$[0]') AS tinyint)
-                  ,@G_pk2_v2 = TRY_CAST(JSON_VALUE(@G_pk2_vals, '$[1]') AS tinyint)
-            SELECT @G_pk3_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk3.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.pk3') IS NOT NULL AND JSON_QUERY(@Filter, '$.pk3') IS NULL THEN 3 END
-            )
-                  ,@G_pk3_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk3.value') AS tinyint),
-                TRY_CAST(JSON_VALUE(@Filter, '$.pk3') AS tinyint)
-            )
-                  ,@G_pk3_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.pk3.value'),
-                JSON_QUERY(@Filter, '$.pk3')
-            )
-            SELECT @G_pk3_v1 = TRY_CAST(JSON_VALUE(@G_pk3_vals, '$[0]') AS tinyint)
-                  ,@G_pk3_v2 = TRY_CAST(JSON_VALUE(@G_pk3_vals, '$[1]') AS tinyint)
-            SELECT @G_cpo1_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo1.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.cpo1') IS NOT NULL AND JSON_QUERY(@Filter, '$.cpo1') IS NULL THEN 3 END
-            )
-                  ,@G_cpo1_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo1.value') AS nvarchar(25)),
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo1') AS nvarchar(25))
-            )
-                  ,@G_cpo1_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.cpo1.value'),
-                JSON_QUERY(@Filter, '$.cpo1')
-            )
-            SELECT @G_cpo1_v1 = TRY_CAST(JSON_VALUE(@G_cpo1_vals, '$[0]') AS nvarchar(25))
-                  ,@G_cpo1_v2 = TRY_CAST(JSON_VALUE(@G_cpo1_vals, '$[1]') AS nvarchar(25))
-            SELECT @G_cpo2_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo2.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.cpo2') IS NOT NULL AND JSON_QUERY(@Filter, '$.cpo2') IS NULL THEN 3 END
-            )
-                  ,@G_cpo2_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo2.value') AS nvarchar(25)),
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo2') AS nvarchar(25))
-            )
-                  ,@G_cpo2_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.cpo2.value'),
-                JSON_QUERY(@Filter, '$.cpo2')
-            )
-            SELECT @G_cpo2_v1 = TRY_CAST(JSON_VALUE(@G_cpo2_vals, '$[0]') AS nvarchar(25))
-                  ,@G_cpo2_v2 = TRY_CAST(JSON_VALUE(@G_cpo2_vals, '$[1]') AS nvarchar(25))
-            SELECT @G_cpo3_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo3.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.cpo3') IS NOT NULL AND JSON_QUERY(@Filter, '$.cpo3') IS NULL THEN 3 END
-            )
-                  ,@G_cpo3_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo3.value') AS nvarchar(25)),
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo3') AS nvarchar(25))
-            )
-                  ,@G_cpo3_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.cpo3.value'),
-                JSON_QUERY(@Filter, '$.cpo3')
-            )
-            SELECT @G_cpo3_v1 = TRY_CAST(JSON_VALUE(@G_cpo3_vals, '$[0]') AS nvarchar(25))
-                  ,@G_cpo3_v2 = TRY_CAST(JSON_VALUE(@G_cpo3_vals, '$[1]') AS nvarchar(25))
-            SELECT @G_cpo4_comparator = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo4.comparator') AS TINYINT),
-                CASE WHEN JSON_VALUE(@Filter, '$.cpo4') IS NOT NULL AND JSON_QUERY(@Filter, '$.cpo4') IS NULL THEN 3 END
-            )
-                  ,@G_cpo4_v = COALESCE(
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo4.value') AS tinyint),
-                TRY_CAST(JSON_VALUE(@Filter, '$.cpo4') AS tinyint)
-            )
-                  ,@G_cpo4_vals = COALESCE(
-                JSON_QUERY(@Filter, '$.cpo4.value'),
-                JSON_QUERY(@Filter, '$.cpo4')
-            )
-            SELECT @G_cpo4_v1 = TRY_CAST(JSON_VALUE(@G_cpo4_vals, '$[0]') AS tinyint)
-                  ,@G_cpo4_v2 = TRY_CAST(JSON_VALUE(@G_cpo4_vals, '$[1]') AS tinyint)
-
-            IF @G_pk1_comparator IS NOT NULL BEGIN
-                IF (@G_pk1_comparator = 1 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 2 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 3 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 4 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 5 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 6 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 7 AND @G_pk1_vals IS NOT NULL)
-               OR (@G_pk1_comparator = 8 AND @G_pk1_vals IS NOT NULL)
-               OR (@G_pk1_comparator = 9 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 10 AND @G_pk1_v IS NOT NULL)
-               OR (@G_pk1_comparator = 11 AND @G_pk1_v1 IS NOT NULL AND @G_pk1_v2 IS NOT NULL)
-               OR (@G_pk1_comparator = 12 AND @G_pk1_v1 IS NOT NULL AND @G_pk1_v2 IS NOT NULL)
-               OR (@G_pk1_comparator = 13)
-               OR (@G_pk1_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_pk1_comparator
-        WHEN 1 THEN N'[T].[pk1] < @pk1'
-        WHEN 2 THEN N'[T].[pk1] <= @pk1'
-        WHEN 3 THEN N'[T].[pk1] = @pk1'
-        WHEN 4 THEN N'[T].[pk1] <> @pk1'
-        WHEN 5 THEN N'[T].[pk1] >= @pk1'
-        WHEN 6 THEN N'[T].[pk1] > @pk1'
-        WHEN 7 THEN N'[T].[pk1] IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'
-        WHEN 8 THEN N'[T].[pk1] NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'
-        WHEN 9 THEN N'[T].[pk1] LIKE @pk1'
-        WHEN 10 THEN N'[T].[pk1] NOT LIKE @pk1'
-        WHEN 11 THEN N'[T].[pk1] BETWEEN @pk1_v1 AND @pk1_v2'
-        WHEN 12 THEN N'[T].[pk1] NOT BETWEEN @pk1_v1 AND @pk1_v2'
-        WHEN 13 THEN N'[T].[pk1] IS NULL'
-        WHEN 14 THEN N'[T].[pk1] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-            IF @G_pk2_comparator IS NOT NULL BEGIN
-                IF (@G_pk2_comparator = 1 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 2 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 3 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 4 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 5 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 6 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 7 AND @G_pk2_vals IS NOT NULL)
-               OR (@G_pk2_comparator = 8 AND @G_pk2_vals IS NOT NULL)
-               OR (@G_pk2_comparator = 9 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 10 AND @G_pk2_v IS NOT NULL)
-               OR (@G_pk2_comparator = 11 AND @G_pk2_v1 IS NOT NULL AND @G_pk2_v2 IS NOT NULL)
-               OR (@G_pk2_comparator = 12 AND @G_pk2_v1 IS NOT NULL AND @G_pk2_v2 IS NOT NULL)
-               OR (@G_pk2_comparator = 13)
-               OR (@G_pk2_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_pk2_comparator
-        WHEN 1 THEN N'[T].[pk2] < @pk2'
-        WHEN 2 THEN N'[T].[pk2] <= @pk2'
-        WHEN 3 THEN N'[T].[pk2] = @pk2'
-        WHEN 4 THEN N'[T].[pk2] <> @pk2'
-        WHEN 5 THEN N'[T].[pk2] >= @pk2'
-        WHEN 6 THEN N'[T].[pk2] > @pk2'
-        WHEN 7 THEN N'[T].[pk2] IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'
-        WHEN 8 THEN N'[T].[pk2] NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'
-        WHEN 9 THEN N'[T].[pk2] LIKE @pk2'
-        WHEN 10 THEN N'[T].[pk2] NOT LIKE @pk2'
-        WHEN 11 THEN N'[T].[pk2] BETWEEN @pk2_v1 AND @pk2_v2'
-        WHEN 12 THEN N'[T].[pk2] NOT BETWEEN @pk2_v1 AND @pk2_v2'
-        WHEN 13 THEN N'[T].[pk2] IS NULL'
-        WHEN 14 THEN N'[T].[pk2] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-            IF @G_pk3_comparator IS NOT NULL BEGIN
-                IF (@G_pk3_comparator = 1 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 2 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 3 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 4 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 5 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 6 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 7 AND @G_pk3_vals IS NOT NULL)
-               OR (@G_pk3_comparator = 8 AND @G_pk3_vals IS NOT NULL)
-               OR (@G_pk3_comparator = 9 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 10 AND @G_pk3_v IS NOT NULL)
-               OR (@G_pk3_comparator = 11 AND @G_pk3_v1 IS NOT NULL AND @G_pk3_v2 IS NOT NULL)
-               OR (@G_pk3_comparator = 12 AND @G_pk3_v1 IS NOT NULL AND @G_pk3_v2 IS NOT NULL)
-               OR (@G_pk3_comparator = 13)
-               OR (@G_pk3_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_pk3_comparator
-        WHEN 1 THEN N'[T].[pk3] < @pk3'
-        WHEN 2 THEN N'[T].[pk3] <= @pk3'
-        WHEN 3 THEN N'[T].[pk3] = @pk3'
-        WHEN 4 THEN N'[T].[pk3] <> @pk3'
-        WHEN 5 THEN N'[T].[pk3] >= @pk3'
-        WHEN 6 THEN N'[T].[pk3] > @pk3'
-        WHEN 7 THEN N'[T].[pk3] IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'
-        WHEN 8 THEN N'[T].[pk3] NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'
-        WHEN 9 THEN N'[T].[pk3] LIKE @pk3'
-        WHEN 10 THEN N'[T].[pk3] NOT LIKE @pk3'
-        WHEN 11 THEN N'[T].[pk3] BETWEEN @pk3_v1 AND @pk3_v2'
-        WHEN 12 THEN N'[T].[pk3] NOT BETWEEN @pk3_v1 AND @pk3_v2'
-        WHEN 13 THEN N'[T].[pk3] IS NULL'
-        WHEN 14 THEN N'[T].[pk3] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo1' AND [type] = 0)
-                SET @Where = @Where + ' AND [T].[cpo1] IS NULL'
-            ELSE
-            IF @G_cpo1_comparator IS NOT NULL BEGIN
-                IF (@G_cpo1_comparator = 1 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 2 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 3 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 4 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 5 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 6 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 7 AND @G_cpo1_vals IS NOT NULL)
-               OR (@G_cpo1_comparator = 8 AND @G_cpo1_vals IS NOT NULL)
-               OR (@G_cpo1_comparator = 9 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 10 AND @G_cpo1_v IS NOT NULL)
-               OR (@G_cpo1_comparator = 11 AND @G_cpo1_v1 IS NOT NULL AND @G_cpo1_v2 IS NOT NULL)
-               OR (@G_cpo1_comparator = 12 AND @G_cpo1_v1 IS NOT NULL AND @G_cpo1_v2 IS NOT NULL)
-               OR (@G_cpo1_comparator = 13)
-               OR (@G_cpo1_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_cpo1_comparator
-        WHEN 1 THEN N'[T].[cpo1] < @cpo1'
-        WHEN 2 THEN N'[T].[cpo1] <= @cpo1'
-        WHEN 3 THEN N'[T].[cpo1] = @cpo1'
-        WHEN 4 THEN N'[T].[cpo1] <> @cpo1'
-        WHEN 5 THEN N'[T].[cpo1] >= @cpo1'
-        WHEN 6 THEN N'[T].[cpo1] > @cpo1'
-        WHEN 7 THEN N'[T].[cpo1] IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'
-        WHEN 8 THEN N'[T].[cpo1] NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'
-        WHEN 9 THEN N'[T].[cpo1] LIKE @cpo1'
-        WHEN 10 THEN N'[T].[cpo1] NOT LIKE @cpo1'
-        WHEN 11 THEN N'[T].[cpo1] BETWEEN @cpo1_v1 AND @cpo1_v2'
-        WHEN 12 THEN N'[T].[cpo1] NOT BETWEEN @cpo1_v1 AND @cpo1_v2'
-        WHEN 13 THEN N'[T].[cpo1] IS NULL'
-        WHEN 14 THEN N'[T].[cpo1] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo2' AND [type] = 0)
-                SET @Where = @Where + ' AND [T].[cpo2] IS NULL'
-            ELSE
-            IF @G_cpo2_comparator IS NOT NULL BEGIN
-                IF (@G_cpo2_comparator = 1 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 2 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 3 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 4 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 5 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 6 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 7 AND @G_cpo2_vals IS NOT NULL)
-               OR (@G_cpo2_comparator = 8 AND @G_cpo2_vals IS NOT NULL)
-               OR (@G_cpo2_comparator = 9 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 10 AND @G_cpo2_v IS NOT NULL)
-               OR (@G_cpo2_comparator = 11 AND @G_cpo2_v1 IS NOT NULL AND @G_cpo2_v2 IS NOT NULL)
-               OR (@G_cpo2_comparator = 12 AND @G_cpo2_v1 IS NOT NULL AND @G_cpo2_v2 IS NOT NULL)
-               OR (@G_cpo2_comparator = 13)
-               OR (@G_cpo2_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_cpo2_comparator
-        WHEN 1 THEN N'[T].[cpo2] < @cpo2'
-        WHEN 2 THEN N'[T].[cpo2] <= @cpo2'
-        WHEN 3 THEN N'[T].[cpo2] = @cpo2'
-        WHEN 4 THEN N'[T].[cpo2] <> @cpo2'
-        WHEN 5 THEN N'[T].[cpo2] >= @cpo2'
-        WHEN 6 THEN N'[T].[cpo2] > @cpo2'
-        WHEN 7 THEN N'[T].[cpo2] IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'
-        WHEN 8 THEN N'[T].[cpo2] NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'
-        WHEN 9 THEN N'[T].[cpo2] LIKE @cpo2'
-        WHEN 10 THEN N'[T].[cpo2] NOT LIKE @cpo2'
-        WHEN 11 THEN N'[T].[cpo2] BETWEEN @cpo2_v1 AND @cpo2_v2'
-        WHEN 12 THEN N'[T].[cpo2] NOT BETWEEN @cpo2_v1 AND @cpo2_v2'
-        WHEN 13 THEN N'[T].[cpo2] IS NULL'
-        WHEN 14 THEN N'[T].[cpo2] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo3' AND [type] = 0)
-                SET @Where = @Where + ' AND [T].[cpo3] IS NULL'
-            ELSE
-            IF @G_cpo3_comparator IS NOT NULL BEGIN
-                IF (@G_cpo3_comparator = 1 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 2 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 3 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 4 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 5 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 6 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 7 AND @G_cpo3_vals IS NOT NULL)
-               OR (@G_cpo3_comparator = 8 AND @G_cpo3_vals IS NOT NULL)
-               OR (@G_cpo3_comparator = 9 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 10 AND @G_cpo3_v IS NOT NULL)
-               OR (@G_cpo3_comparator = 11 AND @G_cpo3_v1 IS NOT NULL AND @G_cpo3_v2 IS NOT NULL)
-               OR (@G_cpo3_comparator = 12 AND @G_cpo3_v1 IS NOT NULL AND @G_cpo3_v2 IS NOT NULL)
-               OR (@G_cpo3_comparator = 13)
-               OR (@G_cpo3_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_cpo3_comparator
-        WHEN 1 THEN N'[T].[cpo3] < @cpo3'
-        WHEN 2 THEN N'[T].[cpo3] <= @cpo3'
-        WHEN 3 THEN N'[T].[cpo3] = @cpo3'
-        WHEN 4 THEN N'[T].[cpo3] <> @cpo3'
-        WHEN 5 THEN N'[T].[cpo3] >= @cpo3'
-        WHEN 6 THEN N'[T].[cpo3] > @cpo3'
-        WHEN 7 THEN N'[T].[cpo3] IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'
-        WHEN 8 THEN N'[T].[cpo3] NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'
-        WHEN 9 THEN N'[T].[cpo3] LIKE @cpo3'
-        WHEN 10 THEN N'[T].[cpo3] NOT LIKE @cpo3'
-        WHEN 11 THEN N'[T].[cpo3] BETWEEN @cpo3_v1 AND @cpo3_v2'
-        WHEN 12 THEN N'[T].[cpo3] NOT BETWEEN @cpo3_v1 AND @cpo3_v2'
-        WHEN 13 THEN N'[T].[cpo3] IS NULL'
-        WHEN 14 THEN N'[T].[cpo3] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-            IF EXISTS(SELECT 1 FROM OPENJSON(@Filter) WHERE [key] = 'cpo4' AND [type] = 0)
-                SET @Where = @Where + ' AND [T].[cpo4] IS NULL'
-            ELSE
-            IF @G_cpo4_comparator IS NOT NULL BEGIN
-                IF (@G_cpo4_comparator = 1 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 2 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 3 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 4 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 5 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 6 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 7 AND @G_cpo4_vals IS NOT NULL)
-               OR (@G_cpo4_comparator = 8 AND @G_cpo4_vals IS NOT NULL)
-               OR (@G_cpo4_comparator = 9 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 10 AND @G_cpo4_v IS NOT NULL)
-               OR (@G_cpo4_comparator = 11 AND @G_cpo4_v1 IS NOT NULL AND @G_cpo4_v2 IS NOT NULL)
-               OR (@G_cpo4_comparator = 12 AND @G_cpo4_v1 IS NOT NULL AND @G_cpo4_v2 IS NOT NULL)
-               OR (@G_cpo4_comparator = 13)
-               OR (@G_cpo4_comparator = 14) BEGIN
-                    SET @ComparatorPredicate = CASE @G_cpo4_comparator
-        WHEN 1 THEN N'[T].[cpo4] < @cpo4'
-        WHEN 2 THEN N'[T].[cpo4] <= @cpo4'
-        WHEN 3 THEN N'[T].[cpo4] = @cpo4'
-        WHEN 4 THEN N'[T].[cpo4] <> @cpo4'
-        WHEN 5 THEN N'[T].[cpo4] >= @cpo4'
-        WHEN 6 THEN N'[T].[cpo4] > @cpo4'
-        WHEN 7 THEN N'[T].[cpo4] IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'
-        WHEN 8 THEN N'[T].[cpo4] NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'
-        WHEN 9 THEN N'[T].[cpo4] LIKE @cpo4'
-        WHEN 10 THEN N'[T].[cpo4] NOT LIKE @cpo4'
-        WHEN 11 THEN N'[T].[cpo4] BETWEEN @cpo4_v1 AND @cpo4_v2'
-        WHEN 12 THEN N'[T].[cpo4] NOT BETWEEN @cpo4_v1 AND @cpo4_v2'
-        WHEN 13 THEN N'[T].[cpo4] IS NULL'
-        WHEN 14 THEN N'[T].[cpo4] IS NOT NULL'
-    END
-                    IF @ComparatorPredicate IS NOT NULL SET @Where = @Where + ' AND ' + @ComparatorPredicate
-                END
-            END
-        END ELSE
-            SET @Where = @Where + ' AND [T].[pk1] IN (' + @_ + ')'
-
-        CREATE TABLE [#tmpTable]([_] CHAR(1), [Recno] BIGINT, [pk1] tinyint, [pk2] tinyint, [pk3] tinyint)
-        SET @sql = 'INSERT [#tmpTable]([_], [Recno], [pk1], [pk2], [pk3])
-                        SELECT [_]
-                              ,[Recno]
-                              ,[U].[pk1]
-                              ,[U].[pk2]
-                              ,[U].[pk3]
-                            FROM (SELECT ''T'' AS [_]
-                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
-                              ,[T].[pk1]
-                              ,[T].[pk2]
-                              ,[T].[pk3]
-                                    FROM [dbo].[testes] [T]
-                                        LEFT JOIN [#tmpOperations] [#] ON [T].[pk1] = [#].[pk1] AND [T].[pk2] = [#].[pk2] AND [T].[pk3] = [#].[pk3]
-                                    WHERE [#].[pk1] IS NULL' + @Where + '
-                                  UNION ALL
-                                  SELECT ''O'' AS [_]
-                                        ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') + (SELECT COUNT(*) FROM [#tmpTable] [#] WHERE [#].[_] = ''T'') AS [Recno]
-                              ,[T].[pk1]
-                              ,[T].[pk2]
-                              ,[T].[pk3]
-                                    FROM [#tmpOperations] [T]
-                                    WHERE [T].[_] <> ''delete''' + @Where + ') AS [U]
-                            ORDER BY [Recno]'
-        IF @_ IS NULL BEGIN
-            EXEC sp_executesql @sql
-                               ,N'@T_pk1 tinyint,@T_pk2 tinyint,@T_pk3 tinyint,@T_cpo1 nvarchar(25),@T_cpo2 nvarchar(25),@T_cpo3 nvarchar(25),@T_cpo4 tinyint,@pk1 tinyint,@pk1_v1 tinyint,@pk1_v2 tinyint,@pk1_vals NVARCHAR(MAX),@pk2 tinyint,@pk2_v1 tinyint,@pk2_v2 tinyint,@pk2_vals NVARCHAR(MAX),@pk3 tinyint,@pk3_v1 tinyint,@pk3_v2 tinyint,@pk3_vals NVARCHAR(MAX),@cpo1 nvarchar(25),@cpo1_v1 nvarchar(25),@cpo1_v2 nvarchar(25),@cpo1_vals NVARCHAR(MAX),@cpo2 nvarchar(25),@cpo2_v1 nvarchar(25),@cpo2_v2 nvarchar(25),@cpo2_vals NVARCHAR(MAX),@cpo3 nvarchar(25),@cpo3_v1 nvarchar(25),@cpo3_v2 nvarchar(25),@cpo3_vals NVARCHAR(MAX),@cpo4 tinyint,@cpo4_v1 tinyint,@cpo4_v2 tinyint,@cpo4_vals NVARCHAR(MAX)'
-                               ,@T_pk1 = @WT_pk1
-                               ,@T_pk2 = @WT_pk2
-                               ,@T_pk3 = @WT_pk3
-                               ,@T_cpo1 = @WT_cpo1
-                               ,@T_cpo2 = @WT_cpo2
-                               ,@T_cpo3 = @WT_cpo3
-                               ,@T_cpo4 = @WT_cpo4
-                               ,@pk1 = @G_pk1_v
-                               ,@pk1_v1 = @G_pk1_v1
-                               ,@pk1_v2 = @G_pk1_v2
-                               ,@pk1_vals = @G_pk1_vals
-                               ,@pk2 = @G_pk2_v
-                               ,@pk2_v1 = @G_pk2_v1
-                               ,@pk2_v2 = @G_pk2_v2
-                               ,@pk2_vals = @G_pk2_vals
-                               ,@pk3 = @G_pk3_v
-                               ,@pk3_v1 = @G_pk3_v1
-                               ,@pk3_v2 = @G_pk3_v2
-                               ,@pk3_vals = @G_pk3_vals
-                               ,@cpo1 = @G_cpo1_v
-                               ,@cpo1_v1 = @G_cpo1_v1
-                               ,@cpo1_v2 = @G_cpo1_v2
-                               ,@cpo1_vals = @G_cpo1_vals
-                               ,@cpo2 = @G_cpo2_v
-                               ,@cpo2_v1 = @G_cpo2_v1
-                               ,@cpo2_v2 = @G_cpo2_v2
-                               ,@cpo2_vals = @G_cpo2_vals
-                               ,@cpo3 = @G_cpo3_v
-                               ,@cpo3_v1 = @G_cpo3_v1
-                               ,@cpo3_v2 = @G_cpo3_v2
-                               ,@cpo3_vals = @G_cpo3_vals
-                               ,@cpo4 = @G_cpo4_v
-                               ,@cpo4_v1 = @G_cpo4_v1
-                               ,@cpo4_v2 = @G_cpo4_v2
-                               ,@cpo4_vals = @G_cpo4_vals
-        END ELSE BEGIN
-            EXEC sp_executesql @sql
-                               ,N'@T_pk1 tinyint,@T_pk2 tinyint,@T_pk3 tinyint,@T_cpo1 nvarchar(25),@T_cpo2 nvarchar(25),@T_cpo3 nvarchar(25),@T_cpo4 tinyint'
-                               ,@T_pk1 = @WT_pk1
-                               ,@T_pk2 = @WT_pk2
-                               ,@T_pk3 = @WT_pk3
-                               ,@T_cpo1 = @WT_cpo1
-                               ,@T_cpo2 = @WT_cpo2
-                               ,@T_cpo3 = @WT_cpo3
-                               ,@T_cpo4 = @WT_cpo4
-        END
-
-        DECLARE @RowCount INT = @@ROWCOUNT
-               ,@OffSet INT
-
-        CREATE UNIQUE INDEX [#tmpTable] ON [#tmpTable]([pk1], [pk2], [pk3])
-        IF @RowCount = 0 OR ISNULL(@PageNumber, 0) = 0 OR ISNULL(@LimitRows, 0) <= 0 BEGIN
-            SET @OffSet = 0
-            SET @LimitRows = CASE WHEN @RowCount = 0 THEN 1 ELSE @RowCount END
-            SET @PageNumber = 1
-            SET @MaxPage = 1
-        END ELSE BEGIN
-            SET @MaxPage = @RowCount / @LimitRows + CASE WHEN @RowCount % @LimitRows = 0 THEN 0 ELSE 1 END
-            DECLARE @SearchRecno BIGINT = NULL
-            IF EXISTS(SELECT 1 FROM OPENJSON(@Search)) BEGIN
-                DECLARE @Recno BIGINT
-                   ,@S_pk1_comparator TINYINT
-                   ,@S_pk1_v tinyint
-                   ,@S_pk1_vals NVARCHAR(MAX)
-                   ,@S_pk1_v1 tinyint
-                   ,@S_pk1_v2 tinyint
-                   ,@S_pk2_comparator TINYINT
-                   ,@S_pk2_v tinyint
-                   ,@S_pk2_vals NVARCHAR(MAX)
-                   ,@S_pk2_v1 tinyint
-                   ,@S_pk2_v2 tinyint
-                   ,@S_pk3_comparator TINYINT
-                   ,@S_pk3_v tinyint
-                   ,@S_pk3_vals NVARCHAR(MAX)
-                   ,@S_pk3_v1 tinyint
-                   ,@S_pk3_v2 tinyint
-                   ,@S_cpo1_comparator TINYINT
-                   ,@S_cpo1_v nvarchar(25)
-                   ,@S_cpo1_vals NVARCHAR(MAX)
-                   ,@S_cpo1_v1 nvarchar(25)
-                   ,@S_cpo1_v2 nvarchar(25)
-                   ,@S_cpo2_comparator TINYINT
-                   ,@S_cpo2_v nvarchar(25)
-                   ,@S_cpo2_vals NVARCHAR(MAX)
-                   ,@S_cpo2_v1 nvarchar(25)
-                   ,@S_cpo2_v2 nvarchar(25)
-                   ,@S_cpo3_comparator TINYINT
-                   ,@S_cpo3_v nvarchar(25)
-                   ,@S_cpo3_vals NVARCHAR(MAX)
-                   ,@S_cpo3_v1 nvarchar(25)
-                   ,@S_cpo3_v2 nvarchar(25)
-                   ,@S_cpo4_comparator TINYINT
-                   ,@S_cpo4_v tinyint
-                   ,@S_cpo4_vals NVARCHAR(MAX)
-                   ,@S_cpo4_v1 tinyint
-                   ,@S_cpo4_v2 tinyint
-
-                SELECT @S_pk1_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk1.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.pk1') IS NOT NULL AND JSON_QUERY(@Search, '$.pk1') IS NULL THEN 3 END
-                )
-                      ,@S_pk1_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk1.value') AS tinyint),
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk1') AS tinyint)
-                )
-                      ,@S_pk1_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.pk1.value'),
-                    JSON_QUERY(@Search, '$.pk1')
-                )
-                SELECT @S_pk1_v1 = TRY_CAST(JSON_VALUE(@S_pk1_vals, '$[0]') AS tinyint)
-                      ,@S_pk1_v2 = TRY_CAST(JSON_VALUE(@S_pk1_vals, '$[1]') AS tinyint)
-                SELECT @S_pk2_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk2.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.pk2') IS NOT NULL AND JSON_QUERY(@Search, '$.pk2') IS NULL THEN 3 END
-                )
-                      ,@S_pk2_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk2.value') AS tinyint),
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk2') AS tinyint)
-                )
-                      ,@S_pk2_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.pk2.value'),
-                    JSON_QUERY(@Search, '$.pk2')
-                )
-                SELECT @S_pk2_v1 = TRY_CAST(JSON_VALUE(@S_pk2_vals, '$[0]') AS tinyint)
-                      ,@S_pk2_v2 = TRY_CAST(JSON_VALUE(@S_pk2_vals, '$[1]') AS tinyint)
-                SELECT @S_pk3_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk3.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.pk3') IS NOT NULL AND JSON_QUERY(@Search, '$.pk3') IS NULL THEN 3 END
-                )
-                      ,@S_pk3_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk3.value') AS tinyint),
-                    TRY_CAST(JSON_VALUE(@Search, '$.pk3') AS tinyint)
-                )
-                      ,@S_pk3_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.pk3.value'),
-                    JSON_QUERY(@Search, '$.pk3')
-                )
-                SELECT @S_pk3_v1 = TRY_CAST(JSON_VALUE(@S_pk3_vals, '$[0]') AS tinyint)
-                      ,@S_pk3_v2 = TRY_CAST(JSON_VALUE(@S_pk3_vals, '$[1]') AS tinyint)
-                SELECT @S_cpo1_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo1.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.cpo1') IS NOT NULL AND JSON_QUERY(@Search, '$.cpo1') IS NULL THEN 9 END
-                )
-                      ,@S_cpo1_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo1.value') AS nvarchar(25)),
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo1') AS nvarchar(25))
-                )
-                      ,@S_cpo1_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.cpo1.value'),
-                    JSON_QUERY(@Search, '$.cpo1')
-                )
-                SELECT @S_cpo1_v1 = TRY_CAST(JSON_VALUE(@S_cpo1_vals, '$[0]') AS nvarchar(25))
-                      ,@S_cpo1_v2 = TRY_CAST(JSON_VALUE(@S_cpo1_vals, '$[1]') AS nvarchar(25))
-                SELECT @S_cpo2_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo2.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.cpo2') IS NOT NULL AND JSON_QUERY(@Search, '$.cpo2') IS NULL THEN 9 END
-                )
-                      ,@S_cpo2_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo2.value') AS nvarchar(25)),
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo2') AS nvarchar(25))
-                )
-                      ,@S_cpo2_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.cpo2.value'),
-                    JSON_QUERY(@Search, '$.cpo2')
-                )
-                SELECT @S_cpo2_v1 = TRY_CAST(JSON_VALUE(@S_cpo2_vals, '$[0]') AS nvarchar(25))
-                      ,@S_cpo2_v2 = TRY_CAST(JSON_VALUE(@S_cpo2_vals, '$[1]') AS nvarchar(25))
-                SELECT @S_cpo3_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo3.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.cpo3') IS NOT NULL AND JSON_QUERY(@Search, '$.cpo3') IS NULL THEN 9 END
-                )
-                      ,@S_cpo3_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo3.value') AS nvarchar(25)),
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo3') AS nvarchar(25))
-                )
-                      ,@S_cpo3_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.cpo3.value'),
-                    JSON_QUERY(@Search, '$.cpo3')
-                )
-                SELECT @S_cpo3_v1 = TRY_CAST(JSON_VALUE(@S_cpo3_vals, '$[0]') AS nvarchar(25))
-                      ,@S_cpo3_v2 = TRY_CAST(JSON_VALUE(@S_cpo3_vals, '$[1]') AS nvarchar(25))
-                SELECT @S_cpo4_comparator = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo4.comparator') AS TINYINT),
-                    CASE WHEN JSON_VALUE(@Search, '$.cpo4') IS NOT NULL AND JSON_QUERY(@Search, '$.cpo4') IS NULL THEN 3 END
-                )
-                      ,@S_cpo4_v = COALESCE(
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo4.value') AS tinyint),
-                    TRY_CAST(JSON_VALUE(@Search, '$.cpo4') AS tinyint)
-                )
-                      ,@S_cpo4_vals = COALESCE(
-                    JSON_QUERY(@Search, '$.cpo4.value'),
-                    JSON_QUERY(@Search, '$.cpo4')
-                )
-                SELECT @S_cpo4_v1 = TRY_CAST(JSON_VALUE(@S_cpo4_vals, '$[0]') AS tinyint)
-                      ,@S_cpo4_v2 = TRY_CAST(JSON_VALUE(@S_cpo4_vals, '$[1]') AS tinyint)
-
-                SET @Where = ''
-                IF @S_pk1_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_pk1_comparator = 1 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 2 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 3 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 4 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 5 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 6 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 7 AND @S_pk1_vals IS NOT NULL)
-               OR (@S_pk1_comparator = 8 AND @S_pk1_vals IS NOT NULL)
-               OR (@S_pk1_comparator = 9 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 10 AND @S_pk1_v IS NOT NULL)
-               OR (@S_pk1_comparator = 11 AND @S_pk1_v1 IS NOT NULL AND @S_pk1_v2 IS NOT NULL)
-               OR (@S_pk1_comparator = 12 AND @S_pk1_v1 IS NOT NULL AND @S_pk1_v2 IS NOT NULL)
-               OR (@S_pk1_comparator = 13)
-               OR (@S_pk1_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_pk1_comparator
-        WHEN 1 THEN N'COALESCE([D].[pk1], [O].[pk1]) < @pk1'
-        WHEN 2 THEN N'COALESCE([D].[pk1], [O].[pk1]) <= @pk1'
-        WHEN 3 THEN N'COALESCE([D].[pk1], [O].[pk1]) = @pk1'
-        WHEN 4 THEN N'COALESCE([D].[pk1], [O].[pk1]) <> @pk1'
-        WHEN 5 THEN N'COALESCE([D].[pk1], [O].[pk1]) >= @pk1'
-        WHEN 6 THEN N'COALESCE([D].[pk1], [O].[pk1]) > @pk1'
-        WHEN 7 THEN N'COALESCE([D].[pk1], [O].[pk1]) IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'
-        WHEN 8 THEN N'COALESCE([D].[pk1], [O].[pk1]) NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk1_vals))'
-        WHEN 9 THEN N'COALESCE([D].[pk1], [O].[pk1]) LIKE @pk1'
-        WHEN 10 THEN N'COALESCE([D].[pk1], [O].[pk1]) NOT LIKE @pk1'
-        WHEN 11 THEN N'COALESCE([D].[pk1], [O].[pk1]) BETWEEN @pk1_v1 AND @pk1_v2'
-        WHEN 12 THEN N'COALESCE([D].[pk1], [O].[pk1]) NOT BETWEEN @pk1_v1 AND @pk1_v2'
-        WHEN 13 THEN N'COALESCE([D].[pk1], [O].[pk1]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[pk1], [O].[pk1]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF @S_pk2_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_pk2_comparator = 1 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 2 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 3 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 4 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 5 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 6 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 7 AND @S_pk2_vals IS NOT NULL)
-               OR (@S_pk2_comparator = 8 AND @S_pk2_vals IS NOT NULL)
-               OR (@S_pk2_comparator = 9 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 10 AND @S_pk2_v IS NOT NULL)
-               OR (@S_pk2_comparator = 11 AND @S_pk2_v1 IS NOT NULL AND @S_pk2_v2 IS NOT NULL)
-               OR (@S_pk2_comparator = 12 AND @S_pk2_v1 IS NOT NULL AND @S_pk2_v2 IS NOT NULL)
-               OR (@S_pk2_comparator = 13)
-               OR (@S_pk2_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_pk2_comparator
-        WHEN 1 THEN N'COALESCE([D].[pk2], [O].[pk2]) < @pk2'
-        WHEN 2 THEN N'COALESCE([D].[pk2], [O].[pk2]) <= @pk2'
-        WHEN 3 THEN N'COALESCE([D].[pk2], [O].[pk2]) = @pk2'
-        WHEN 4 THEN N'COALESCE([D].[pk2], [O].[pk2]) <> @pk2'
-        WHEN 5 THEN N'COALESCE([D].[pk2], [O].[pk2]) >= @pk2'
-        WHEN 6 THEN N'COALESCE([D].[pk2], [O].[pk2]) > @pk2'
-        WHEN 7 THEN N'COALESCE([D].[pk2], [O].[pk2]) IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'
-        WHEN 8 THEN N'COALESCE([D].[pk2], [O].[pk2]) NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk2_vals))'
-        WHEN 9 THEN N'COALESCE([D].[pk2], [O].[pk2]) LIKE @pk2'
-        WHEN 10 THEN N'COALESCE([D].[pk2], [O].[pk2]) NOT LIKE @pk2'
-        WHEN 11 THEN N'COALESCE([D].[pk2], [O].[pk2]) BETWEEN @pk2_v1 AND @pk2_v2'
-        WHEN 12 THEN N'COALESCE([D].[pk2], [O].[pk2]) NOT BETWEEN @pk2_v1 AND @pk2_v2'
-        WHEN 13 THEN N'COALESCE([D].[pk2], [O].[pk2]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[pk2], [O].[pk2]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF @S_pk3_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_pk3_comparator = 1 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 2 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 3 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 4 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 5 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 6 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 7 AND @S_pk3_vals IS NOT NULL)
-               OR (@S_pk3_comparator = 8 AND @S_pk3_vals IS NOT NULL)
-               OR (@S_pk3_comparator = 9 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 10 AND @S_pk3_v IS NOT NULL)
-               OR (@S_pk3_comparator = 11 AND @S_pk3_v1 IS NOT NULL AND @S_pk3_v2 IS NOT NULL)
-               OR (@S_pk3_comparator = 12 AND @S_pk3_v1 IS NOT NULL AND @S_pk3_v2 IS NOT NULL)
-               OR (@S_pk3_comparator = 13)
-               OR (@S_pk3_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_pk3_comparator
-        WHEN 1 THEN N'COALESCE([D].[pk3], [O].[pk3]) < @pk3'
-        WHEN 2 THEN N'COALESCE([D].[pk3], [O].[pk3]) <= @pk3'
-        WHEN 3 THEN N'COALESCE([D].[pk3], [O].[pk3]) = @pk3'
-        WHEN 4 THEN N'COALESCE([D].[pk3], [O].[pk3]) <> @pk3'
-        WHEN 5 THEN N'COALESCE([D].[pk3], [O].[pk3]) >= @pk3'
-        WHEN 6 THEN N'COALESCE([D].[pk3], [O].[pk3]) > @pk3'
-        WHEN 7 THEN N'COALESCE([D].[pk3], [O].[pk3]) IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'
-        WHEN 8 THEN N'COALESCE([D].[pk3], [O].[pk3]) NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@pk3_vals))'
-        WHEN 9 THEN N'COALESCE([D].[pk3], [O].[pk3]) LIKE @pk3'
-        WHEN 10 THEN N'COALESCE([D].[pk3], [O].[pk3]) NOT LIKE @pk3'
-        WHEN 11 THEN N'COALESCE([D].[pk3], [O].[pk3]) BETWEEN @pk3_v1 AND @pk3_v2'
-        WHEN 12 THEN N'COALESCE([D].[pk3], [O].[pk3]) NOT BETWEEN @pk3_v1 AND @pk3_v2'
-        WHEN 13 THEN N'COALESCE([D].[pk3], [O].[pk3]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[pk3], [O].[pk3]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo1' AND [type] = 0) BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    SET @Where = @Where + 'COALESCE([D].[cpo1], [O].[cpo1]) IS NULL'
-                END ELSE
-                IF @S_cpo1_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_cpo1_comparator = 1 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 2 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 3 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 4 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 5 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 6 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 7 AND @S_cpo1_vals IS NOT NULL)
-               OR (@S_cpo1_comparator = 8 AND @S_cpo1_vals IS NOT NULL)
-               OR (@S_cpo1_comparator = 9 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 10 AND @S_cpo1_v IS NOT NULL)
-               OR (@S_cpo1_comparator = 11 AND @S_cpo1_v1 IS NOT NULL AND @S_cpo1_v2 IS NOT NULL)
-               OR (@S_cpo1_comparator = 12 AND @S_cpo1_v1 IS NOT NULL AND @S_cpo1_v2 IS NOT NULL)
-               OR (@S_cpo1_comparator = 13)
-               OR (@S_cpo1_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_cpo1_comparator
-        WHEN 1 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) < @cpo1'
-        WHEN 2 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) <= @cpo1'
-        WHEN 3 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) = @cpo1'
-        WHEN 4 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) <> @cpo1'
-        WHEN 5 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) >= @cpo1'
-        WHEN 6 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) > @cpo1'
-        WHEN 7 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'
-        WHEN 8 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo1_vals))'
-        WHEN 9 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) LIKE @cpo1'
-        WHEN 10 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) NOT LIKE @cpo1'
-        WHEN 11 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) BETWEEN @cpo1_v1 AND @cpo1_v2'
-        WHEN 12 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) NOT BETWEEN @cpo1_v1 AND @cpo1_v2'
-        WHEN 13 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[cpo1], [O].[cpo1]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo2' AND [type] = 0) BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    SET @Where = @Where + 'COALESCE([D].[cpo2], [O].[cpo2]) IS NULL'
-                END ELSE
-                IF @S_cpo2_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_cpo2_comparator = 1 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 2 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 3 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 4 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 5 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 6 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 7 AND @S_cpo2_vals IS NOT NULL)
-               OR (@S_cpo2_comparator = 8 AND @S_cpo2_vals IS NOT NULL)
-               OR (@S_cpo2_comparator = 9 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 10 AND @S_cpo2_v IS NOT NULL)
-               OR (@S_cpo2_comparator = 11 AND @S_cpo2_v1 IS NOT NULL AND @S_cpo2_v2 IS NOT NULL)
-               OR (@S_cpo2_comparator = 12 AND @S_cpo2_v1 IS NOT NULL AND @S_cpo2_v2 IS NOT NULL)
-               OR (@S_cpo2_comparator = 13)
-               OR (@S_cpo2_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_cpo2_comparator
-        WHEN 1 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) < @cpo2'
-        WHEN 2 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) <= @cpo2'
-        WHEN 3 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) = @cpo2'
-        WHEN 4 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) <> @cpo2'
-        WHEN 5 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) >= @cpo2'
-        WHEN 6 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) > @cpo2'
-        WHEN 7 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'
-        WHEN 8 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo2_vals))'
-        WHEN 9 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) LIKE @cpo2'
-        WHEN 10 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) NOT LIKE @cpo2'
-        WHEN 11 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) BETWEEN @cpo2_v1 AND @cpo2_v2'
-        WHEN 12 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) NOT BETWEEN @cpo2_v1 AND @cpo2_v2'
-        WHEN 13 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[cpo2], [O].[cpo2]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo3' AND [type] = 0) BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    SET @Where = @Where + 'COALESCE([D].[cpo3], [O].[cpo3]) IS NULL'
-                END ELSE
-                IF @S_cpo3_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_cpo3_comparator = 1 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 2 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 3 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 4 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 5 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 6 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 7 AND @S_cpo3_vals IS NOT NULL)
-               OR (@S_cpo3_comparator = 8 AND @S_cpo3_vals IS NOT NULL)
-               OR (@S_cpo3_comparator = 9 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 10 AND @S_cpo3_v IS NOT NULL)
-               OR (@S_cpo3_comparator = 11 AND @S_cpo3_v1 IS NOT NULL AND @S_cpo3_v2 IS NOT NULL)
-               OR (@S_cpo3_comparator = 12 AND @S_cpo3_v1 IS NOT NULL AND @S_cpo3_v2 IS NOT NULL)
-               OR (@S_cpo3_comparator = 13)
-               OR (@S_cpo3_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_cpo3_comparator
-        WHEN 1 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) < @cpo3'
-        WHEN 2 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) <= @cpo3'
-        WHEN 3 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) = @cpo3'
-        WHEN 4 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) <> @cpo3'
-        WHEN 5 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) >= @cpo3'
-        WHEN 6 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) > @cpo3'
-        WHEN 7 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'
-        WHEN 8 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) NOT IN (SELECT CAST([value] AS nvarchar(25)) FROM OPENJSON(@cpo3_vals))'
-        WHEN 9 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) LIKE @cpo3'
-        WHEN 10 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) NOT LIKE @cpo3'
-        WHEN 11 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) BETWEEN @cpo3_v1 AND @cpo3_v2'
-        WHEN 12 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) NOT BETWEEN @cpo3_v1 AND @cpo3_v2'
-        WHEN 13 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[cpo3], [O].[cpo3]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF EXISTS(SELECT 1 FROM OPENJSON(@Search) WHERE [key] = 'cpo4' AND [type] = 0) BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    SET @Where = @Where + 'COALESCE([D].[cpo4], [O].[cpo4]) IS NULL'
-                END ELSE
-                IF @S_cpo4_comparator IS NOT NULL BEGIN
-                    IF @Where <> '' SET @Where = @Where + ' AND '
-                    IF (@S_cpo4_comparator = 1 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 2 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 3 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 4 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 5 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 6 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 7 AND @S_cpo4_vals IS NOT NULL)
-               OR (@S_cpo4_comparator = 8 AND @S_cpo4_vals IS NOT NULL)
-               OR (@S_cpo4_comparator = 9 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 10 AND @S_cpo4_v IS NOT NULL)
-               OR (@S_cpo4_comparator = 11 AND @S_cpo4_v1 IS NOT NULL AND @S_cpo4_v2 IS NOT NULL)
-               OR (@S_cpo4_comparator = 12 AND @S_cpo4_v1 IS NOT NULL AND @S_cpo4_v2 IS NOT NULL)
-               OR (@S_cpo4_comparator = 13)
-               OR (@S_cpo4_comparator = 14) BEGIN
-                        SET @ComparatorPredicate = CASE @S_cpo4_comparator
-        WHEN 1 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) < @cpo4'
-        WHEN 2 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) <= @cpo4'
-        WHEN 3 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) = @cpo4'
-        WHEN 4 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) <> @cpo4'
-        WHEN 5 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) >= @cpo4'
-        WHEN 6 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) > @cpo4'
-        WHEN 7 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'
-        WHEN 8 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) NOT IN (SELECT CAST([value] AS tinyint) FROM OPENJSON(@cpo4_vals))'
-        WHEN 9 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) LIKE @cpo4'
-        WHEN 10 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) NOT LIKE @cpo4'
-        WHEN 11 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) BETWEEN @cpo4_v1 AND @cpo4_v2'
-        WHEN 12 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) NOT BETWEEN @cpo4_v1 AND @cpo4_v2'
-        WHEN 13 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) IS NULL'
-        WHEN 14 THEN N'COALESCE([D].[cpo4], [O].[cpo4]) IS NOT NULL'
-    END
-                        SET @Where = @Where + ISNULL(@ComparatorPredicate, '')
-                    END
-                END
-                IF @Where <> '' BEGIN
-                    SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
-                                    FROM [#tmpTable] [#]
-                                        LEFT JOIN [dbo].[testes] [D] ON [D].[pk1] = [#].[pk1] AND [D].[pk2] = [#].[pk2] AND [D].[pk3] = [#].[pk3] AND [#].[_] = ''T''
-                                        LEFT JOIN [#tmpOperations] [O] ON [O].[pk1] = [#].[pk1] AND [O].[pk2] = [#].[pk2] AND [O].[pk3] = [#].[pk3] AND [#].[_] = ''O''
-                                    WHERE ' + @Where
-                    EXEC sp_executesql @sql
-                                       ,N'@pk1 tinyint,@pk1_v1 tinyint,@pk1_v2 tinyint,@pk1_vals NVARCHAR(MAX),@pk2 tinyint,@pk2_v1 tinyint,@pk2_v2 tinyint,@pk2_vals NVARCHAR(MAX),@pk3 tinyint,@pk3_v1 tinyint,@pk3_v2 tinyint,@pk3_vals NVARCHAR(MAX),@cpo1 nvarchar(25),@cpo1_v1 nvarchar(25),@cpo1_v2 nvarchar(25),@cpo1_vals NVARCHAR(MAX),@cpo2 nvarchar(25),@cpo2_v1 nvarchar(25),@cpo2_v2 nvarchar(25),@cpo2_vals NVARCHAR(MAX),@cpo3 nvarchar(25),@cpo3_v1 nvarchar(25),@cpo3_v2 nvarchar(25),@cpo3_vals NVARCHAR(MAX),@cpo4 tinyint,@cpo4_v1 tinyint,@cpo4_v2 tinyint,@cpo4_vals NVARCHAR(MAX), @r BIGINT OUTPUT'
-                                       ,@pk1 = @S_pk1_v
-                                       ,@pk1_v1 = @S_pk1_v1
-                                       ,@pk1_v2 = @S_pk1_v2
-                                       ,@pk1_vals = @S_pk1_vals
-                                       ,@pk2 = @S_pk2_v
-                                       ,@pk2_v1 = @S_pk2_v1
-                                       ,@pk2_v2 = @S_pk2_v2
-                                       ,@pk2_vals = @S_pk2_vals
-                                       ,@pk3 = @S_pk3_v
-                                       ,@pk3_v1 = @S_pk3_v1
-                                       ,@pk3_v2 = @S_pk3_v2
-                                       ,@pk3_vals = @S_pk3_vals
-                                       ,@cpo1 = @S_cpo1_v
-                                       ,@cpo1_v1 = @S_cpo1_v1
-                                       ,@cpo1_v2 = @S_cpo1_v2
-                                       ,@cpo1_vals = @S_cpo1_vals
-                                       ,@cpo2 = @S_cpo2_v
-                                       ,@cpo2_v1 = @S_cpo2_v1
-                                       ,@cpo2_v2 = @S_cpo2_v2
-                                       ,@cpo2_vals = @S_cpo2_vals
-                                       ,@cpo3 = @S_cpo3_v
-                                       ,@cpo3_v1 = @S_cpo3_v1
-                                       ,@cpo3_v2 = @S_cpo3_v2
-                                       ,@cpo3_vals = @S_cpo3_vals
-                                       ,@cpo4 = @S_cpo4_v
-                                       ,@cpo4_v1 = @S_cpo4_v1
-                                       ,@cpo4_v2 = @S_cpo4_v2
-                                       ,@cpo4_vals = @S_cpo4_vals
-                                       ,@r = @Recno OUTPUT
-                    SET @PageNumber = CASE WHEN ISNULL(@Recno, 0) > 0 THEN ((@Recno - 1) / @LimitRows) + 1 ELSE @MaxPage END
-                    IF ISNULL(@Recno, 0) > 0 SET @SearchRecno = @Recno
-                END
-            END
-            IF ABS(@PageNumber) > @MaxPage
-                SET @PageNumber = CASE WHEN @PageNumber < 0 THEN -@MaxPage ELSE @MaxPage END
-            ELSE IF @PageNumber < 0
-                SET @PageNumber = @MaxPage - ABS(@PageNumber) + 1
-            SET @OffSet = (@PageNumber - 1) * @LimitRows
-            IF @PaddingGridLastPage = 1 AND @SearchRecno IS NULL AND @OffSet + @LimitRows > @RowCount
-                SET @OffSet = CASE WHEN @RowCount > @LimitRows THEN @RowCount - @LimitRows ELSE 0 END
-        END
-        SELECT TOP 0 CAST(NULL AS NVARCHAR(50)) AS [Kind]
-                    ,CAST(NULL AS BIGINT) AS [Recno]
-                    ,CAST(NULL AS tinyint) AS [pk1]
-                    ,CAST(NULL AS tinyint) AS [pk2]
-                    ,CAST(NULL AS tinyint) AS [pk3]
-                    ,CAST(NULL AS nvarchar(25)) AS [cpo1]
-                    ,CAST(NULL AS nvarchar(25)) AS [cpo2]
-                    ,CAST(NULL AS nvarchar(25)) AS [cpo3]
-                    ,CAST(NULL AS tinyint) AS [cpo4]
-            INTO [#result]
-        SET @sql = 'INSERT [#result]
-                        SELECT ''teste'' AS [Kind]
-                              ,[#].[Recno]
-                              ,[T].[pk1]
-                              ,[T].[pk2]
-                              ,[T].[pk3]
-                              ,[T].[cpo1]
-                              ,[T].[cpo2]
-                              ,[T].[cpo3]
-                              ,[T].[cpo4]
-                            FROM [#tmpTable] [#]
-                                INNER JOIN [dbo].[testes] [T] ON [T].[pk1] = [#].[pk1] AND [T].[pk2] = [#].[pk2] AND [T].[pk3] = [#].[pk3]
-                            WHERE [#].[_] = ''T''
-                        UNION ALL
-                            SELECT ''teste'' AS [Kind]
-                                  ,[#].[Recno]
-                                  ,[O].[pk1]
-                                  ,[O].[pk2]
-                                  ,[O].[pk3]
-                                  ,[O].[cpo1]
-                                  ,[O].[cpo2]
-                                  ,[O].[cpo3]
-                                  ,[O].[cpo4]
-                                FROM [#tmpTable] [#]
-                                    INNER JOIN [#tmpOperations] [O] ON [O].[pk1] = [#].[pk1] AND [O].[pk2] = [#].[pk2] AND [O].[pk3] = [#].[pk3]
-                                WHERE [#].[_] = ''O''
-                        ORDER BY [Recno]
-                        OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
-                        FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
-        EXEC sp_executesql @sql
-        SELECT (SELECT [Kind]
-                      ,[pk1]
-                      ,[pk2]
-                      ,[pk3]
-                      ,[cpo1]
-                      ,[cpo2]
-                      ,[cpo3]
-                      ,[cpo4]
-                    FROM [#result] FOR JSON PATH) AS [result]
-        SET @ReturnValue = @RowCount
-
-    RETURN 0
-END
-GO
-
-/**********************************************************************************
 Criar stored procedure [dbo].[ExpressionValidate]
 **********************************************************************************/
 IF(SELECT object_id('[dbo].[ExpressionValidate]', 'P')) IS NULL
@@ -50742,8 +48638,6 @@ ALTER PROCEDURE [dbo].[ExpressionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de TableId em @ActualRecord é requerido.', 1
             IF @W_Name IS NULL
                 THROW 51000, 'Valor de Name em @ActualRecord é requerido.', 1
-            IF (@W_TableId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_TableId)
-                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Tables', 1
         END
 
     RETURN @TransactionId
@@ -51673,23 +49567,11 @@ ALTER PROCEDURE [dbo].[ExpressionsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Table' AS [Kind]
-              ,[R].[Id]
-              ,[R].[Name]
-              ,[R].[Alias]
-              ,[R].[Description]
-              ,[R].[CurrentId]
-            INTO [#Tables]
-            FROM [#result] [T]
-                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
-            ORDER BY [R].[Id]
-        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[TableId]
                       ,[Name]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -51827,6 +49709,8 @@ ALTER PROCEDURE [dbo].[ConditionValidate](@SessionId BIGINT
                 THROW 51000, 'Valor de ExpressionId em @ActualRecord é requerido.', 1
             IF @W_Sequence IS NULL
                 THROW 51000, 'Valor de Sequence em @ActualRecord é requerido.', 1
+            IF (@W_LeftColumnId IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM [dbo].[Tables] WHERE [Id] = @W_LeftColumnId)
+                THROW 51000, 'Valor de FK em @ActualRecord inexiste em Tables', 1
         END
 
     RETURN @TransactionId
@@ -53697,6 +51581,17 @@ ALTER PROCEDURE [dbo].[ConditionsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
+        SELECT DISTINCT 'Table' AS [Kind]
+              ,[R].[Id]
+              ,[R].[Name]
+              ,[R].[Alias]
+              ,[R].[Description]
+              ,[R].[CurrentId]
+            INTO [#Tables]
+            FROM [#result] [T]
+                INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[LeftColumnId]
+            ORDER BY [R].[Id]
+        CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
         SELECT (SELECT [Kind]
                       ,[Id]
                       ,[ExpressionId]
@@ -53709,6 +51604,7 @@ ALTER PROCEDURE [dbo].[ConditionsRead](@Login NVARCHAR(MAX)
                       ,[RightValues]
                       ,[RightParenthesis]
                     FROM [#result] FOR JSON PATH) AS [result]
+              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
         SET @ReturnValue = @RowCount
 
     RETURN 0

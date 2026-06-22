@@ -12,8 +12,9 @@ import TTable from "./TTable.class.mjs";
  * Só abre transação quando há persist de facto (stage/save). Abrir formulário,
  * filtro, pesquisa ou cancelar não chama create.
  *
- * Formulário pai: Persistir → stage(); Confirmar → commit().
- * Formulário filho (masterForm): só Confirmar → stage() e volta ao pai.
+ * Formulário sem filhos: Confirmar → save() (stage + commit).
+ * Formulário pai com tabelas filhas: Persistir → stage(); Confirmar → commit().
+ * Formulário filho (masterForm): só Confirmar → stage() e volta ao pai (nunca commit).
  */
 export default class TTransaction {
     static #transactionId = 0;

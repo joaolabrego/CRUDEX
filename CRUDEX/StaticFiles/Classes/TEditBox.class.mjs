@@ -3,6 +3,7 @@
 import TCheckbox from "./TCheckbox.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TDropdown from "./TDropdown.class.mjs";
+import TListValues from "./TListValues.class.mjs";
 import TRecordSet from "./TRecordset.class.mjs";
 import TCondition from "./TCondition.class.mjs";
 import TMask from "./TMask.class.mjs";
@@ -11,6 +12,8 @@ import TProperty from "./TProperty.class.mjs";
 
 export default class TEditBox {
     static #operatorMenuCloseBound = false;
+    /** Paginação única para todo picker (`TDropdown`) — FK, ValidValues, ListValues (futuro). */
+    static #PICKER_PAGE_SIZE = 5;
 
     #column = null;
     #root = null;
@@ -207,9 +210,7 @@ export default class TEditBox {
         const raw = domain?.ValidValues;
         if (TConfig.IsEmpty(raw))
             return null;
-        const items = String(raw).split(";")
-            .map(part => part.trim())
-            .filter(part => part.length > 0);
+        const items = new TListValues(String(raw)).data;
         return items.length ? items : null;
     }
 
@@ -258,19 +259,35 @@ export default class TEditBox {
         return TSystem.GetReferencePkTable(this.#column);
     }
 
-    #fieldWidthCh() {
-        if (this.#isReference) {
-            const refTable = this.#getRefTable();
-            const listable = refTable?.GetListableColumn();
-            const domain = listable?.Domain ?? this.#effectiveDomain();
-            return TEditBox.#widthChFromDomain(domain);
-        }
+    static #listableColumnWidthCh(refTable) {
+        const listable = refTable?.GetListableColumn();
+        if (!listable?.Domain)
+            return null;
+        const length = listable.Domain.Length ?? listable.Domain.Type?.MaxLength;
+        if (length == null || length <= 0)
+            return null;
+        return Number(length);
+    }
 
-        const validValues = this.#domainValidValues();
-        if (validValues) {
-            const longest = validValues.reduce((max, value) => Math.max(max, value.length), 0);
-            if (longest > 0)
-                return longest;
+    /** Largura do dropdown FK: Length da coluna listável (Name), nunca máscara do domínio do Id. */
+    static #referenceDropdownWidthCh(refTable) {
+        const fromListable = TEditBox.#listableColumnWidthCh(refTable);
+        if (fromListable != null)
+            return fromListable;
+        return TEditBox.#FIELD_MAX_WIDTH_CH;
+    }
+
+    #fieldWidthCh() {
+        if (this.#isReference)
+            return TEditBox.#referenceDropdownWidthCh(this.#getRefTable());
+
+        if (this.#usesValidValuesDropdown()) {
+            const values = this.#domainValidValues();
+            if (values?.length) {
+                const longest = values.reduce((max, value) => Math.max(max, String(value).length), 0);
+                if (longest > 0)
+                    return Math.min(TEditBox.#FIELD_MAX_WIDTH_CH, longest);
+            }
         }
 
         return TEditBox.#widthChFromDomain(this.#effectiveDomain());
@@ -278,15 +295,25 @@ export default class TEditBox {
 
     static #FIELD_MAX_WIDTH_CH = 45;
 
+    /** Espaço reservado à direita: botão ▼ (+ padding) no dropdown single/multi. */
+    static #DROPDOWN_ICON_CH = 3;
+
     static #ADDABLE_ICON_CH = 5;
+
+    #dropdownChromeCh() {
+        if (this.#body?.classList.contains("tedit-addable-value"))
+            return TEditBox.#ADDABLE_ICON_CH;
+        if (this.#dropdown || this.#conditionValueDropdown || this.#body?.querySelector(".tdropdown"))
+            return TEditBox.#DROPDOWN_ICON_CH;
+        return 0;
+    }
 
     #applyControlWidth(options = {}) {
         if (this.#isCheckboxInline || !this.#body)
             return;
-        const addable = options.addable ?? this.#body.classList.contains("tedit-addable-value");
-        const iconCh = addable ? TEditBox.#ADDABLE_ICON_CH : 0;
-        this.#body.style.maxWidth = addable
-            ? `calc(${TEditBox.#FIELD_MAX_WIDTH_CH}ch + var(--field-h-chrome) + ${iconCh}ch)`
+        const chromeCh = this.#dropdownChromeCh();
+        this.#body.style.maxWidth = chromeCh > 0
+            ? `calc(${TEditBox.#FIELD_MAX_WIDTH_CH}ch + var(--field-h-chrome) + ${chromeCh}ch)`
             : `${TEditBox.#FIELD_MAX_WIDTH_CH}ch`;
         const ch = this.#fieldWidthCh();
         if (ch == null) {
@@ -295,7 +322,7 @@ export default class TEditBox {
         }
 
         const capped = Math.min(ch, TEditBox.#FIELD_MAX_WIDTH_CH);
-        const width = `calc(${capped + iconCh}ch + var(--field-h-chrome))`;
+        const width = `calc(${capped + chromeCh}ch + var(--field-h-chrome))`;
         this.#body.style.width = width;
         for (const dropdown of this.#body.querySelectorAll(".tdropdown")) {
             dropdown.style.maxWidth = this.#body.style.maxWidth;
@@ -795,7 +822,7 @@ export default class TEditBox {
         const values = Array.isArray(raw)
             ? raw
             : (TConfig.IsEmpty(raw) ? [] : [raw]);
-        const pageSize = 5;
+        const pageSize = TEditBox.#PICKER_PAGE_SIZE;
 
         this.#conditionValueDropdown = TDropdown.Multi(this.#body, {
             allowEmpty: true,
@@ -950,6 +977,43 @@ export default class TEditBox {
         };
     }
 
+    #singlePickerDropdownOptions(catalog, value, required, readOnly, loader = null) {
+        return {
+            catalog,
+            value,
+            valueAs: "id",
+            idField: "ListItemId",
+            labelField: "ListItemName",
+            itemsPerPage: TEditBox.#PICKER_PAGE_SIZE,
+            placeholder: "",
+            required,
+            allowEmpty: !required,
+            readOnly,
+            loader: readOnly ? null : loader,
+        };
+    }
+
+    #finishSinglePickerDropdown({ action, readOnly, onChange, onConfirm, onCancel, onFirstInput, valueChange }) {
+        this.#dropdown.element.addEventListener("change", (event) => {
+            const value = event.detail.value ?? this.#dropdown.resolveCommittedValue?.();
+            if (valueChange)
+                valueChange(value);
+            else
+                onChange(this.#column.Name, value);
+            this.#dropdown.syncFormValidity();
+        });
+
+        this.#control = this.#dropdown.input;
+        this.#control.name = this.#fieldInputName();
+        this.#disableBrowserAutofill(this.#control, readOnly);
+        this.#control.Column = this.#column;
+        this.#dropdown.syncFormValidity();
+        this.#bindValidityDismiss(this.#control);
+        this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
+        this.#control.onfocus = (event) => event.target.select();
+        onFirstInput?.(this.#control);
+    }
+
     #configureReference(options) {
         const { action, record, sourceRecord, onChange, onConfirm, onCancel, onFirstInput, valueChange } = options;
         const readOnly = action === TSystem.Actions.DELETE || action === TSystem.Actions.QUERY;
@@ -976,48 +1040,26 @@ export default class TEditBox {
             ? { ListItemId: fkValue, ListItemName: listLabel }
             : fkValue;
         const isRequired = this.#isRequiredForAction(action);
-        const pageSize = 5;
 
         this.#readOnly = readOnly;
         this.#isRequired = isRequired && !readOnly;
 
         this.#body.replaceChildren();
-        this.#dropdown = TDropdown.Single(this.#body, {
+        this.#dropdown = TDropdown.Single(this.#body, this.#singlePickerDropdownOptions(
             catalog,
-            value: TConfig.IsEmpty(fkValue) ? null : value,
-            valueAs: "id",
-            idField: "ListItemId",
-            labelField: "ListItemName",
-            itemsPerPage: pageSize,
-            placeholder: "",
-            required: isRequired,
-            allowEmpty: !isRequired,
+            TConfig.IsEmpty(fkValue) ? null : value,
+            isRequired,
             readOnly,
-            loader: readOnly ? null : (query, page) => TRecordSet.fetchPickerPage(refTable, {
+            (query, page) => TRecordSet.fetchPickerPage(refTable, {
                 value: query,
                 pageNumber: page,
-                limitRows: pageSize,
+                limitRows: TEditBox.#PICKER_PAGE_SIZE,
             }),
-        });
+        ));
 
-        this.#dropdown.element.addEventListener("change", (event) => {
-            const value = event.detail.value ?? this.#dropdown.resolveCommittedValue?.();
-            if (valueChange)
-                valueChange(value);
-            else
-                onChange(this.#column.Name, value);
-            this.#dropdown.syncFormValidity();
+        this.#finishSinglePickerDropdown({
+            action, readOnly, onChange, onConfirm, onCancel, onFirstInput, valueChange,
         });
-
-        this.#control = this.#dropdown.input;
-        this.#control.name = this.#fieldInputName();
-        this.#disableBrowserAutofill(this.#control, readOnly);
-        this.#control.Column = this.#column;
-        this.#dropdown.syncFormValidity();
-        this.#bindValidityDismiss(this.#control);
-        this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
-        this.#control.onfocus = (event) => event.target.select();
-        onFirstInput?.(this.#control);
 
         if (!readOnly && listLabel == null && !TConfig.IsEmpty(fkValue))
             this.#resolveReferencePickerValue(refTable, fkValue);
@@ -1030,45 +1072,36 @@ export default class TEditBox {
         const values = this.#domainValidValues();
         if (!values)
             throw new Error("ValidValues do domínio não definidos.");
-        const catalog = values.map(value => ({
-            ListItemId: value,
-            ListItemName: value,
-        }));
         const rawValue = record[this.#column.Name];
+        const catalog = [];
+        if (!TConfig.IsEmpty(rawValue)) {
+            catalog.push({
+                ListItemId: rawValue,
+                ListItemName: String(rawValue),
+            });
+        }
+        const validValuesRaw = this.#column.Domain?.ValidValues ?? "";
         const isRequired = this.#column.IsRequired && !isCondition && !readOnly;
 
         this.#readOnly = readOnly;
         this.#isRequired = isRequired;
         this.#root.classList.remove("tedit-checkbox", "tedit-checkbox-inline");
         this.#body.replaceChildren();
-        this.#dropdown = TDropdown.Single(this.#body, {
+        this.#dropdown = TDropdown.Single(this.#body, this.#singlePickerDropdownOptions(
             catalog,
-            value: TConfig.IsEmpty(rawValue) ? null : rawValue,
-            valueAs: "id",
-            idField: "ListItemId",
-            labelField: "ListItemName",
-            paginate: false,
-            placeholder: "",
-            required: isRequired,
-            allowEmpty: !isRequired,
+            TConfig.IsEmpty(rawValue) ? null : rawValue,
+            isRequired,
             readOnly,
-        });
+            (query, page) => TListValues.fetchPickerPage(validValuesRaw, {
+                value: query,
+                pageNumber: page,
+                limitRows: TEditBox.#PICKER_PAGE_SIZE,
+            }),
+        ));
 
-        this.#dropdown.element.addEventListener("change", (event) => {
-            const value = event.detail.value ?? this.#dropdown.resolveCommittedValue?.();
-            onChange(this.#column.Name, value);
-            this.#dropdown.syncFormValidity();
+        this.#finishSinglePickerDropdown({
+            action, readOnly, onChange, onConfirm, onCancel, onFirstInput,
         });
-
-        this.#control = this.#dropdown.input;
-        this.#control.name = this.#fieldInputName();
-        this.#disableBrowserAutofill(this.#control, readOnly);
-        this.#control.Column = this.#column;
-        this.#dropdown.syncFormValidity();
-        this.#bindValidityDismiss(this.#control);
-        this.#bindControlKeys(this.#control, action, onConfirm, onCancel, onChange);
-        this.#control.onfocus = (event) => event.target.select();
-        onFirstInput?.(this.#control);
     }
 
     #configureCheckbox(options) {
@@ -1220,6 +1253,26 @@ export default class TEditBox {
             return raw;
         }
         return null;
+    }
+
+    collectRecordValue() {
+        if (this.#isConditionField || this.element.style.display === "none")
+            return undefined;
+        if (this.#checkbox && this.#checkbox.mode !== TCheckbox.Modes.CONDITION)
+            return this.#checkbox.value;
+        if (this.#dropdown)
+            return this.#dropdown.resolveCommittedValue?.() ?? this.#dropdown.getValue();
+        if (this.#control) {
+            const raw = this.#control.value ?? "";
+            if (TConfig.IsEmpty(raw))
+                return null;
+            if (this.#editMask) {
+                const parsed = this.#parseMaskedValue(this.#editMask, raw);
+                return TConfig.IsEmpty(parsed) ? null : parsed;
+            }
+            return raw;
+        }
+        return undefined;
     }
 
     collectFilterValue(action) {

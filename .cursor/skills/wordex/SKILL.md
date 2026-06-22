@@ -103,6 +103,13 @@ Planilha modelo: linha 1 = nome do campo; linha 2 = Category; linha 3+ = valor o
 
 **ROOT** na planilha: mesma estrutura que qualquer aba (motor recursivo); Category `collection`; 1 linha no CRUDEX.
 
+## Documentação do metamodelo
+
+Visualizar estrutura, relacionamentos e domínios via **Reports + Queries** Wordex — substituto da planilha para **análise**. Query sobre metadado (`Tbl`, `Col`, `Ref`, `Dmn`…); fonte de verdade continua o CRUD.
+
+- **Pré-definidos:** mantenedor SGSI pode entregar relatórios prontos com o CRUDEX (templates + queries de metadado).
+- **Do usuário:** nada impede criar os seus próprios Reports/Queries sobre o mesmo metamodelo.
+
 ## Documentação
 
 - Detalhes: [reference.md](reference.md)

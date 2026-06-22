@@ -426,7 +426,7 @@ O arquivo `CRUDEX_Novissimo.xlsm` define o **modelo alvo** (34 abas, aliases cur
 | Planilha | Nome da tabela = aba | Aba = **Alias** (`Cat`, `Tbl`, `Col`…) |
 | Tipos SQL | `#DataType` fixo T-SQL | `Map` × engine do cliente |
 | FK / pai-filho | `ReferenceTableId`, `ParentTableId` | Tabela `Ref` + `IsParentChild` |
-| Menu | `Menus` separado | `Mnu` + campos em `Tbl` |
+| Menu | `Menus` separado | **`Mnu`** (= `Menus` 1.0) |
 | Filtro avançado | Igualdade + IS NULL | Operadores `Cmp` (=, LIKE, IN, BETWEEN…) |
 | Comportamentos | Hardcode no form | `Prp` / `Bhv` declarativos |
 | Multi-SGBD | Só SQL Server | `Eng` + providers |
@@ -447,7 +447,7 @@ Documentação técnica detalhada: `.cursor/skills/crudex/reference.md`.
 | **Persist** | Grava rascunho da operação sem confirmar |
 | **RecordFilter** | JSON de filtros enviado ao `{Table}Read` |
 | **SPA** | Single Page Application — aplicação web sem recarregar página |
-| **Tenant** | Cliente / organização (modelo Novíssimo: `Cli`) |
+| **Owner** | Cliente / organização — **2.0 Novíssimo** (aba `Own`, tabela `Owners`); não existe no 1.0 |
 
 ---
 

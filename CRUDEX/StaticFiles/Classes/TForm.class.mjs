@@ -113,12 +113,16 @@ export default class TForm {
     #hasChanges() {
         return !this.#recordsAreEqual(this.#actualRecord, this.#lastRecord);
     }
-    #showsPersist() {
+    #needsPersistStage() {
         if (!this.#isPersistAction() || this.#masterForm)
             return false;
         if (this.#Action === TSystem.Actions.DELETE)
             return !this.#isStaged;
         return this.#hasChanges();
+    }
+    /** Botão «Persistir»: só formulário pai com tabelas filhas (master-detail). */
+    #showsPersist() {
+        return this.#isMasterDetail && this.#needsPersistStage();
     }
     #updateConfirmButton() {
         if (this.#Action === TSystem.Actions.QUERY)
@@ -133,9 +137,12 @@ export default class TForm {
         const persist = this.#showsPersist();
         this.#HTML.ConfirmButton.innerText = persist ? "Persistir" : "Confirmar";
         this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Confirm;
-        if (this.#isPersistAction())
-            this.#HTML.ConfirmButton.disabled = !TTransaction.isOpen && !persist;
-        else
+        if (this.#isPersistAction()) {
+            if (this.#isMasterDetail)
+                this.#HTML.ConfirmButton.disabled = !TTransaction.isOpen && !persist;
+            else
+                this.#HTML.ConfirmButton.disabled = false;
+        } else
             this.#HTML.ConfirmButton.disabled = false;
     }
     #onFieldChange(name, value) {
@@ -187,6 +194,15 @@ export default class TForm {
             const value = edit.collectFilterValue(this.#Action);
             if (value !== undefined)
                 this.#actualRecord[edit.column.Name] = value;
+        }
+    }
+
+    #collectRecordValues() {
+        for (const edit of this.#editBoxes) {
+            const value = edit.collectRecordValue?.();
+            if (value === undefined)
+                continue;
+            this.#actualRecord[edit.column.Name] = value;
         }
     }
 
@@ -552,6 +568,8 @@ export default class TForm {
             || this.#Action === TSystem.Actions.SEARCH;
         if (needsValidation && !this.#validateForm())
             return;
+        if (this.#isPersistAction())
+            this.#collectRecordValues();
         if (this.#Action === TSystem.Actions.FILTER) {
             this.#collectFilterValues();
             this.#Grid.RecordSet.saveFilter(this.#actualRecord);
@@ -590,10 +608,23 @@ export default class TForm {
                 this.#updateConfirmButton();
                 this.#updateDetailAccess();
                 await this.#refreshChildGrids();
-                if (this.#isMasterDetail) {
-                    TScreen.Main = this.#HTML.Container;
-                    this.#HTML.FirstInput?.focus();
+                TScreen.Main = this.#HTML.Container;
+                this.#HTML.FirstInput?.focus();
+                return;
+            }
+            if (!this.#isMasterDetail && this.#needsPersistStage()) {
+                await TTransaction.save(
+                    this.#Grid.Table,
+                    this.#Action,
+                    this.#actualRecord,
+                    this.#persistLastRecord(),
+                );
+                this.#isStaged = false;
+                if (this.#Action === TSystem.Actions.CREATE) {
+                    await this.#restartCreate();
+                    return;
                 }
+                await this.#returnToCaller();
                 return;
             }
             if (TTransaction.isOpen) {
@@ -723,19 +754,25 @@ export default class TForm {
                 title = "Inclusão";
                 message = this.#masterForm
                     ? "Preencha os dados e clique em confirmar..."
-                    : "Preencha os dados, clique em persistir e depois em confirmar...";
+                    : this.#isMasterDetail
+                        ? "Preencha os dados, clique em persistir e depois em confirmar..."
+                        : "Preencha os dados e clique em confirmar...";
                 break;
             case TSystem.Actions.UPDATE:
                 title = "Alteração";
                 message = this.#masterForm
                     ? "Altere os dados e clique em confirmar..."
-                    : "Altere os dados, clique em persistir e depois em confirmar...";
+                    : this.#isMasterDetail
+                        ? "Altere os dados, clique em persistir e depois em confirmar..."
+                        : "Altere os dados e clique em confirmar...";
                 break;
             case TSystem.Actions.DELETE:
                 title = "Exclusão";
                 message = this.#masterForm
                     ? "Clique em confirmar para excluir..."
-                    : "Clique em persistir e depois em confirmar para excluir...";
+                    : this.#isMasterDetail
+                        ? "Clique em persistir e depois em confirmar para excluir..."
+                        : "Clique em confirmar para excluir...";
                 break;
             case TSystem.Actions.SEARCH:
                 title = "Pesquisa";

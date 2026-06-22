@@ -5,7 +5,7 @@
 | Arquivo | Papel |
 |---------|-------|
 | `CRUDEX.xlsm` | Metadados do sistema **atual** (21 abas, nomes completos) |
-| `CRUDEX_Novissimo.xlsm` | Metadados **alvo** (34 abas, aliases) |
+| `CRUDEX_Novissimo.xlsm` | Metadados **alvo** (**39** abas/tabelas e crescendo, aliases) |
 
 ## Novíssimo — mapa de abas
 
@@ -17,17 +17,18 @@
 | `Eng` | Engines | SGBDs (~10): Provider, PackageName, IsActive |
 | `Typ` | Types | Tipos lógicos (independente de SGBD); `CategoryId` |
 | `Map` | Mappings | `EngineId` + `TypeId` → tipo físico do dialeto (~380 linhas) |
-| `Cli` | Clients | Tenant; `EngineId` define SGBD do cliente; Id=1 = plataforma global |
-| `Dmn` | Domains | Instância reutilizável: `TypeId`, validações, `ClientId` |
+| `Own` | Owners | Owner; `EngineId` (SGBD); Id=1 = plataforma global; **`AskDatabasePath`** — ver abaixo |
+| `Dmn` | Domains | `TypeId`, validações, `OwnerId`; **`ValidValues`** (lista fixa `;`, dropdown single, paginado no 1.0); **`ListValues`** (2.0 — seleção múltipla, a implementar) |
 | `Msk` | Masks | Máscaras semânticas + legenda ValidMask/EditMask na aba |
 | `Mkg` | Maskings | `Dmn` ↔ `Msk` + CheckDigit opcional |
-| `Db` | Databases | Banco lógico: `ClientId`, `EngineId`, Name |
-| `Con` | Connections | Conexão por ambiente (`dev`/`hml`/`prd`) |
-| `Sys` | Systems | Sistema: `DatabaseId`, Prefix, MaxRetryLogins |
-| `Mnu` | Menus | Títulos e hierarquia dos popups (`ParentMenuId`) |
-| `Tbl` | Tables | Tabelas + **item de menu** (`MenuId`, `MenuSequence`, `MenuCaption`, `MenuMessage`) |
+| `Db` | Databases | **Ápice operacional** do CRUDEX: banco lógico (`OwnerId`, `EngineId`, Name) |
+| `Env` | Environments | Hierarquia de ambientes (`ParentEnvironmentId`, `Name`, `Description`) — ver abaixo |
+| `Con` | Connections | Conexão física (`ConnectionString`, `EngineId`, **`EnvironmentId`**, **`OwnerId`**) |
+| `Sys` | Systems | Sistema — filho de `Db` (`DatabaseId`, Prefix, MaxRetryLogins) |
+| `Mnu` | Menus | Menu por **`SystemId`** (1.0): `ParentMenuId`, `Sequence`, `Caption`, `Message`, **`Action`**, **`IsActive`** |
+| `Tbl` | Tables | Definição da tabela (`Name`, `Alias`, …) — **sem** campos de menu |
 | `Col` | Columns | `DomainId` (não TypeId); flags `Is*`; `IsVirtual` |
-| `Idx` | Indexes | Índices |
+| `Idx` | Indexes | Índices; **`IsUnique`** + `Idk` |
 | `Idk` | Indexkeys | Chaves de índice |
 | `Inc` | Includes | Colunas incluídas em índice |
 | `Uni` | Unicities | Unicidade cruzada entre colunas |
@@ -35,7 +36,7 @@
 | `Cnd` | Conditions | Linhas lógicas: `Cmp`, AND/OR, parênteses, colunas/valores |
 | `Ref` | References | Relação FK: `FkTableId`, `PkTableId`, `Name`, `IsParentChild` |
 | `Rfk` | Referencekeys | Colunas FK: `ReferenceId`, `FkColumnId`, `Sequence` |
-| `Usr` | Users | Usuários por `ClientId` (simples — dispensa detalhamento) |
+| `Usr` | Users | Usuários por `OwnerId` (simples — dispensa detalhamento) |
 | `Prm` | Permissions | CRUD direto: `SystemId` + `UserId` + `TableId` + `CanCreate/Read/Update/Delete` (sem grupos) |
 | `Prp` | Properties | Catálogo de propriedades HTML/controle (nativas e customizadas) |
 | `Bhv` | Behaviors | Aplica `Prp` em `Col` quando `ExpressionId` é verdadeira |
@@ -43,9 +44,133 @@
 | `Snp` | Snipers | Gatilho de execução ligado a `Tbl` (`IsBefore`) |
 | `Scr` | Scripts | Scripts SQL por `SniperId` + `DatabaseId`, `Sequence` |
 | `Url` | Urls | Chamadas HTTP (APIs) por `SniperId`, `Method`, `URL`, `Sequence` |
-| `Ses` | Sessions | `Id` gerado a cada login (`ClientId`, `SystemId`, `UserId`, `PublicKey`, `IsLogged`) |
+| `Ses` | Sessions | `Id` gerado a cada login (`OwnerId`, `SystemId`, `UserId`, `PublicKey`, `IsLogged`) |
 | `Trs` | Transactions | Transações |
 | `Ope` | Operations | Operações pendentes |
+
+## Hierarquia operacional — **`Db` no topo**
+
+O **nível mais alto do CRUDEX** é **`Db` (Database)**. Abaixo dele vêm **`Sys` (Systems)**, **`Con` (Connections)** e demais metadados (`Tbl`, `Col`, `Mnu`, snipers, etc.).
+
+```
+Db (Database)
+  → Sys (Systems)          System.DatabaseId
+  → Env (Environments — cadeia linear de deploy, raiz única)
+  → Con (Connections)      DatabaseId + EnvironmentId
+  → Tbl → Col → …          metadado de dados e UI
+
+Con (DatabaseId NULL)       conexões externas — snipers; OwnerId **obrigatório** em Con
+```
+
+- **URL runtime:** `localhost:3000/{Sys.Name}.{Env.Name}` — o **usuário escolhe o ambiente no link** (`dev`, `hml`, `prd`, …). Ex.: `localhost:3000/crudex.dev`, `localhost:3000/sic.prd` (`Env.Name` livre, definido no metadado)
+- **`Con` externas (`DatabaseId` NULL):** snipers em outro servidor/SGBD; **não herdam owner do `Db`** — ver `Con` abaixo
+- **Sessão (`Ses`):** `OwnerId` + `SystemId` + …
+- Metamodelo transversal (tipos, domínios, owners): `Own`, `Eng`, `Typ`, `Map`, `Dmn`… — escopo próprio, não substituem `Db` como ápice operacional
+
+## Systems (`Sys`) — CRUDEX, SIC e **`Prefix`** (2.0)
+
+**CRUDEX** e **SIC** não são camadas (motor vs produto). São **dois sistemas distintos**, ambos **especificados pelo próprio CRUDEX** (metamodelo bootstrap). O operador pode nem distinguir — vê menus e telas — mas no metadado são `Sys` separados no mesmo `Db` (ou em `Db` distintos, conforme deploy).
+
+Campo **`Prefix`** em **`Systems`** (2.0): agrupa vários `Sys` como **módulos de um ERP lógico único**. Exemplo SIC:
+
+| `Sys.Name` | `Prefix` | Papel |
+|------------|----------|--------|
+| `crudex` | — | Metamodelo / manutenção do próprio CRUDEX |
+| **`sic`** | **`sic`** | **Sistema auxiliar (hub)** — menu dos subsistemas do ERP |
+| `contabilidade` | `sic` | Módulo |
+| `faturamento` | `sic` | Módulo (NF, SEFAZ, …) |
+| `vendas` | `sic` | Módulo |
+| `compras` | `sic` | Módulo |
+
+Mesmo **`Prefix`** → o runtime trata o conjunto como **um sistema ERP** (sessão, escopo de negócio), mantendo cada módulo como `Sys` próprio (tabelas, menus, permissões por área). **Sem `Prefix`** (ou valores distintos) → sistemas independentes.
+
+### URL — `nomeSistema.ambiente` + hub auxiliar
+
+Formato único: **`localhost:3000/{Sys.Name}.{Env.Name}`**. Sistema **e** ambiente vêm do link — o operador (ou o bookmark) define se entra em `dev`, `hml`, `prd`, etc.
+
+| URL (exemplo) | Comportamento |
+|---------------|---------------|
+| `localhost:3000/contabilidade.dev` | Subsistema **contabilidade** no ambiente **dev** |
+| `localhost:3000/vendas.prd` | Subsistema **vendas** em **produção** |
+| `localhost:3000/sic.hml` | **`Sys` auxiliar** `sic` em **hml** — menu agregador dos `Sys` com `Prefix = sic` |
+
+O hub não substitui os módulos: é um **`Sys` especificado como os outros** (`Name` = valor do `Prefix`), cuja função é **navegar** para os subsistemas no **mesmo** `Env.Name` do link. Atalho direto: `contabilidade.prd`; entrada genérica no ERP: `sic.prd`.
+
+Mercado compra **SIC** (NF, SEFAZ, custo); **CRUDEX** é o sistema que especifica CRUDEX e SIC — invisível como a classe `Report` no Clipper, mas não é “camada por baixo”: é outro `Sys` no mesmo fabricante.
+
+## Connections (`Con`) — owner e `DatabaseId`
+
+| `DatabaseId` | Papel | `OwnerId` |
+|--------------|-------|-----------|
+| **Preenchido** | Conexão de um `Db` num **`Env`** | Vem do **`Db.OwnerId`** (herdado ou validado — `Con` não fica órfã) |
+| **NULL** | Conexão **externa** (outro banco/SGBD) para snipers (`Scr`) | **`OwnerId` obrigatório em `Con`** — sem `Db` pai, não há de onde herdar |
+
+Problema evitado: `Con` externa sem `DatabaseId` **não pode** ficar sem escopo de owner. Cada connection externa pertence a um owner (`OwnerId IN (1, @SessionOwnerId)` na listagem/uso).
+
+**Implementação na UI/metadado:** pode usar **`Bhv`** — ex.: ao preencher `DatabaseId`, propagar/sincronizar `OwnerId` a partir do `Db`; com `DatabaseId` NULL, exigir `OwnerId` explícito ou default da sessão. Validate na procedure complementa.
+
+## Environments (`Env`) — cadeia linear de deploy
+
+Tabela **`Environments`** (aba **`Env`**) — **2.0**, substitui dev/hml/prd engessados:
+
+| Campo | Papel |
+|-------|--------|
+| `Id` | PK |
+| `ParentEnvironmentId` | Pai imediato; **`NULL` = raiz** (única) |
+| `Name` | Identificador livre — 2.º segmento da URL (`crudex.dev` → `Env.Name` = `dev`) |
+| `Description` | Texto para o usuário |
+
+**Não é árvore — é cadeia linear** (lista encadeada). Regras estruturais (Validate paranoico):
+
+| Regra | Significado |
+|-------|-------------|
+| **Raiz única** | Só **1** registro com `ParentEnvironmentId` NULL por owner |
+| **Sem órfãos** | Todo ambiente não-raiz aponta para pai existente na cadeia |
+| **Sem irmãos** | Cada ambiente é pai de **no máximo 1** filho — sequência única, sem ramificações |
+
+Exemplo (nomes livres; pode ter 50 elos):
+
+```
+dev   ParentEnvironmentId = NULL     ← única raiz
+hml   ParentEnvironmentId = dev
+prd   ParentEnvironmentId = hml
+…     (cadeia continua linearmente)
+```
+
+**Deploy:** promoção só **pai → filho imediato** ao longo da cadeia — ordem de aplicação implícita, sem hardcode de nomes.
+
+**Versionamento (futuro):** a cadeia `Env` sustenta **pipeline de versão** — cada versão gera deploy; após aplicar e testar em cada elo, exige **aprovação manual** antes de promover ao seguinte. **Reprovação manual** → **reabre o ambiente anterior** (retrocede um elo na cadeia). Exemplo clássico (3 elos, papéis ilustrativos):
+
+| Elo | Quem aprova/reprova (exemplo) |
+|-----|-------------------------------|
+| 1.º (raiz, ex. dev) | **Analista** |
+| 2.º (ex. hml) | **Usuário** |
+| 3.º (ex. prd) | **DBA** — aplica em produção; aprovação final **conclui a versão** |
+
+Todas as decisões são **manuais** (aprovar ou reprovar).
+
+| Reprovar em… | Efeito |
+|--------------|--------|
+| **Raiz (ex. dev)** | Permanece na raiz — **não tem para onde correr** |
+| **Qualquer outro elo** | Reabre **todos os níveis abaixo** (em direção à raiz): ex. **hml** → dev; **prd** → hml **e** dev |
+
+**Aprovar** avança **um elo** (sobe na cadeia). **Reprovar** no elo corrente desfaz **toda a cadeia abaixo dele** até a raiz.
+
+**Versão aberta:** só **uma versão em andamento** por **`Sys`** (sistema) ou por **`Db`** (database) — a definir; impede deploys concorrentes e conflito na cadeia `Env`. **Tabelas de versão/aprovação/deploy** — ainda **não** na planilha; virão depois (`Env` primeiro).
+
+**Quantidade livre:** 50 ambientes = cadeia de 50 elos — permitido. **`Validate`/`Commit`** garante linearidade; **`Name` único** por owner; promoção não pula elo.
+
+**Cadastro:** sem muleta na UI — quem monta a cadeia sabe que a **raiz** tem `ParentEnvironmentId` vazio. **Sem asterisco vermelho** nessa coluna (`IsRequired` off): NULL é válido. **`Validate`** barra só estado inválido (duas raízes, órfão, ciclo…). Mesmo espírito do `Mnu`.
+
+**Índice via metadado (`Idx` + `Idk`):**
+
+- **`IsUnique` em `ParentEnvironmentId`** — impede duplicata (dois filhos do mesmo pai). Sem `WHERE`; índice simples.
+
+**Raiz única, existência da raiz, órfãos, ciclos** → **`Validate`** (índice não cobre NULL duplicado nem “tem de existir uma raiz”).
+
+**`Con.EnvironmentId`** liga conexão física ao ambiente. Mesmo `Db` pode ter uma `Con` por `Env`.
+
+Escopo por **`OwnerId`** — a definir na planilha; catálogo Id 1 visível a todos se aplicável.
 
 ## Engines (`Eng`)
 
@@ -68,9 +193,9 @@ Flags `Ask*`: o que pode ser configurado em domínios/colunas daquela categoria 
 ## Resolução de tipo SQL
 
 ```
-1. Col.DomainId → Dmn (Name, Length, Decimals, ValidValues, ClientId)
+1. Col.DomainId → Dmn (Name, Length, Decimals, ValidValues, OwnerId)
 2. Dmn.TypeId → Typ → Cat (regras, Rul)
-3. Sessão → Cli.ClientId → Cli.EngineId
+3. Sessão → Own.OwnerId → Own.EngineId
 4. Map WHERE EngineId AND TypeId → nome físico (ex.: bigint / INT8 / NUMBER)
 5. Montar tipo: Map.Name + Dmn.Length + Dmn.Decimals
 ```
@@ -93,12 +218,38 @@ Metadado (`Cmp` + `Rul`): `Symbol`, `Description`, `Arity` — **sem** `SqlCompa
 
 Paralelo: `Typ`/`Map` = tradução declarativa; `Cmp`/registry = implementação fixa por engine.
 
-## Tenant (`Cli`)
+## Owner (`Own` / `Owners`) — **2.0 exclusivo**
 
-- **Id 1**: dados CRUDEX/plataforma — visíveis a todos os tenants.
-- **Id 2+**: dados privados — só o tenant dono + catálogo do Id 1.
-- SQL: `WHERE ClientId IN (1, @SessionClientId)`
-- Entidades com `ClientId`: `Dmn`, `Msk`, `Db`, `Usr`, `Sch`, `Ses`
+Conceito **Novíssimo** — o **1.0** não tem owners. Aba **`Own`**; tabela **`Owners`**.
+
+- **Id 1**: dados CRUDEX/plataforma — visíveis a todos os owners.
+- **Id 2+**: dados privados — só o owner + catálogo do Id 1.
+- **`AskDatabasePath`**: `1` = gerador/UI **pede** caminho de ficheiros quando o SGBD suporta (ex.: SQL Server instalado, `.mdf`/`.ldf`). `0` = **não pede** — container/Docker, SGBDs que nunca usam path, ou implantação que também **permite** omitir path. Não é flag “Docker vs produção”; é **perguntar ou não**, por owner.
+- SQL: `WHERE OwnerId IN (1, @SessionOwnerId)`
+- Entidades com `OwnerId`: `Dmn`, `Msk`, `Db`, `Con` (obrigatório se `DatabaseId` NULL), `Usr`, `Sch`, `Ses`
+
+## Domínios — listas na UI (`Dmn`)
+
+**Princípio:** um só componente (`TDropdown`) e **um só comportamento** de picker — filtro, paginação (5/página), teclado, validação. A **origem dos dados** muda só o carregamento (`loader` servidor vs catálogo local); a UI **não** muda.
+
+| Campo | Origem | Modo |
+|-------|--------|------|
+| **`ValidValues`** | `Dmn`, `;` separados — catálogo local | Single |
+| **FK** | `{Table}Read` via `loader` | Single |
+| **`ListValues`** (2.0) | `Dmn` — a implementar | **Multi** (mesmo `TDropdown`, mesma paginação) |
+
+### `TListValues` — espelho do `TRecordSet` em memória (**implementado v1**)
+
+Classe em `TListValues.class.mjs`. Construtor: **string** de valores + separador opcional (`;` default) → `split` em **`data`**. Mesma API de paginação/navegação que `TRecordSet`, sem `{Table}Read`.
+
+| | **`TRecordSet`** | **`TListValues`** |
+|--|------------------|-------------------|
+| Fonte | Servidor (`{Table}Read`) | `data` em memória (`Dmn.ValidValues`, futuro `ListValues`) |
+| Paginação | `readPickerPage`, `fetchPickerPage` | **Idêntica** — fatia `data` localmente |
+| Filtro picker | `Picker.Value` no `Read` | `includes` case-insensitive sobre `data` |
+| Última página | `PaddingGridLastPage: true` no `Read` | Mesma regra — janela deslocada para preencher `limitRows` |
+
+**`TDropdown.loader`:** FK → `TRecordSet.fetchPickerPage`; `ValidValues` → `TListValues.fetchPickerPage`.
 
 ## Máscaras (`Msk`)
 
@@ -128,16 +279,26 @@ Fluxo: ValidMask → gera EditMask → cada tecla em `#` valida contra token sem
 
 Funções existentes: `TMask.CheckDigit()`, `crudex.CheckDigit`.
 
-## Menu (`Mnu` + `Tbl`)
+## Menu (`Mnu`) — modelo 1.0
 
-```
-Mnu: Manutenção → Cadastro, Definição (popups aninhados)
-Tbl: cada tabela com MenuId aponta para popup + MenuSequence + MenuCaption
-```
+Estrutura **igual à 1.0** (`Menus`): entidade **separada** de `Tbl`. Permite a **mesma tabela** (`Action`) em **vários sistemas** ou várias entradas no menu.
 
-Tabelas filhas (`Ref.IsParentChild`): sem `MenuId` por convenção (master-detail). Pode ter menu, mas redundante.
+| Campo | Papel |
+|-------|--------|
+| `SystemId` | Menu pertence ao sistema |
+| `Sequence` | Ordem no popup / barra |
+| `Caption`, `Message` | Texto do item |
+| `Action` | Tabela alvo (ex.: `grid/crudex/Tables`) — só dispara se **não tiver filhos** |
+| `ParentMenuId` | **`NULL` = opção horizontal**; **preenchido** = suspenso |
+| `IsActive` | `false` → item **não aparece** no menu — **manual** (analista decide); nada automático por master-detail |
 
-Ação derivada: `grid/{Db.Name}/{Tbl.Name}`.
+Montagem **100% manual**: o usuário cadastra `Mnu`, vê no runtime, ajusta `Sequence`/`Caption`/`ParentMenuId`/`IsActive` até ficar como quer. Tudo é possível; **`Validate`** só barra inconsistência estrutural (FK, unicidades).
+
+Runtime (`TMenu`): filhos → submenu (`Action` ignorado); folha → `Action`. Só itens `IsActive` no menu (`Config`/`TMenu` 2.0).
+
+**`Tbl`** só define estrutura — **não** carrega `MenuId` nem caption. Tabelas filhas (`Ref.IsParentChild`): sem item de menu por convenção (master-detail).
+
+Ação derivada: `grid/{Db.Name}/{Tbl.Name}` (via `Action` no menu).
 
 ## Referências (`Ref` + `Rfk`)
 
@@ -242,7 +403,7 @@ Substitui hardcode em `TForm` (`min`, `max`, `HtmlInputType` fixos) por regras d
 
 **Substituem Windows Services** — o CRUDEX agenda e dispara tarefas em background via metadados, sem serviço Windows externo.
 
-Agendamento por tenant (`ClientId`): `Interval`, `Periodicity` (ex. `day`), `TimeOfDay`, `DayOfMonth`, `NextRunDate`, flags `IsBusinessDays`, `IsFirstOrLastDay`, `IsRunOnce`, `IsActive`, `IsForwardHoliday`.
+Agendamento por owner (`OwnerId`): `Interval`, `Periodicity` (ex. `day`), `TimeOfDay`, `DayOfMonth`, `NextRunDate`, flags `IsBusinessDays`, `IsFirstOrLastDay`, `IsRunOnce`, `IsActive`, `IsForwardHoliday`.
 
 `IsForwardHoliday` (com `IsBusinessDays`): se a data nominal cair em feriado/fim de semana, `1` = avançar para o próximo dia útil; `0` = retroagir para o dia útil anterior. Implementação futura em função de calendário separada de `NextDate`.
 
@@ -259,9 +420,16 @@ Agendamento por tenant (`ClientId`): `Interval`, `Periodicity` (ex. `day`), `Tim
 
 **`Snp`**: `TableId`, `Name`, `IsBefore`, `IsActive`.
 
-**`Scr`** — scripts SQL: `SniperId`, `DatabaseId`, `Sequence`, `Script`.
+**`Scr`** — scripts SQL extensos por sniper: `SniperId`, `DatabaseId`, `Sequence`, `Script`. Metadado único; o **runtime decide como executar** conforme a conexão alvo (`Db` → `Con` **ou** `Con` externa com `DatabaseId` NULL → `Eng.Provider`):
 
-**`Url`** — chamadas HTTP (APIs): `SniperId`, `Sequence`, `Method`, `URL`.
+| Conexão alvo do `Scr` | Execução |
+|-----------------------|----------|
+| Mesmo provider do sistema (ex.: SQL Server local, `Con` do `Db`) | **Direta** — script extenso na conexão |
+| `Con` externa (`DatabaseId` NULL) ou provider ≠ do sistema | **Via HTTP** — mesma URL da API CRUDEX (comando simples por chamada) |
+
+Conexões **`Con` com `DatabaseId` NULL** existem para snipers em **outros bancos/SGBDs** — fora do database operacional do CRUDEX. No caso HTTP, um comando simples por chamada (`EXEC`, `INSERT`, …); o analista cadastra só `Scr`; o desvio é transparente.
+
+**`Url`** — chamadas HTTP explícitas no pipeline: `SniperId`, `Sequence`, `Method`, `URL`. Integrações **externas ao CRUDEX** (SEFAZ NF-e, webhooks, APIs de terceiros). Distinto do roteamento automático de `Scr` acima.
 
 **Unicidade de `Sequence` por `SniperId`:** `Scr` e `Url` compartilham a mesma fila de execução — uma `Sequence` não pode existir em ambas para o mesmo sniper. Ex.: Seq 5 = SQL, Seq 10 = HTTP, Seq 15 = SQL (pipeline único ordenado).
 
@@ -286,7 +454,7 @@ Mesmo tipo de execução (scripts + HTTP); gatilhos diferentes.
 
 ### `Ses` (sessions)
 
-`Id` gerado a cada login. `ClientId`, `SystemId`, `UserId`, `PublicKey`, `IsLogged`. Retornado como `LoginId`.
+`Id` gerado a cada login. `OwnerId`, `SystemId`, `UserId`, `PublicKey`, `IsLogged`. Retornado como `LoginId`.
 
 ### `Trs` (transactions)
 
@@ -326,20 +494,21 @@ Operações pendentes **antes do commit**: `TransactionId`, `TableName`, `Action
 | Conceito | Atual | Novíssimo |
 |----------|-------|-----------|
 | Aba Excel | `Name` | `Alias` |
-| Tipo SQL | `#DataType` em Types | `Map` × `Cli.EngineId` |
+| Tipo SQL | `#DataType` em Types | `Map` × `Own.EngineId` |
 | FK | `Col.ReferenceTableId` | `Ref` + `Rfk` |
 | Pai-filho | `Tbl.ParentTableId` | `Ref.IsParentChild` |
-| Menu item | `Menus.Action` | `Tbl.MenuId`… |
+| Menu | `Menus` + `Action` | **`Mnu`** (= `Menus` 1.0) — **não** campos em `Tbl` |
 | Unicidade cruzada | `Unicities` | `Uni` |
 | Máscara no domínio | `Domains.MaskId` | `Mkg` |
 | Multi-SGBD | Não | `Eng` + `Map` |
-| Multi-tenant | `ClientId DEFAULT 1` em tudo | `Cli` + filtro IN (1, @Session) |
+| Owner (`Own`) | Não existe | `Owners` + filtro `OwnerId IN (1, @SessionOwnerId)` |
 
 ## Geração de scripts
 
 **Atual** — `Scripts.cs`:
-- Lê `FILENAME_EXCEL` (`CRUDEX.xlsm`)
-- Abas pelo `table["Name"]`
+- Fonte **Excel** (padrão `crudex`): `ExcelToDataSet()` ← `FILENAME_EXCEL`
+- Fonte **banco**: `GetDataSet()` ← procedure `[dbo].[ScriptSystem]` (`isExcel=false` ou `systemName` ≠ `crudex`)
+- Abas pelo `table["Name"]` (Excel) ou datasets do ScriptSystem (banco)
 - Emite T-SQL monolítico → `SCRIPT-{DATABASE}.sql`
 
 **Novíssimo** — requer gerador novo:
@@ -360,7 +529,7 @@ POST /{sys}.{env}/execute   → Procedures
 
 `appsettings.json`: `ConnectionString`, `CONFIG_PROCEDURE`, `ROWS_PER_PAGE`, `FILENAME_EXCEL`, etc.
 
-`CRUDEX_ENVIRONMENT`: `dev` | `hml` | `prd`
+`CRUDEX_ENVIRONMENT`: nome de um registro em **`Env`** (1.0: `dev` | `hml` | `prd` fixos)
 
 ## Deploy banco (SCRIPT-CRUDEX.sql)
 
@@ -368,7 +537,7 @@ Script faz `DROP DATABASE crudex`; ajustar paths `.mdf`/`.ldf` antes de executar
 
 ## Status do modelo Novíssimo
 
-Documentação das 34 abas concluída para implementação. Extensões futuras possíveis.
+**Só análise por agora** — não codificar 2.0 ainda. Planilha em evolução (**39** tabelas; versionamento = tabelas futuras). Documentar decisões; implementação (gerador, `Config`, frontend, versionamento) quando o metamodelo estabilizar.
 
 **O código atual não possui forms master-detail.** Implementar via `Ref.IsParentChild` + tabelas filhas (sem `MenuId` por convenção).
 
@@ -490,6 +659,10 @@ Retorno (um único result set): uma linha com coluna `result` (JSON da página p
 
 Filtro atual: JSON plano coluna→valor; depois trocar serialização para array `Cmp` sem mudar a API pública do `TRecordSet`.
 
+### `TListValues` (v1)
+
+`TListValues.class.mjs` — espelho em memória de `TRecordSet` para `Dmn.ValidValues` / `ListValues`. Ver **Domínios — `TListValues`**.
+
 ### Checklist de implementação
 
 - [x] **`TRecordSet` + `TRecord`** — v1 em `TRecordset.class.mjs` / `TRecord.class.mjs`
@@ -497,6 +670,7 @@ Filtro atual: JSON plano coluna→valor; depois trocar serialização para array
 - [x] `TBrowse` delega ao `TRecordSet` (`#ReadDataPage` → `goPage`)
 - [x] `TForm` usa `SelectedRecord` / `RecordSet.readOne` (compatível com Read JSON)
 - [x] **`TDropdown`** — seleção simples, multi, inclusão manual (IN), cardinalidade (BETWEEN)
+- [x] **`TListValues`** — espelho em memória de `TRecordSet` para `ValidValues` / `ListValues`
 - [x] **`TForm`** — FK (`ReferenceTableId`) usa `TDropdown.Single` + `{Table}List` via `TList.fetchPage`
 
 ### `TDropdown` — modos
@@ -533,9 +707,9 @@ TDropdown.Cardinality(host2, {
 - [ ] Procedures redesenhadas (multi-dialeto, `Prm`, `Uni`, `Ref`…)
 - [ ] **`{Table}Read`** — JSON filtro/pesquisa com operador + comparando (`Cmp`)
 - [ ] `Config` / backend multi-provider (`Eng.Provider`)
-- [ ] Menu `Mnu` + `Tbl`
+- [ ] Menu **`Mnu`** (= modelo 1.0 `Menus`, separado de `Tbl`)
 - [ ] `TMask` semântico + `Mkg` check digit
 - [ ] `Prp`/`Bhv` no form (`change` → expressão → propriedade)
 - [ ] **Master-detail no `TForm`**
 - [ ] `Sch` (worker agenda) + `Snp` (triggers) → `Scr`/`Url`
-- [ ] Tenant `Cli` filtro `IN (1, @SessionClientId)`
+- [ ] Owner `Own`/`Owners` filtro `OwnerId IN (1, @SessionOwnerId)`

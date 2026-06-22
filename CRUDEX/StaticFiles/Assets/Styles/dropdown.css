@@ -2,6 +2,7 @@
     display: block;
     position: relative;
     min-width: 0;
+    --tdropdown-icon-chrome: 3ch;
 }
 
 .tdropdown-input-wrap {
@@ -12,7 +13,7 @@
 .tdropdown-input {
     width: 100%;
     height: var(--field-height);
-    padding: 0.5dvmin 2.4dvmin 0.5dvmin 0.5dvmin;
+    padding: 0.5dvmin calc(var(--tdropdown-icon-chrome) + 0.5dvmin) 0.5dvmin 0.5dvmin;
     box-sizing: border-box;
     border: 0.1dvmin solid #000;
     border-radius: 0.1dvmin;
@@ -34,7 +35,7 @@
     width: 100%;
     height: var(--field-height);
     min-height: var(--field-height);
-    padding: 0.5dvmin 2.5dvmin 0.5dvmin 0.5dvmin;
+    padding: 0.5dvmin calc(var(--tdropdown-icon-chrome) + 0.5dvmin) 0.5dvmin 0.5dvmin;
     box-sizing: border-box;
     border: 0.1dvmin solid #000;
     border-radius: 0.1dvmin;
