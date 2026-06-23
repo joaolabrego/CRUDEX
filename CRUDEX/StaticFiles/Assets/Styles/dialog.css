@@ -31,3 +31,7 @@
     margin-top: 3dvmin;
     margin-right: 2dvmin;
 }
+
+.dialog button:hover {
+    background: var(--grid-hover-row-color);
+}

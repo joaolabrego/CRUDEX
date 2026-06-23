@@ -467,11 +467,10 @@ export default class TBrowse {
             tr.onclick = (event) => {
                 this.#RowNumber = tr.rowIndex - 1;
                 if (this.#HTML.SelectedRow)
-                    this.#HTML.SelectedRow.removeAttribute("style");
+                    this.#HTML.SelectedRow.classList.remove("currentRow");
                 this.#HTML.SelectedRow = event.currentTarget;
                 this.#HTML.SelectedRow.scrollIntoView({ behavior: 'auto', block: 'nearest' });
-                this.#HTML.SelectedRow.style =
-                    "background-color: var(--background-color-control);";
+                this.#HTML.SelectedRow.classList.add("currentRow");
             };
             tr.ondblclick = () => {
                 if (this.#readOnlyCud)

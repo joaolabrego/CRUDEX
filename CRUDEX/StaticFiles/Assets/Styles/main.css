@@ -1,10 +1,12 @@
 :root {
     --text-height: 3dvmin;
     --background-color: bisque;
-    --background-color-control: thistle;
-    --background-color-focus: burlywood;
+    --background-color-control: burlywood;
+    --background-color-focus: thistle;
     --background-color-active: beige;
     --background-color-extra: brown;
+    --grid-current-row-color: goldenrod;
+    --grid-hover-row-color: palevioletred;
     --menu-width: 0ch;
     --screen-gap: 2px;
     --control-height: 5dvmin;
@@ -43,10 +45,10 @@ body {
     height: 100vh;
 }
 
-body > dialog {
-    position: fixed;
-    margin: 0;
-}
+    body > dialog {
+        position: fixed;
+        margin: 0;
+    }
 
 .box {
     z-index: 1;

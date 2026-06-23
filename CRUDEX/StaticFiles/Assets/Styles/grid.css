@@ -43,8 +43,9 @@
     background-color: var(--background-color-active);
 }
 
-.currentRow {
-    background-color: var(--background-color-control);
+.grid tbody tr.currentRow,
+.grid tbody tr.currentRow:hover {
+    background-color: var(--grid-current-row-color);
 }
 
 .grid td,
@@ -101,7 +102,7 @@
 }
 
 .grid tbody tr:nth-of-type(n):hover {
-    background-color: var(--background-color-focus);
+    background-color: var(--grid-hover-row-color);
 }
 
 .grid input[type=number]::-webkit-inner-spin-button,
@@ -126,7 +127,7 @@
 }
 
 .grid thead th:hover {
-    background: var(--background-color);
+    background: var(--grid-hover-row-color);
 }
 
 .grid thead th:active {
@@ -134,7 +135,7 @@
 }
 
 .grid th button:hover {
-    background: var(--background-color-control);
+    background: var(--grid-hover-row-color);
     background-size: 100% 100%;
 }
 
