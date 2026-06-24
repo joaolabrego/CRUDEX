@@ -180,6 +180,7 @@ Documentação: [.cursor/skills/wordex/SKILL.md](.cursor/skills/wordex/SKILL.md)
 
 | Documento | Conteúdo |
 |-----------|----------|
+| [DOCUMENTACAO.md](DOCUMENTACAO.md) | **Documentação técnica consolidada** — sistema inteiro |
 | [README.md](README.md) | Visão geral e links |
 | [MANUAL.md](MANUAL.md) | Usuário final + desenvolvedor (1.0) |
 | [.cursor/skills/crudex/SKILL.md](.cursor/skills/crudex/SKILL.md) | Regras para agentes; Novíssimo; arquitetura |

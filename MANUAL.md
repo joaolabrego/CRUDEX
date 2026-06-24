@@ -453,6 +453,7 @@ Documentação técnica detalhada: `.cursor/skills/crudex/reference.md`.
 
 ## Referências
 
+- [DOCUMENTACAO.md](DOCUMENTACAO.md) — documentação técnica consolidada do sistema
 - [README.md](README.md) — visão geral do projeto
 - [CRUDEX/StaticFiles/db/SCRIPT-CRUDEX.sql](CRUDEX/StaticFiles/db/SCRIPT-CRUDEX.sql) — procedures em produção
 - [.cursor/skills/crudex/SKILL.md](.cursor/skills/crudex/SKILL.md) — guia para agentes/desenvolvimento

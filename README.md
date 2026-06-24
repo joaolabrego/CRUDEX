@@ -86,5 +86,6 @@ O CRUDEX gera dinamicamente a aplicação.
 
 ## Documentação
 
+- [**Documentação completa do sistema**](DOCUMENTACAO.md) — arquitetura, metadados, API, frontend, banco, Wordex e Novíssimo
 - [Manual do CRUDEX 1.0](MANUAL.md) — guia do usuário e do desenvolvedor
 - [Estado atual do projeto](ESTADO-ATUAL.md) — retrato do que existe, pendências e como retomar
