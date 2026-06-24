@@ -836,7 +836,6 @@ export default class TEditBox {
             idField: "ListItemId",
             labelField: "ListItemName",
             itemsPerPage: pageSize,
-            placeholder: "Selecionar...",
             value: values,
             loader: (query, page) => TRecordSet.readPickerPage(refTable, {
                 value: query,
@@ -989,7 +988,6 @@ export default class TEditBox {
             idField: "ListItemId",
             labelField: "ListItemName",
             itemsPerPage: TSystem.RowsPerDropdownPage,
-            placeholder: "Selecionar...",
             required,
             allowEmpty: !required,
             readOnly,
@@ -1305,6 +1303,15 @@ export default class TEditBox {
         return TSystem.GetComparator(this.#conditionOp);
     }
 
+    #focusConditionControl() {
+        const control = this.#control;
+        if (!control || control.disabled || control.readOnly)
+            return;
+        requestAnimationFrame(() => {
+            control.focus({ preventScroll: true });
+        });
+    }
+
     #bindOperatorMenuClose() {
         if (TEditBox.#operatorMenuCloseBound)
             return;
@@ -1505,6 +1512,7 @@ export default class TEditBox {
                 action, record, sourceRecord, onConfirm, onCancel, onFirstInput, emit,
                 parsed: parsedForRebuild,
             });
+            this.#focusConditionControl();
         });
 
         this.#rebuildConditionValue({

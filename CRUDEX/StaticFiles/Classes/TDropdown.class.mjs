@@ -162,6 +162,7 @@ export default class TDropdown {
             this.#input.value = "";
             this.#input.title = "";
             this.#input.classList.remove("tdropdown-collapsed");
+            this.#syncInputPlaceholder();
         }
     }
 
@@ -197,6 +198,20 @@ export default class TDropdown {
         return this.#mode === TDropdown.Modes.MULTI && this.#listSearch;
     }
 
+    #usesFilterInput() {
+        return !this.#isAddableMode()
+            && (this.#mode === TDropdown.Modes.SINGLE || this.#usesInputFilter());
+    }
+
+    #syncInputPlaceholder() {
+        if (!this.#input || !this.#usesFilterInput())
+            return;
+        const focused = document.activeElement === this.#input;
+        this.#input.placeholder = focused
+            ? (this.#placeholder || "Select or type to filter")
+            : "";
+    }
+
     #buildDom() {
         this.#inputWrap = document.createElement("div");
         this.#inputWrap.className = "tdropdown-input-wrap";
@@ -206,15 +221,13 @@ export default class TDropdown {
             this.#trigger = document.createElement("button");
             this.#trigger.type = "button";
             this.#trigger.className = "tdropdown-trigger";
-            this.#trigger.textContent = this.#placeholder || "Selecionar...";
+            this.#trigger.textContent = "";
             this.#inputWrap.append(this.#trigger);
         } else {
             this.#input = document.createElement("input");
             this.#input.type = "text";
             this.#input.className = "tdropdown-input";
-            this.#input.placeholder = this.#usesInputFilter()
-                ? (this.#placeholder || "Selecionar...")
-                : this.#placeholder;
+            this.#input.placeholder = this.#usesFilterInput() ? "" : this.#placeholder;
             this.#input.autocomplete = "off";
             this.#inputWrap.append(this.#input);
 
@@ -313,6 +326,7 @@ export default class TDropdown {
                 this.#showList();
             });
             this.#input.addEventListener("focus", () => {
+                this.#syncInputPlaceholder();
                 if (!this.#collapseSelectionOnBlur)
                     return;
                 if (!this.#isAddableMode() && !this.#usesInputFilter())
@@ -331,6 +345,7 @@ export default class TDropdown {
                     this.#applyFilterInputDisplay();
                     this.#hideList();
                     this.#updateValidity();
+                    this.#syncInputPlaceholder();
                     return;
                 }
                 if (this.#collapseSelectionOnBlur && this.#isAddableMode()) {
@@ -342,6 +357,7 @@ export default class TDropdown {
                 }
                 if (this.#mode === TDropdown.Modes.SINGLE) {
                     this.#finishSingleBlur();
+                    this.#syncInputPlaceholder();
                     return;
                 }
                 this.#commitPendingInput(false);
@@ -712,7 +728,7 @@ export default class TDropdown {
             return;
         const labels = this.#selected.map(s => s.label);
         const full = labels.join(", ");
-        this.#trigger.textContent = full || (this.#placeholder || "Selecionar...");
+        this.#trigger.textContent = full || "";
         this.#trigger.title = full;
         this.#trigger.classList.toggle("tdropdown-collapsed", !!full);
     }
@@ -824,8 +840,10 @@ export default class TDropdown {
             this.#filtered = [...this.#catalog];
         this.#updateTriggerLabel();
         if (this.#collapseSelectionOnBlur && this.#input && document.activeElement !== this.#input
-            && (this.#isAddableMode() || this.#usesInputFilter()))
+            && (this.#isAddableMode() || this.#usesInputFilter())) {
             this.#applyFilterInputDisplay();
+            this.#syncInputPlaceholder();
+        }
         this.#updateValidity();
         this.#syncPlusVisibility();
         if (!this.#loader)
