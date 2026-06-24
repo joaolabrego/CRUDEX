@@ -418,7 +418,6 @@ namespace crudex.Classes
             BridgeSystemsLegacyColumns(dataset);
             BridgeDatabasesLegacyColumns(dataset);
             BridgeConnectionsLegacyColumns(dataset);
-            BridgeCategoriesLegacyColumns(dataset);
             BridgeSessionsLegacyColumns(dataset);
             BridgeEnginesDefaults(dataset);
             BridgeStringsDefaults(dataset);
@@ -607,37 +606,6 @@ namespace crudex.Classes
                     if (!TryGetColumnValue(connection, "Environment", out var environment) || string.IsNullOrWhiteSpace(Settings.ToString(environment)))
                         SetColumnValue(connection, "Environment", "prd");
                 }
-            }
-        }
-
-        static (string HtmlInputType, string HtmlInputAlign) ResolveCategoryHtmlInput(string categoryName) =>
-            categoryName.ToLowerInvariant() switch
-            {
-                "string" => ("text", "left"),
-                "number" => ("number", "right"),
-                "date" => ("date", "left"),
-                "datetime" => ("datetime-local", "left"),
-                "time" => ("time", "left"),
-                "boolean" => ("checkbox", "left"),
-                "text" => ("textarea", "left"),
-                "image" => ("file", "left"),
-                "binary" => ("file", "left"),
-                _ => ("text", "left"),
-            };
-
-        static void BridgeCategoriesLegacyColumns(DataSet dataset)
-        {
-            if (!dataset.Tables.Contains("Categories"))
-                return;
-
-            EnsureLegacyPhysicalColumn(dataset, "Categories", "HtmlInputType", "Name");
-            EnsureLegacyPhysicalColumn(dataset, "Categories", "HtmlInputAlign", "Name");
-
-            foreach (DataRow row in dataset.Tables["Categories"]!.Rows)
-            {
-                var (htmlInputType, htmlInputAlign) = ResolveCategoryHtmlInput(Settings.ToString(GetColumnValue(row, "Name")));
-                SetColumnValue(row, "HtmlInputType", htmlInputType);
-                SetColumnValue(row, "HtmlInputAlign", htmlInputAlign);
             }
         }
 

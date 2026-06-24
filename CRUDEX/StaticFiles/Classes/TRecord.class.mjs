@@ -1,6 +1,7 @@
 ﻿"use strict";
 
 import TConfig from "./TConfig.class.mjs";
+import TCategoryHtml from "./TCategoryHtml.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TTable from "./TTable.class.mjs";
 
@@ -68,7 +69,7 @@ export default class TRecord {
     getBrowseAlign(column) {
         const refTable = TSystem.GetReferencePkTable(column);
         if (!refTable)
-            return column.Domain.Type.Category.HtmlInputAlign;
+            return TCategoryHtml.getAlign(column.Domain.Type.Category);
 
         const alias = refTable.Alias || refTable.Name;
         const ref = this.references[alias];
@@ -77,8 +78,8 @@ export default class TRecord {
         if (ref && listable) {
             const listValue = ref[listable.Name];
             if (!TConfig.IsEmpty(listValue))
-                return listable.Domain.Type.Category.HtmlInputAlign;
+                return TCategoryHtml.getAlign(listable.Domain.Type.Category);
         }
-        return column.Domain.Type.Category.HtmlInputAlign;
+        return TCategoryHtml.getAlign(column.Domain.Type.Category);
     }
 }

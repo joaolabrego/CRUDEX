@@ -48,7 +48,6 @@ export default class TDropdown {
     #itemsBox = null;
     #prevBtn = null;
     #nextBtn = null;
-    #listSearchInput = null;
     #listSearch = false;
     #handleOutside = null;
     #handleGlobal = null;
@@ -119,6 +118,8 @@ export default class TDropdown {
         this.#paginate = options.paginate !== false;
         this.#collapseSelectionOnBlur = options.collapseSelectionOnBlur === true;
         this.#listSearch = options.listSearch === true || (this.#mode === TDropdown.Modes.MULTI && this.#loader != null);
+        if (this.#mode === TDropdown.Modes.MULTI && this.#listSearch && options.collapseSelectionOnBlur !== false)
+            this.#collapseSelectionOnBlur = true;
 
         if (options.paginate === false)
             this.#itemsPerPage = options.itemsPerPage ?? Number.MAX_SAFE_INTEGER;
@@ -157,8 +158,11 @@ export default class TDropdown {
 
     #clearSingle() {
         this.#selected = [];
-        if (this.#input)
+        if (this.#input) {
             this.#input.value = "";
+            this.#input.title = "";
+            this.#input.classList.remove("tdropdown-collapsed");
+        }
     }
 
     static #injectStyle() {
@@ -189,12 +193,16 @@ export default class TDropdown {
         return this.#mode === TDropdown.Modes.ADDABLE;
     }
 
+    #usesInputFilter() {
+        return this.#mode === TDropdown.Modes.MULTI && this.#listSearch;
+    }
+
     #buildDom() {
         this.#inputWrap = document.createElement("div");
         this.#inputWrap.className = "tdropdown-input-wrap";
         this.#container.append(this.#inputWrap);
 
-        if (this.#mode === TDropdown.Modes.MULTI) {
+        if (this.#mode === TDropdown.Modes.MULTI && !this.#usesInputFilter()) {
             this.#trigger = document.createElement("button");
             this.#trigger.type = "button";
             this.#trigger.className = "tdropdown-trigger";
@@ -204,7 +212,9 @@ export default class TDropdown {
             this.#input = document.createElement("input");
             this.#input.type = "text";
             this.#input.className = "tdropdown-input";
-            this.#input.placeholder = this.#placeholder;
+            this.#input.placeholder = this.#usesInputFilter()
+                ? (this.#placeholder || "Selecionar...")
+                : this.#placeholder;
             this.#input.autocomplete = "off";
             this.#inputWrap.append(this.#input);
 
@@ -225,18 +235,6 @@ export default class TDropdown {
         this.#list = document.createElement("div");
         this.#list.className = "tdropdown-list";
         this.#inputWrap.append(this.#list);
-
-        if (this.#mode === TDropdown.Modes.MULTI && this.#listSearch) {
-            const searchWrap = document.createElement("div");
-            searchWrap.className = "tdropdown-list-search";
-            this.#listSearchInput = document.createElement("input");
-            this.#listSearchInput.type = "text";
-            this.#listSearchInput.className = "tdropdown-list-search-input";
-            this.#listSearchInput.placeholder = "Filtrar...";
-            this.#listSearchInput.autocomplete = "off";
-            searchWrap.append(this.#listSearchInput);
-            this.#list.append(searchWrap);
-        }
 
         this.#itemsBox = document.createElement("div");
         this.#itemsBox.className = "tdropdown-items";
@@ -315,7 +313,9 @@ export default class TDropdown {
                 this.#showList();
             });
             this.#input.addEventListener("focus", () => {
-                if (!this.#collapseSelectionOnBlur || !this.#isAddableMode())
+                if (!this.#collapseSelectionOnBlur)
+                    return;
+                if (!this.#isAddableMode() && !this.#usesInputFilter())
                     return;
                 this.#inputEditing = true;
                 this.#clearInputForEdit();
@@ -325,11 +325,23 @@ export default class TDropdown {
                 void this.#toggleList();
             });
             this.#input.addEventListener("blur", () => {
+                if (this.#usesInputFilter()) {
+                    this.#inputEditing = false;
+                    this.#query = "";
+                    this.#applyFilterInputDisplay();
+                    this.#hideList();
+                    this.#updateValidity();
+                    return;
+                }
                 if (this.#collapseSelectionOnBlur && this.#isAddableMode()) {
                     this.#inputEditing = false;
                     this.#applyCollapsedInput();
                     this.#hideList();
                     this.#updateValidity();
+                    return;
+                }
+                if (this.#mode === TDropdown.Modes.SINGLE) {
+                    this.#finishSingleBlur();
                     return;
                 }
                 this.#commitPendingInput(false);
@@ -389,13 +401,6 @@ export default class TDropdown {
         });
 
         this.#list.addEventListener("mousedown", (e) => e.preventDefault());
-
-        if (this.#listSearchInput && !this.#readOnly) {
-            this.#listSearchInput.addEventListener("input", (e) => {
-                void this.#filterItems(e.target.value.trim());
-            });
-            this.#listSearchInput.addEventListener("keydown", (e) => e.stopPropagation());
-        }
     }
 
     #sourceItems() {
@@ -624,7 +629,6 @@ export default class TDropdown {
 
         this.#list.style.visibility = "visible";
         this.#list.classList.add("open");
-        this.#listSearchInput?.focus();
     }
 
     #hideList() {
@@ -646,9 +650,7 @@ export default class TDropdown {
     }
 
     async #openList() {
-        this.#query = "";
-        if (this.#listSearchInput)
-            this.#listSearchInput.value = "";
+        this.#query = this.#input?.value.trim() ?? "";
         if (this.#loader)
             await this.#loadServerPage(1);
         else if (this.#isAddableMode())
@@ -729,8 +731,8 @@ export default class TDropdown {
         return this.#selected.map(item => item.label).join(", ");
     }
 
-    #applyCollapsedInput() {
-        if (!this.#input || !this.#collapseSelectionOnBlur)
+    #applyFilterInputDisplay() {
+        if (!this.#input)
             return;
         const full = this.#formatSelectedLabels();
         if (full) {
@@ -738,8 +740,17 @@ export default class TDropdown {
             this.#input.title = full;
             this.#input.classList.add("tdropdown-collapsed");
         } else {
-            this.#clearInputForEdit();
+            this.#input.value = "";
+            this.#input.title = "";
+            this.#input.classList.remove("tdropdown-collapsed");
+            this.#query = "";
         }
+    }
+
+    #applyCollapsedInput() {
+        if (!this.#input || !this.#collapseSelectionOnBlur)
+            return;
+        this.#applyFilterInputDisplay();
     }
 
     #clearInputForEdit() {
@@ -812,9 +823,9 @@ export default class TDropdown {
         else if (!this.#loader)
             this.#filtered = [...this.#catalog];
         this.#updateTriggerLabel();
-        if (this.#collapseSelectionOnBlur && this.#isAddableMode()
-            && this.#input && document.activeElement !== this.#input)
-            this.#applyCollapsedInput();
+        if (this.#collapseSelectionOnBlur && this.#input && document.activeElement !== this.#input
+            && (this.#isAddableMode() || this.#usesInputFilter()))
+            this.#applyFilterInputDisplay();
         this.#updateValidity();
         this.#syncPlusVisibility();
         if (!this.#loader)
@@ -856,6 +867,36 @@ export default class TDropdown {
         const lower = needle.toLowerCase();
         const ci = pool.filter(item => item.label.toLowerCase() === lower);
         return ci.length === 1 ? ci[0] : null;
+    }
+
+    #finishSingleBlur() {
+        const text = this.#sanitize(this.#input?.value);
+        const selectedLabel = this.#selected[0]?.label ?? "";
+
+        if (!text) {
+            if (this.#selected.length) {
+                this.#clearSingle();
+                this.#emitChange();
+            }
+        } else if (text === selectedLabel) {
+            // valor já confirmado
+        } else {
+            const match = this.#findItemByLabel(text);
+            if (match) {
+                this.#selected = [match];
+                this.#input.value = match.label;
+                this.#input.title = match.title ?? "";
+                this.#emitChange();
+            } else if (this.#selected.length) {
+                this.#clearSingle();
+                this.#emitChange();
+            } else {
+                this.#clearSingle();
+            }
+        }
+
+        this.#hideList();
+        this.#updateValidity();
     }
 
     #commitPendingInput(emitChange = true) {

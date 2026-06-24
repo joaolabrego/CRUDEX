@@ -171,8 +171,6 @@ BEGIN
 			SELECT 	'Category' AS [Kind]
 					,[C].[Id]
 					,[C].[Name]
-					,[C].[HtmlInputType]
-					,[C].[HtmlInputAlign]
 					,[C].[AskEncrypted]
 					,[C].[AskMask]
 					,[C].[AskListable]

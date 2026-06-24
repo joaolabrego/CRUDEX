@@ -20,6 +20,7 @@ import TIndex from "./TIndex.class.mjs";
 import TIndexkey from "./TIndexkey.class.mjs";
 import TCategory from "./TCategory.class.mjs";
 import TMask from "./TMask.class.mjs";
+import TCategoryHtml from "./TCategoryHtml.class.mjs";
 import TComparator from "./TComparator.class.mjs";
 import TReference from "./TReference.class.mjs";
 import TSpinner from "./TSpinner.class.mjs";
@@ -156,7 +157,7 @@ export default class TSystem {
     static GetTextDomain() {
         return this.#Domains.find(domain => {
             const category = domain.Type?.Category;
-            return category?.HtmlInputType === "text" || category?.Name === "string";
+            return TCategoryHtml.isStringCategory(category);
         });
     }
     /**

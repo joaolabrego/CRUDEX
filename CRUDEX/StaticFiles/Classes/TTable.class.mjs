@@ -3,6 +3,7 @@
 import TConfig from "./TConfig.class.mjs";
 import TDatabase from "./TDatabase.class.mjs";
 import TSystem from "./TSystem.class.mjs";
+import TCategoryHtml from "./TCategoryHtml.class.mjs";
 import TColumn from "./TColumn.class.mjs";
 import TIndex from "./TIndex.class.mjs";
 
@@ -92,10 +93,7 @@ export default class TTable {
             .sort((left, right) => (left.Sequence ?? 0) - (right.Sequence ?? 0));
 
         return listable.find(column => column.Name === "Name")
-            ?? listable.find(column => {
-                const htmlType = column.Domain?.Type?.Category?.HtmlInputType;
-                return htmlType && htmlType !== "checkbox";
-            })
+            ?? listable.find(column => !TCategoryHtml.isCheckbox(column.Domain?.Type?.Category))
             ?? listable[0]
             ?? null;
     }

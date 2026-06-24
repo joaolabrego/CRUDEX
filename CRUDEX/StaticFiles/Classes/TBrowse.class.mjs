@@ -8,6 +8,7 @@ import TCondition from "./TCondition.class.mjs";
 import TConfig from "./TConfig.class.mjs";
 import TRecordSet from "./TRecordset.class.mjs";
 import TScrollBar from "./TScrollBar.class.mjs";
+import TCategoryHtml from "./TCategoryHtml.class.mjs";
 
 export default class TBrowse {
     #RowCount = 0;
@@ -382,10 +383,9 @@ export default class TBrowse {
                 */
     }
     #GetControl(column, value) {
-        let control,
-            htmlInputType = column.Domain.Type.Category.HtmlInputType;
+        let control;
 
-        if (htmlInputType === "checkbox") {
+        if (TCategoryHtml.isCheckbox(column.Domain.Type.Category)) {
             control = document.createElement("span");
             control.className = "grid-bool";
             if (value === true) {

@@ -9,6 +9,7 @@ import TCondition from "./TCondition.class.mjs";
 import TMask from "./TMask.class.mjs";
 import TSystem from "./TSystem.class.mjs";
 import TProperty from "./TProperty.class.mjs";
+import TCategoryHtml from "./TCategoryHtml.class.mjs";
 
 export default class TEditBox {
     static #operatorMenuCloseBound = false;
@@ -52,7 +53,7 @@ export default class TEditBox {
         this.#column = column;
         this.#isReference = TSystem.IsFkColumn(column);
         this.#isCheckboxInline = !this.#isReference
-            && column.Domain.Type.Category.HtmlInputType === "checkbox";
+            && TCategoryHtml.isCheckbox(column.Domain.Type.Category);
         if (this.#isCheckboxInline)
             this.#buildCheckboxInlineShell();
         else {
@@ -227,11 +228,11 @@ export default class TEditBox {
     #usesCheckboxControl() {
         if (this.#usesValidValuesDropdown())
             return false;
-        if (this.#effectiveDomain().Type.Category.HtmlInputType !== "checkbox")
+        if (!TCategoryHtml.isCheckbox(this.#effectiveDomain().Type.Category))
             return false;
         if (this.#domainVariant)
             return true;
-        return this.#column.Domain.Type.Category.HtmlInputType === "checkbox";
+        return TCategoryHtml.isCheckbox(this.#column.Domain.Type.Category);
     }
 
     #ensureCheckboxHost() {
@@ -349,7 +350,7 @@ export default class TEditBox {
             return;
         }
 
-        const htmlInputType = this.#column.Domain.Type.Category.HtmlInputType;
+        const htmlInputType = TCategoryHtml.getInputType(this.#column.Domain.Type.Category);
         this.#control = this.#createNativeInput(htmlInputType);
         this.#body.appendChild(this.#control);
         this.#root.appendChild(this.#body);
@@ -535,7 +536,7 @@ export default class TEditBox {
         if (editMask) {
             control.type = "text";
         } else if (htmlInputType === "number") {
-            control.type = domain.Type.Category.HtmlInputType;
+            control.type = "number";
             control.min = domain.Minimum;
             control.max = domain.Maximum;
             control.step = 1 / 10 ** (domain.Decimals || 0);
@@ -777,6 +778,9 @@ export default class TEditBox {
             .then((refRecord) => {
                 if (!refRecord || !this.#dropdown)
                     return;
+                const current = TCondition.normalizeCriterionValue(this.#dropdown.getValue());
+                if (String(current ?? "") !== String(id))
+                    return;
                 const label = TEditBox.#getRefListLabel(refTable, refRecord) ?? String(id);
                 this.#dropdown.setValue({ ListItemId: id, ListItemName: label }, false);
             })
@@ -809,6 +813,10 @@ export default class TEditBox {
         )).then((items) => {
             if (!dropdown)
                 return;
+            const expected = new Set(ids.map(id => String(id)));
+            const current = new Set((dropdown.getValue() ?? []).map(id => String(id)));
+            if (expected.size !== current.size || [...expected].some(id => !current.has(id)))
+                return;
             dropdown.setValue(items, false);
         });
     }
@@ -830,13 +838,11 @@ export default class TEditBox {
             itemsPerPage: pageSize,
             placeholder: "Selecionar...",
             value: values,
-            collapseSelectionOnBlur: multiOptions.requireExact === true,
             loader: (query, page) => TRecordSet.readPickerPage(refTable, {
                 value: query,
                 pageNumber: page,
                 limitRows: pageSize,
             }),
-            listSearch: true,
             ...multiOptions,
         });
 
@@ -904,7 +910,7 @@ export default class TEditBox {
         const input = this.#conditionValueDropdown.input;
         if (input) {
             const domain = this.#effectiveDomain();
-            const align = domain.Type.Category.HtmlInputAlign ?? "left";
+            const align = TCategoryHtml.getAlign(domain.Type.Category);
             input.dataset.textAlign = align;
             if (hasMask)
                 this.#conditionValueDropdown.setFormatInput(this.#bindAddableInputMask(input, editMask));
@@ -983,7 +989,7 @@ export default class TEditBox {
             idField: "ListItemId",
             labelField: "ListItemName",
             itemsPerPage: TSystem.RowsPerDropdownPage,
-            placeholder: "",
+            placeholder: "Selecionar...",
             required,
             allowEmpty: !required,
             readOnly,
@@ -1161,7 +1167,7 @@ export default class TEditBox {
         this.#root.classList.remove("tedit-checkbox", "tedit-checkbox-inline");
         this.#releaseCheckbox();
         const domain = this.#effectiveDomain();
-        const htmlInputType = domain.Type.Category.HtmlInputType;
+        const htmlInputType = TCategoryHtml.getInputType(domain.Type.Category);
         const editMask = this.#getEditMask();
         this.#editMask = editMask && !readOnly ? editMask : null;
         const useDisplayValue = action === TSystem.Actions.QUERY;
@@ -1185,7 +1191,7 @@ export default class TEditBox {
         this.#control.readOnly = readOnly;
         this.#applyNativeConstraints(this.#control, action, readOnly);
         this.#disableBrowserAutofill(this.#control, readOnly);
-        this.#control.style.textAlign = domain.Type.Category.HtmlInputAlign;
+        this.#control.style.textAlign = TCategoryHtml.getAlign(domain.Type.Category);
 
         if (editMask && !readOnly) {
             this.#control.value = this.#formatRawValue(editMask, rawValue);
