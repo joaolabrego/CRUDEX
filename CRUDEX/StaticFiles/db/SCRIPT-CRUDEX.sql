@@ -238,11 +238,11 @@ CREATE TABLE [dbo].[Users]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAS
 ALTER TABLE [dbo].[Users] ADD CONSTRAINT PK_Users PRIMARY KEY CLUSTERED ([Id])
 
 /**********************************************************************************
-Criar tabela [dbo].[SystemsUsers]
+Criar tabela [dbo].[Permissions]
 **********************************************************************************/
-IF (SELECT object_id('[dbo].[SystemsUsers]', 'U')) IS NOT NULL
-    DROP TABLE [dbo].[SystemsUsers]
-CREATE TABLE [dbo].[SystemsUsers]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
+IF (SELECT object_id('[dbo].[Permissions]', 'U')) IS NOT NULL
+    DROP TABLE [dbo].[Permissions]
+CREATE TABLE [dbo].[Permissions]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id] >= CAST('1' AS bigint))
                                     ,[SystemId] bigint NOT NULL CHECK ([SystemId] >= CAST('1' AS bigint))
                                     ,[UserId] bigint NOT NULL CHECK ([UserId] >= CAST('1' AS bigint))
                                     ,[Name] nvarchar(50) NOT NULL
@@ -252,7 +252,7 @@ CREATE TABLE [dbo].[SystemsUsers]([Id] bigint IDENTITY(1,1) NOT NULL CHECK ([Id]
                                     ,[UpdatedBy] nvarchar(25) NULL
                                     ,[ClientId] bigint NOT NULL DEFAULT 1
                                     ,[UniqueIdentifier] nvarchar(40) NOT NULL DEFAULT NEWID())
-ALTER TABLE [dbo].[SystemsUsers] ADD CONSTRAINT PK_SystemsUsers PRIMARY KEY CLUSTERED ([Id])
+ALTER TABLE [dbo].[Permissions] ADD CONSTRAINT PK_Permissions PRIMARY KEY CLUSTERED ([Id])
 
 /**********************************************************************************
 Criar tabela [dbo].[Connections]
@@ -1960,12 +1960,12 @@ BEGIN
 END
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[TransactionCreate]
+Criar stored procedure [dbo].[TrsCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TransactionCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TrsCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TrsCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TransactionCreate](@SessionId BIGINT
+ALTER PROCEDURE[dbo].[TrsCreate](@SessionId BIGINT
                                          ,@UserName VARCHAR(25)
                                          ,@ReturnValue BIGINT OUT) AS BEGIN
     SET NOCOUNT ON
@@ -1998,15 +1998,15 @@ ALTER PROCEDURE[dbo].[TransactionCreate](@SessionId BIGINT
 END
 GO
 /**********************************************************************************
-Criar stored procedure [dbo].[TransactionCommit]
+Criar stored procedure [dbo].[TrsCommit]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionCommit]', 'P')) IS NULL
+IF(SELECT object_id('[dbo].[TrsCommit]', 'P')) IS NULL
 
-	EXEC('CREATE PROCEDURE [dbo].[TransactionCommit] AS PRINT 1')
+	EXEC('CREATE PROCEDURE [dbo].[TrsCommit] AS PRINT 1')
 
 GO
 
-ALTER PROCEDURE[dbo].[TransactionCommit](@Login NVARCHAR(MAX)
+ALTER PROCEDURE[dbo].[TrsCommit](@Login NVARCHAR(MAX)
 
 										   ,@TransactionId BIGINT
 
@@ -2116,12 +2116,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TransactionRollback]
+Criar stored procedure [dbo].[TrsRollback]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionRollback]', 'P')) IS NULL
-	EXEC('CREATE PROCEDURE [dbo].[TransactionRollback] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TrsRollback]', 'P')) IS NULL
+	EXEC('CREATE PROCEDURE [dbo].[TrsRollback] AS PRINT 1')
 GO
-ALTER PROCEDURE[dbo].[TransactionRollback](@TransactionId INT
+ALTER PROCEDURE[dbo].[TrsRollback](@TransactionId INT
 											,@UserName VARCHAR(25)) AS BEGIN
 	DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -2234,27 +2234,27 @@ GO
 ALTER TABLE [dbo].[Menus] CHECK CONSTRAINT [FK_Menus_Systems_5]
 GO
 /**********************************************************************************
-Criar referências de [dbo].[SystemsUsers]
+Criar referências de [dbo].[Permissions]
 **********************************************************************************/
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsUsers_Systems_6')
-    ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Systems_6
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Permissions_Systems_6')
+    ALTER TABLE [dbo].[Permissions] DROP CONSTRAINT FK_Permissions_Systems_6
 GO
-ALTER TABLE [dbo].[SystemsUsers] WITH CHECK 
-    ADD CONSTRAINT [FK_SystemsUsers_Systems_6] 
+ALTER TABLE [dbo].[Permissions] WITH CHECK 
+    ADD CONSTRAINT [FK_Permissions_Systems_6] 
     FOREIGN KEY([SystemId]) 
     REFERENCES [dbo].[Systems] ([Id])
 GO
-ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Systems_6]
+ALTER TABLE [dbo].[Permissions] CHECK CONSTRAINT [FK_Permissions_Systems_6]
 GO
-IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_SystemsUsers_Users_7')
-    ALTER TABLE [dbo].[SystemsUsers] DROP CONSTRAINT FK_SystemsUsers_Users_7
+IF EXISTS(SELECT 1 FROM [sys].[foreign_keys] WHERE [name] = 'FK_Permissions_Users_7')
+    ALTER TABLE [dbo].[Permissions] DROP CONSTRAINT FK_Permissions_Users_7
 GO
-ALTER TABLE [dbo].[SystemsUsers] WITH CHECK 
-    ADD CONSTRAINT [FK_SystemsUsers_Users_7] 
+ALTER TABLE [dbo].[Permissions] WITH CHECK 
+    ADD CONSTRAINT [FK_Permissions_Users_7] 
     FOREIGN KEY([UserId]) 
     REFERENCES [dbo].[Users] ([Id])
 GO
-ALTER TABLE [dbo].[SystemsUsers] CHECK CONSTRAINT [FK_SystemsUsers_Users_7]
+ALTER TABLE [dbo].[Permissions] CHECK CONSTRAINT [FK_Permissions_Users_7]
 GO
 /**********************************************************************************
 Criar referências de [dbo].[Databases]
@@ -5783,10 +5783,10 @@ GO
 SET IDENTITY_INSERT [dbo].[Users] OFF
 
 /**********************************************************************************
-Inserir dados na tabela [dbo].[SystemsUsers]
+Inserir dados na tabela [dbo].[Permissions]
 **********************************************************************************/
-SET IDENTITY_INSERT [dbo].[SystemsUsers] ON
-INSERT INTO [dbo].[SystemsUsers] ([Id]
+SET IDENTITY_INSERT [dbo].[Permissions] ON
+INSERT INTO [dbo].[Permissions] ([Id]
                                 ,[SystemId]
                                 ,[UserId]
                                 ,[Name]
@@ -5803,7 +5803,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
-INSERT INTO [dbo].[SystemsUsers] ([Id]
+INSERT INTO [dbo].[Permissions] ([Id]
                                 ,[SystemId]
                                 ,[UserId]
                                 ,[Name]
@@ -5820,7 +5820,7 @@ INSERT INTO [dbo].[SystemsUsers] ([Id]
                                 ,NULL
                                 ,NULL)
 GO
-SET IDENTITY_INSERT [dbo].[SystemsUsers] OFF
+SET IDENTITY_INSERT [dbo].[Permissions] OFF
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[Connections]
@@ -5912,7 +5912,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('1' AS bigint)
                                 ,CAST(N'Categories' AS nvarchar(25))
-                                ,CAST(N'Category' AS nvarchar(25))
+                                ,CAST(N'Cat' AS nvarchar(25))
                                 ,CAST(N'Categorias de tipos de dados' AS nvarchar(50))
                                 ,CAST('10' AS bigint)
                                 ,GETDATE()
@@ -5931,7 +5931,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('2' AS bigint)
                                 ,CAST(N'Types' AS nvarchar(25))
-                                ,CAST(N'Type' AS nvarchar(25))
+                                ,CAST(N'Typ' AS nvarchar(25))
                                 ,CAST(N'Tipos de dados' AS nvarchar(50))
                                 ,CAST('37' AS bigint)
                                 ,GETDATE()
@@ -5950,7 +5950,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('3' AS bigint)
                                 ,CAST(N'Masks' AS nvarchar(25))
-                                ,CAST(N'Mask' AS nvarchar(25))
+                                ,CAST(N'Msk' AS nvarchar(25))
                                 ,CAST(N'Máscaras de Edição' AS nvarchar(50))
                                 ,CAST('25' AS bigint)
                                 ,GETDATE()
@@ -5969,7 +5969,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('4' AS bigint)
                                 ,CAST(N'Domains' AS nvarchar(25))
-                                ,CAST(N'Domain' AS nvarchar(25))
+                                ,CAST(N'Dmn' AS nvarchar(25))
                                 ,CAST(N'Domínios de colunas' AS nvarchar(50))
                                 ,CAST('24' AS bigint)
                                 ,GETDATE()
@@ -5988,7 +5988,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('5' AS bigint)
                                 ,CAST(N'Systems' AS nvarchar(25))
-                                ,CAST(N'System' AS nvarchar(25))
+                                ,CAST(N'Sys' AS nvarchar(25))
                                 ,CAST(N'Sistemas' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -6007,7 +6007,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('6' AS bigint)
                                 ,CAST(N'Menus' AS nvarchar(25))
-                                ,CAST(N'Menu' AS nvarchar(25))
+                                ,CAST(N'Mnu' AS nvarchar(25))
                                 ,CAST(N'Menus de sistemas' AS nvarchar(50))
                                 ,CAST('14' AS bigint)
                                 ,GETDATE()
@@ -6026,7 +6026,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('7' AS bigint)
                                 ,CAST(N'Users' AS nvarchar(25))
-                                ,CAST(N'User' AS nvarchar(25))
+                                ,CAST(N'Usr' AS nvarchar(25))
                                 ,CAST(N'Usuários de sistemas' AS nvarchar(50))
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
@@ -6044,9 +6044,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedAt]
                                 ,[UpdatedBy])
                          VALUES (CAST('8' AS bigint)
-                                ,CAST(N'SystemsUsers' AS nvarchar(25))
-                                ,CAST(N'SystemUser' AS nvarchar(25))
-                                ,CAST(N'Sistemas x Usuários' AS nvarchar(50))
+                                ,CAST(N'Permissions' AS nvarchar(25))
+                                ,CAST(N'Prm' AS nvarchar(25))
+                                ,CAST(N'Permissões de usuário' AS nvarchar(50))
                                 ,CAST('2' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -6064,7 +6064,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('9' AS bigint)
                                 ,CAST(N'Connections' AS nvarchar(25))
-                                ,CAST(N'Connection' AS nvarchar(25))
+                                ,CAST(N'Con' AS nvarchar(25))
                                 ,CAST(N'Conexões de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -6083,7 +6083,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('10' AS bigint)
                                 ,CAST(N'Databases' AS nvarchar(25))
-                                ,CAST(N'Database' AS nvarchar(25))
+                                ,CAST(N'Db' AS nvarchar(25))
                                 ,CAST(N'Bancos-de-Dados' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -6102,7 +6102,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('11' AS bigint)
                                 ,CAST(N'SystemsDatabases' AS nvarchar(25))
-                                ,CAST(N'SystemDatabase' AS nvarchar(25))
+                                ,CAST(N'SysDb' AS nvarchar(25))
                                 ,CAST(N'Sistemas x Bancos-de-Dados' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
@@ -6121,7 +6121,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('12' AS bigint)
                                 ,CAST(N'Tables' AS nvarchar(25))
-                                ,CAST(N'Table' AS nvarchar(25))
+                                ,CAST(N'Tbl' AS nvarchar(25))
                                 ,CAST(N'Tabelas de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('28' AS bigint)
                                 ,GETDATE()
@@ -6140,7 +6140,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('13' AS bigint)
                                 ,CAST(N'DatabasesTables' AS nvarchar(25))
-                                ,CAST(N'DatabaseTable' AS nvarchar(25))
+                                ,CAST(N'DbTbl' AS nvarchar(25))
                                 ,CAST(N'Bancos-de-Dados x Tabelas' AS nvarchar(50))
                                 ,CAST('28' AS bigint)
                                 ,GETDATE()
@@ -6159,7 +6159,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('14' AS bigint)
                                 ,CAST(N'Columns' AS nvarchar(25))
-                                ,CAST(N'Column' AS nvarchar(25))
+                                ,CAST(N'Col' AS nvarchar(25))
                                 ,CAST(N'Colunas de tabelas' AS nvarchar(50))
                                 ,CAST('178' AS bigint)
                                 ,GETDATE()
@@ -6178,7 +6178,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('15' AS bigint)
                                 ,CAST(N'Indexes' AS nvarchar(25))
-                                ,CAST(N'Index' AS nvarchar(25))
+                                ,CAST(N'Idx' AS nvarchar(25))
                                 ,CAST(N'Índices de tabelas' AS nvarchar(50))
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -6197,7 +6197,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('16' AS bigint)
                                 ,CAST(N'Indexkeys' AS nvarchar(25))
-                                ,CAST(N'Indexkey' AS nvarchar(25))
+                                ,CAST(N'Idk' AS nvarchar(25))
                                 ,CAST(N'Chaves de índices' AS nvarchar(50))
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -6216,7 +6216,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('17' AS bigint)
                                 ,CAST(N'Sessions' AS nvarchar(25))
-                                ,CAST(N'Session' AS nvarchar(25))
+                                ,CAST(N'Ses' AS nvarchar(25))
                                 ,CAST(N'Sessões de sistema' AS nvarchar(50))
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -6235,7 +6235,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('18' AS bigint)
                                 ,CAST(N'Transactions' AS nvarchar(25))
-                                ,CAST(N'Transaction' AS nvarchar(25))
+                                ,CAST(N'Trs' AS nvarchar(25))
                                 ,CAST(N'Transações de bancos-de-dados' AS nvarchar(50))
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -6254,7 +6254,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('19' AS bigint)
                                 ,CAST(N'Operations' AS nvarchar(25))
-                                ,CAST(N'Operation' AS nvarchar(25))
+                                ,CAST(N'Ope' AS nvarchar(25))
                                 ,CAST(N'Operações de transações' AS nvarchar(50))
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -6273,7 +6273,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('20' AS bigint)
                                 ,CAST(N'Unicities' AS nvarchar(25))
-                                ,CAST(N'Unicity' AS nvarchar(25))
+                                ,CAST(N'Uni' AS nvarchar(25))
                                 ,CAST(N'Unicidades cruzadas' AS nvarchar(50))
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -6292,7 +6292,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('21' AS bigint)
                                 ,CAST(N'Comparators' AS nvarchar(25))
-                                ,CAST(N'Comparator' AS nvarchar(25))
+                                ,CAST(N'Cmp' AS nvarchar(25))
                                 ,CAST(N'Comparadores relacionais' AS nvarchar(50))
                                 ,CAST('14' AS bigint)
                                 ,GETDATE()
@@ -6311,7 +6311,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('22' AS bigint)
                                 ,CAST(N'Rules' AS nvarchar(25))
-                                ,CAST(N'Rule' AS nvarchar(25))
+                                ,CAST(N'Rul' AS nvarchar(25))
                                 ,CAST(N'Regras de comparação/categoria' AS nvarchar(50))
                                 ,CAST('72' AS bigint)
                                 ,GETDATE()
@@ -6330,9 +6330,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('23' AS bigint)
                                 ,CAST(N'Expressions' AS nvarchar(25))
-                                ,CAST(N'Expression' AS nvarchar(25))
+                                ,CAST(N'Exp' AS nvarchar(25))
                                 ,CAST(N'Expressões lógicas' AS nvarchar(50))
-                                ,CAST('1' AS bigint)
+                                ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6349,7 +6349,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('24' AS bigint)
                                 ,CAST(N'Conditions' AS nvarchar(25))
-                                ,CAST(N'Condition' AS nvarchar(25))
+                                ,CAST(N'Cnd' AS nvarchar(25))
                                 ,CAST(N'Condições lógicas' AS nvarchar(50))
                                 ,CAST('0' AS bigint)
                                 ,GETDATE()
@@ -6368,7 +6368,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('25' AS bigint)
                                 ,CAST(N'Properties' AS nvarchar(25))
-                                ,CAST(N'Property' AS nvarchar(25))
+                                ,CAST(N'Prp' AS nvarchar(25))
                                 ,CAST(N'Propriedades HTML' AS nvarchar(50))
                                 ,CAST('19' AS bigint)
                                 ,GETDATE()
@@ -6387,9 +6387,9 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('26' AS bigint)
                                 ,CAST(N'Behaviors' AS nvarchar(25))
-                                ,CAST(N'Behavior' AS nvarchar(25))
+                                ,CAST(N'Bhv' AS nvarchar(25))
                                 ,CAST(N'Comportamentos' AS nvarchar(50))
-                                ,CAST('1' AS bigint)
+                                ,CAST('0' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -6406,7 +6406,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('27' AS bigint)
                                 ,CAST(N'References' AS nvarchar(25))
-                                ,CAST(N'Reference' AS nvarchar(25))
+                                ,CAST(N'Ref' AS nvarchar(25))
                                 ,CAST(N'Referências' AS nvarchar(50))
                                 ,CAST('26' AS bigint)
                                 ,GETDATE()
@@ -6425,7 +6425,7 @@ INSERT INTO [dbo].[Tables] ([Id]
                                 ,[UpdatedBy])
                          VALUES (CAST('28' AS bigint)
                                 ,CAST(N'Referencekeys' AS nvarchar(25))
-                                ,CAST(N'Referencekey' AS nvarchar(25))
+                                ,CAST(N'Rfk' AS nvarchar(25))
                                 ,CAST(N'Chaves de referências' AS nvarchar(50))
                                 ,CAST('26' AS bigint)
                                 ,GETDATE()
@@ -6569,7 +6569,7 @@ INSERT INTO [dbo].[DatabasesTables] ([Id]
                          VALUES (CAST('8' AS bigint)
                                 ,CAST('1' AS bigint)
                                 ,CAST('8' AS bigint)
-                                ,CAST(N'crudex x SystemsUsers' AS nvarchar(50))
+                                ,CAST(N'crudex x Permissions' AS nvarchar(50))
                                 ,GETDATE()
                                 ,'crudex'
                                 ,NULL
@@ -17693,26 +17693,6 @@ INSERT INTO [dbo].[Rules] ([Id]
 GO
 SET IDENTITY_INSERT [dbo].[Rules] OFF
 
-/**********************************************************************************
-Inserir dados na tabela [dbo].[Expressions]
-**********************************************************************************/
-SET IDENTITY_INSERT [dbo].[Expressions] ON
-INSERT INTO [dbo].[Expressions] ([Id]
-                                ,[TableId]
-                                ,[Name]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST(N'Expression 0001' AS nvarchar(25))
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
-SET IDENTITY_INSERT [dbo].[Expressions] OFF
 
 
 /**********************************************************************************
@@ -18080,30 +18060,6 @@ INSERT INTO [dbo].[Properties] ([Id]
                                 ,NULL)
 GO
 
-/**********************************************************************************
-Inserir dados na tabela [dbo].[Behaviors]
-**********************************************************************************/
-INSERT INTO [dbo].[Behaviors] ([Id]
-                                ,[ColumnId]
-                                ,[ExpressionId]
-                                ,[PropertyId]
-                                ,[Value]
-                                ,[ElseValue]
-                                ,[CreatedAt]
-                                ,[CreatedBy]
-                                ,[UpdatedAt]
-                                ,[UpdatedBy])
-                         VALUES (CAST('1' AS bigint)
-                                ,CAST('93' AS bigint)
-                                ,CAST('1' AS bigint)
-                                ,CAST('2' AS bigint)
-                                ,CAST(N'disabled' AS nvarchar(max))
-                                ,CAST(N'enabled' AS nvarchar(max))
-                                ,GETDATE()
-                                ,'crudex'
-                                ,NULL
-                                ,NULL)
-GO
 
 /**********************************************************************************
 Inserir dados na tabela [dbo].[References]
@@ -18215,7 +18171,7 @@ INSERT INTO [dbo].[References] ([Id]
                          VALUES (CAST('6' AS bigint)
                                 ,CAST(N'8' AS nvarchar(25))
                                 ,CAST('5' AS bigint)
-                                ,CAST(N'SystemsUsers x Systems' AS nvarchar(50))
+                                ,CAST(N'Permissions x Systems' AS nvarchar(50))
                                 ,CAST('1' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -18234,7 +18190,7 @@ INSERT INTO [dbo].[References] ([Id]
                          VALUES (CAST('7' AS bigint)
                                 ,CAST(N'8' AS nvarchar(25))
                                 ,CAST('7' AS bigint)
-                                ,CAST(N'SystemsUsers x Users' AS nvarchar(50))
+                                ,CAST(N'Permissions x Users' AS nvarchar(50))
                                 ,CAST('0' AS bit)
                                 ,GETDATE()
                                 ,'crudex'
@@ -19050,12 +19006,12 @@ INSERT INTO [dbo].[Referencekeys] ([Id]
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[CategoryValidate]
+Criar stored procedure [dbo].[CatValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoryValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoryValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CatValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CatValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoryValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[CatValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -19208,12 +19164,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[CategoryPersist]
+Criar stored procedure [dbo].[CatPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoryPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoryPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CatPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CatPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CatPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -19260,7 +19216,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[CatValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -19308,7 +19264,7 @@ ALTER PROCEDURE [dbo].[CategoryPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[CatValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -19335,12 +19291,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[CategoryCreate]
+Criar stored procedure [dbo].[CatCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoryCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoryCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CatCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CatCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoryCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CatCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -19388,7 +19344,7 @@ ALTER PROCEDURE [dbo].[CategoryCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CatValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -19443,12 +19399,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[CategoryUpdate]
+Criar stored procedure [dbo].[CatUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoryUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoryUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CatUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CatUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoryUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CatUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -19496,7 +19452,7 @@ ALTER PROCEDURE [dbo].[CategoryUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CatValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -19536,12 +19492,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[CategoryDelete]
+Criar stored procedure [dbo].[CatDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[CategoryDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[CategoryDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CatDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CatDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[CategoryDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CatDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -19589,7 +19545,7 @@ ALTER PROCEDURE [dbo].[CategoryDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[CategoryValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CatValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
@@ -20966,7 +20922,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [AskInWords]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Category'' AS [Kind]
+                        SELECT ''Cat'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
@@ -20983,7 +20939,7 @@ ALTER PROCEDURE [dbo].[CategoriesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Categories] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Category'' AS [Kind]
+                            SELECT ''Cat'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
@@ -21024,12 +20980,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TypeValidate]
+Criar stored procedure [dbo].[TypValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TypeValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypeValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypeValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[TypValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -21202,12 +21158,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TypePersist]
+Criar stored procedure [dbo].[TypPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TypePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TypPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -21254,7 +21210,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[TypValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -21302,7 +21258,7 @@ ALTER PROCEDURE [dbo].[TypePersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[TypValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -21329,12 +21285,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TypeCreate]
+Criar stored procedure [dbo].[TypCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TypeCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypeCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypeCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TypCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -21382,7 +21338,7 @@ ALTER PROCEDURE [dbo].[TypeCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TypValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -21449,12 +21405,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TypeUpdate]
+Criar stored procedure [dbo].[TypUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TypeUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypeUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypeUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TypUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -21502,7 +21458,7 @@ ALTER PROCEDURE [dbo].[TypeUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TypValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -21550,12 +21506,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TypeDelete]
+Criar stored procedure [dbo].[TypDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TypeDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TypeDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TypDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TypDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TypeDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TypDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -21603,7 +21559,7 @@ ALTER PROCEDURE [dbo].[TypeDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[TypeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TypValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
@@ -23250,7 +23206,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsActive]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Type'' AS [Kind]
+                        SELECT ''Typ'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[CategoryId]
@@ -23271,7 +23227,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Types] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Type'' AS [Kind]
+                            SELECT ''Typ'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[CategoryId]
@@ -23295,7 +23251,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Category' AS [Kind]
+        SELECT DISTINCT 'Cat' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -23330,7 +23286,7 @@ ALTER PROCEDURE [dbo].[TypesRead](@Login NVARCHAR(MAX)
                       ,[IsLikeable]
                       ,[IsActive]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
+              ,ISNULL((SELECT [Cat].* FROM [#Categories] AS [Cat] FOR JSON PATH), '[]') AS [Cat]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -23338,12 +23294,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MaskValidate]
+Criar stored procedure [dbo].[MskValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MaskValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MaskValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MskValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MskValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MaskValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[MskValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -23456,12 +23412,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MaskPersist]
+Criar stored procedure [dbo].[MskPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MaskPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MaskPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MskPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MskPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MskPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -23508,7 +23464,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[MskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -23556,7 +23512,7 @@ ALTER PROCEDURE [dbo].[MaskPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[MskValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -23583,12 +23539,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MaskCreate]
+Criar stored procedure [dbo].[MskCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MaskCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MaskCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MskCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MskCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MaskCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MskCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -23636,7 +23592,7 @@ ALTER PROCEDURE [dbo].[MaskCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -23667,12 +23623,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MaskUpdate]
+Criar stored procedure [dbo].[MskUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MaskUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MaskUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MskUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MskUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MaskUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MskUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -23720,7 +23676,7 @@ ALTER PROCEDURE [dbo].[MaskUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -23744,12 +23700,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MaskDelete]
+Criar stored procedure [dbo].[MskDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MaskDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MaskDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MskDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MskDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MaskDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MskDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -23797,7 +23753,7 @@ ALTER PROCEDURE [dbo].[MaskDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[MaskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MskValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -24227,7 +24183,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(max)) AS [Mask]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Mask'' AS [Kind]
+                        SELECT ''Msk'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
@@ -24236,7 +24192,7 @@ ALTER PROCEDURE [dbo].[MasksRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Masks] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Mask'' AS [Kind]
+                            SELECT ''Msk'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
@@ -24260,12 +24216,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DomainValidate]
+Criar stored procedure [dbo].[DmnValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DmnValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DmnValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[DmnValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -24414,12 +24370,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DomainPersist]
+Criar stored procedure [dbo].[DmnPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DmnPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DmnPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DmnPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -24466,7 +24422,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[DmnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -24514,7 +24470,7 @@ ALTER PROCEDURE [dbo].[DomainPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[DmnValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -24541,12 +24497,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DomainCreate]
+Criar stored procedure [dbo].[DmnCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DmnCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DmnCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DmnCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -24594,7 +24550,7 @@ ALTER PROCEDURE [dbo].[DomainCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DmnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -24649,12 +24605,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DomainUpdate]
+Criar stored procedure [dbo].[DmnUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DmnUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DmnUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DmnUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -24702,7 +24658,7 @@ ALTER PROCEDURE [dbo].[DomainUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DmnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -24742,12 +24698,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DomainDelete]
+Criar stored procedure [dbo].[DmnDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DomainDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DomainDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DmnDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DmnDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DomainDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DmnDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -24795,7 +24751,7 @@ ALTER PROCEDURE [dbo].[DomainDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[DomainValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DmnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -25763,7 +25719,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(5)) AS [Codification]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Domain'' AS [Kind]
+                        SELECT ''Dmn'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TypeId]
@@ -25780,7 +25736,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Domains] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Domain'' AS [Kind]
+                            SELECT ''Dmn'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TypeId]
@@ -25800,7 +25756,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Type' AS [Kind]
+        SELECT DISTINCT 'Typ' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
               ,[R].[Name]
@@ -25821,7 +25777,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
-        SELECT DISTINCT 'Category' AS [Kind]
+        SELECT DISTINCT 'Cat' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -25838,7 +25794,7 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
-        SELECT DISTINCT 'Mask' AS [Kind]
+        SELECT DISTINCT 'Msk' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
@@ -25861,9 +25817,9 @@ ALTER PROCEDURE [dbo].[DomainsRead](@Login NVARCHAR(MAX)
                       ,[Maximum]
                       ,[Codification]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
-              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
-              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
+              ,ISNULL((SELECT [Typ].* FROM [#Types] AS [Typ] FOR JSON PATH), '[]') AS [Typ]
+              ,ISNULL((SELECT [Cat].* FROM [#Categories] AS [Cat] FOR JSON PATH), '[]') AS [Cat]
+              ,ISNULL((SELECT [Msk].* FROM [#Masks] AS [Msk] FOR JSON PATH), '[]') AS [Msk]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -25871,12 +25827,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemValidate]
+Criar stored procedure [dbo].[SysValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[SysValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -25980,8 +25936,8 @@ ALTER PROCEDURE [dbo].[SystemValidate](@SessionId BIGINT
         IF @Action = 'delete' BEGIN
             IF EXISTS(SELECT 1 FROM [dbo].[Menus] WHERE [SystemId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Menus', 1
-            IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [SystemId] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em SystemsUsers', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Permissions] WHERE [SystemId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Permissions', 1
             IF EXISTS(SELECT 1 FROM [dbo].[SystemsDatabases] WHERE [SystemId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em SystemsDatabases', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [SystemId] = @W_Id)
@@ -26014,12 +25970,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemPersist]
+Criar stored procedure [dbo].[SysPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -26066,7 +26022,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[SysValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -26114,7 +26070,7 @@ ALTER PROCEDURE [dbo].[SystemPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[SysValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -26141,12 +26097,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemCreate]
+Criar stored procedure [dbo].[SysCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -26194,7 +26150,7 @@ ALTER PROCEDURE [dbo].[SystemCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SysValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -26234,12 +26190,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemUpdate]
+Criar stored procedure [dbo].[SysUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -26287,7 +26243,7 @@ ALTER PROCEDURE [dbo].[SystemUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SysValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -26317,12 +26273,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemDelete]
+Criar stored procedure [dbo].[SysDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -26370,7 +26326,7 @@ ALTER PROCEDURE [dbo].[SystemDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[SystemValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SysValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -26951,7 +26907,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsOffAir]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''System'' AS [Kind]
+                        SELECT ''Sys'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
@@ -26963,7 +26919,7 @@ ALTER PROCEDURE [dbo].[SystemsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Systems] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''System'' AS [Kind]
+                            SELECT ''Sys'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
@@ -26994,12 +26950,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MenuValidate]
+Criar stored procedure [dbo].[MnuValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MenuValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MenuValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MnuValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MnuValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenuValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[MnuValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -27140,12 +27096,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MenuPersist]
+Criar stored procedure [dbo].[MnuPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MenuPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MenuPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MnuPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MnuPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MnuPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -27192,7 +27148,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[MnuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -27240,7 +27196,7 @@ ALTER PROCEDURE [dbo].[MenuPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[MnuValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -27267,12 +27223,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MenuCreate]
+Criar stored procedure [dbo].[MnuCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MenuCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MenuCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MnuCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MnuCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenuCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MnuCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -27320,7 +27276,7 @@ ALTER PROCEDURE [dbo].[MenuCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MnuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -27363,12 +27319,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MenuUpdate]
+Criar stored procedure [dbo].[MnuUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MenuUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MenuUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MnuUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MnuUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenuUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MnuUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -27416,7 +27372,7 @@ ALTER PROCEDURE [dbo].[MenuUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MnuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -27448,12 +27404,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[MenuDelete]
+Criar stored procedure [dbo].[MnuDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[MenuDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[MenuDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[MnuDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[MnuDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[MenuDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[MnuDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -27501,7 +27457,7 @@ ALTER PROCEDURE [dbo].[MenuDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[MenuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[MnuValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -28084,7 +28040,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bigint) AS [ParentMenuId]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Menu'' AS [Kind]
+                        SELECT ''Mnu'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
@@ -28097,7 +28053,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Menus] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Menu'' AS [Kind]
+                            SELECT ''Mnu'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
@@ -28113,7 +28069,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Menu' AS [Kind]
+        SELECT DISTINCT 'Mnu' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[Sequence]
@@ -28126,7 +28082,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Menus] [R] ON [R].[Id] = [T].[ParentMenuId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Menus] ON [#Menus]([Id])
-        SELECT DISTINCT 'System' AS [Kind]
+        SELECT DISTINCT 'Sys' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -28139,7 +28095,7 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
         INSERT INTO [#Systems]
-            SELECT DISTINCT 'System' AS [Kind]
+            SELECT DISTINCT 'Sys' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Description]
@@ -28160,8 +28116,8 @@ ALTER PROCEDURE [dbo].[MenusRead](@Login NVARCHAR(MAX)
                       ,[Action]
                       ,[ParentMenuId]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Menu].* FROM [#Menus] AS [Menu] FOR JSON PATH), '[]') AS [Menu]
-              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
+              ,ISNULL((SELECT [Mnu].* FROM [#Menus] AS [Mnu] FOR JSON PATH), '[]') AS [Mnu]
+              ,ISNULL((SELECT [Sys].* FROM [#Systems] AS [Sys] FOR JSON PATH), '[]') AS [Sys]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -28169,12 +28125,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UserValidate]
+Criar stored procedure [dbo].[UsrValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UserValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UserValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UsrValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsrValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[UsrValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -28276,8 +28232,8 @@ ALTER PROCEDURE [dbo].[UserValidate](@SessionId BIGINT
         END
 
         IF @Action = 'delete' BEGIN
-            IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [UserId] = @W_Id)
-                THROW 51000, 'Chave-primária referenciada em SystemsUsers', 1
+            IF EXISTS(SELECT 1 FROM [dbo].[Permissions] WHERE [UserId] = @W_Id)
+                THROW 51000, 'Chave-primária referenciada em Permissions', 1
             IF EXISTS(SELECT 1 FROM [dbo].[Sessions] WHERE [UserId] = @W_Id)
                 THROW 51000, 'Chave-primária referenciada em Sessions', 1
         END
@@ -28308,12 +28264,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UserPersist]
+Criar stored procedure [dbo].[UsrPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UserPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UserPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UsrPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsrPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UsrPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -28360,7 +28316,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[UsrValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -28408,7 +28364,7 @@ ALTER PROCEDURE [dbo].[UserPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[UsrValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -28435,12 +28391,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UserCreate]
+Criar stored procedure [dbo].[UsrCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UserCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UserCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UsrCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsrCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UserCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UsrCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -28488,7 +28444,7 @@ ALTER PROCEDURE [dbo].[UserCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UsrValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -28528,12 +28484,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UserUpdate]
+Criar stored procedure [dbo].[UsrUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UserUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UserUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UsrUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsrUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UserUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UsrUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -28581,7 +28537,7 @@ ALTER PROCEDURE [dbo].[UserUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UsrValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -28611,12 +28567,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UserDelete]
+Criar stored procedure [dbo].[UsrDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UserDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UserDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UsrDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UsrDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UserDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UsrDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -28664,7 +28620,7 @@ ALTER PROCEDURE [dbo].[UserDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[UserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UsrValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -29376,7 +29332,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsActive]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''User'' AS [Kind]
+                        SELECT ''Usr'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
@@ -29388,7 +29344,7 @@ ALTER PROCEDURE [dbo].[UsersRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Users] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''User'' AS [Kind]
+                            SELECT ''Usr'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
@@ -29419,12 +29375,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemUserValidate]
+Criar stored procedure [dbo].[PrmValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemUserValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemUserValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrmValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrmValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[PrmValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -29486,25 +29442,25 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
         END
         IF @W_Id < CAST('1' AS bigint)
             THROW 51000, 'Valor de Id em @ActualRecord deve ser maior que ou igual a 1', 1
-        IF EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id) AND @Action = 'create'
-            THROW 51000, 'Chave-primária já existe em SystemsUsers', 1
+        IF EXISTS(SELECT 1 FROM [dbo].[Permissions] WHERE [Id] = @W_Id) AND @Action = 'create'
+            THROW 51000, 'Chave-primária já existe em Permissions', 1
         ELSE IF @Action = 'delete' AND EXISTS(SELECT 1
                                     FROM [dbo].[Operations]
                                     WHERE [TransactionId] = @TransactionId
-                                          AND [TableName] = 'SystemsUsers'
+                                          AND [TableName] = 'Permissions'
                                           AND [IsConfirmed] IS NULL
                                           AND [Action] = 'create'
                                           AND                                           CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id)
             SET @IsPendingCreate = 1
-        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id)
-            THROW 51000, 'Chave-primária não existe em SystemsUsers', 1
+        ELSE IF @Action <> 'create' AND NOT EXISTS(SELECT 1 FROM [dbo].[Permissions] WHERE [Id] = @W_Id)
+            THROW 51000, 'Chave-primária não existe em Permissions', 1
         IF @Action <> 'create' AND @IsPendingCreate = 0 BEGIN
             IF @LastRecord IS NULL
                 THROW 51000, 'Valor de @LastRecord é requerido', 1
             IF ISJSON(@LastRecord) = 0
                 THROW 51000, 'Valor de @LastRecord não está no formato JSON', 1
             IF NOT EXISTS(SELECT 1
-                            FROM [dbo].[SystemsUsers]
+                            FROM [dbo].[Permissions]
                             WHERE [Id] = JSON_VALUE(@LastRecord, '$.Id')
                                   AND [SystemId] = JSON_VALUE(@LastRecord, '$.SystemId')
                                   AND [UserId] = JSON_VALUE(@LastRecord, '$.UserId')
@@ -29512,13 +29468,13 @@ ALTER PROCEDURE [dbo].[SystemUserValidate](@SessionId BIGINT
             AND NOT EXISTS(SELECT 1
                             FROM [dbo].[Operations]
                             WHERE [TransactionId] = @TransactionId
-                                  AND [TableName] = 'SystemsUsers'
+                                  AND [TableName] = 'Permissions'
                                   AND [IsConfirmed] IS NULL
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') = JSON_VALUE(@LastRecord, '$.Id')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.SystemId') = JSON_VALUE(@LastRecord, '$.SystemId')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.UserId') = JSON_VALUE(@LastRecord, '$.UserId')
                                   AND JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Name') = JSON_VALUE(@LastRecord, '$.Name'))
-                THROW 51000, 'Registro de SystemsUsers alterado por outro usuário', 1
+                THROW 51000, 'Registro de Permissions alterado por outro usuário', 1
         END
 
         IF @Action IN ('create', 'update') BEGIN
@@ -29548,12 +29504,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemUserPersist]
+Criar stored procedure [dbo].[PrmPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemUserPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemUserPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrmPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrmPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrmPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -29589,25 +29545,25 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
         SELECT @W_Id = CAST(JSON_VALUE([ActualRecord], '$.Id') AS bigint)
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'SystemsUsers'
+                  AND [TableName] = 'Permissions'
                   AND [Action] = 'create'
                   AND [IsConfirmed] IS NULL
         IF @W_Id IS NULL BEGIN
             DECLARE @NewId BIGINT
-    EXEC [dbo].[NewId] 'crudex', 'crudex', 'SystemsUsers', @NewId OUT
+    EXEC [dbo].[NewId] 'crudex', 'crudex', 'Permissions', @NewId OUT
             SET @W_Id = CAST(@NewId AS bigint)
         END
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[PrmValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
               ,@IsConfirmed = [IsConfirmed]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'SystemsUsers'
+                  AND [TableName] = 'Permissions'
                   AND [IsConfirmed] IS NULL
                   AND CAST(JSON_VALUE(ISNULL([ActualRecord], [LastRecord]), '$.Id') AS bigint) = @W_Id
         IF @@ROWCOUNT = 0 BEGIN
@@ -29624,7 +29580,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
                                              ,[CreatedBy])
                                        VALUES(@OperationId
                                              ,@TransactionId
-                                             ,'SystemsUsers'
+                                             ,'Permissions'
                                              ,@Action
                                              ,@LastRecord
                                              ,@ActualRecord
@@ -29648,7 +29604,7 @@ ALTER PROCEDURE [dbo].[SystemUserPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[PrmValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -29675,12 +29631,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemUserCreate]
+Criar stored procedure [dbo].[PrmCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemUserCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemUserCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrmCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrmCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrmCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -29718,7 +29674,7 @@ ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'SystemsUsers'
+        IF @TableName <> 'Permissions'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -29728,7 +29684,7 @@ ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[PrmValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -29737,8 +29693,8 @@ ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
                ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-        SET IDENTITY_INSERT [dbo].[SystemsUsers] ON
-        INSERT INTO [dbo].[SystemsUsers] ([Id]
+        SET IDENTITY_INSERT [dbo].[Permissions] ON
+        INSERT INTO [dbo].[Permissions] ([Id]
                                             ,[SystemId]
                                             ,[UserId]
                                             ,[Name]
@@ -29750,7 +29706,7 @@ ALTER PROCEDURE [dbo].[SystemUserCreate](@Login NVARCHAR(MAX)
                                              ,@W_Name
                                              ,GETDATE()
                                              ,@UserName)
-        SET IDENTITY_INSERT [dbo].[SystemsUsers] OFF
+        SET IDENTITY_INSERT [dbo].[Permissions] OFF
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
                 ,[UpdatedAt] = GETDATE()
@@ -29762,12 +29718,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemUserUpdate]
+Criar stored procedure [dbo].[PrmUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemUserUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemUserUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrmUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrmUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUserUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrmUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -29805,7 +29761,7 @@ ALTER PROCEDURE [dbo].[SystemUserUpdate](@Login NVARCHAR(MAX)
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'SystemsUsers'
+        IF @TableName <> 'Permissions'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -29815,7 +29771,7 @@ ALTER PROCEDURE [dbo].[SystemUserUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[PrmValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -29824,7 +29780,7 @@ ALTER PROCEDURE [dbo].[SystemUserUpdate](@Login NVARCHAR(MAX)
                ,@W_UserId bigint = CAST(JSON_VALUE(@ActualRecord, '$.UserId') AS bigint)
                ,@W_Name nvarchar(50) = CAST(JSON_VALUE(@ActualRecord, '$.Name') AS nvarchar(50))
 
-        UPDATE [dbo].[SystemsUsers] SET [SystemId] = @W_SystemId
+        UPDATE [dbo].[Permissions] SET [SystemId] = @W_SystemId
                                           ,[UserId] = @W_UserId
                                           ,[Name] = @W_Name
                                           ,[UpdatedAt] = GETDATE()
@@ -29841,12 +29797,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemUserDelete]
+Criar stored procedure [dbo].[PrmDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemUserDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemUserDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrmDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrmDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemUserDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrmDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -29884,7 +29840,7 @@ ALTER PROCEDURE [dbo].[SystemUserDelete](@Login NVARCHAR(MAX)
             WHERE [Id] = @OperationId
         IF @@ROWCOUNT = 0
             THROW 51000, 'Operação inexistente', 1
-        IF @TableName <> 'SystemsUsers'
+        IF @TableName <> 'Permissions'
             THROW 51000, 'Tabela da operação é inválida', 1
         IF @IsConfirmed IS NOT NULL BEGIN
             SET @ErrorMessage = 'Operação já ' + CASE WHEN @IsConfirmed = 0 THEN 'cancelada' ELSE 'concluída' END;
@@ -29894,12 +29850,12 @@ ALTER PROCEDURE [dbo].[SystemUserDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[SystemUserValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[PrmValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
 
-        DELETE FROM [dbo].[SystemsUsers] WHERE [Id] = @W_Id
+        DELETE FROM [dbo].[Permissions] WHERE [Id] = @W_Id
 
         UPDATE [dbo].[Operations]
             SET [IsConfirmed] = 1
@@ -29912,12 +29868,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemsUsersRead]
+Criar stored procedure [dbo].[PermissionsRead]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemsUsersRead]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemsUsersRead] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PermissionsRead]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PermissionsRead] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PermissionsRead](@Login NVARCHAR(MAX)
                                           ,@Filter NVARCHAR(MAX)
                                           ,@Search NVARCHAR(MAX)
                                           ,@OrderBy NVARCHAR(MAX)
@@ -29961,7 +29917,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                                       LEFT JOIN (SELECT [#1].[name] AS ColumnName
                                                     FROM [sys].[columns] [#1]
                                                         INNER JOIN [sys].[tables] [#2] ON [#1].[object_id] = [#2].[object_id]
-                                                    WHERE [#2].[name] = 'SystemsUsers') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
+                                                    WHERE [#2].[name] = 'Permissions') AS [T] ON [T].[ColumnName] = [O].[ColumnName]
                          WHERE [T].[ColumnName] IS NULL)
                 THROW 51000, 'Nome de coluna em @OrderBy é inválido', 1
             SELECT @OrderBy = STRING_AGG('[T].[' + TRIM(CASE WHEN TRIM(RIGHT([value], 4)) = 'DESC' THEN LEFT(TRIM([value]), LEN(TRIM([value])) - 4)
@@ -29990,7 +29946,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
             INTO [#tmpOperations]
             FROM [dbo].[Operations]
             WHERE [TransactionId] = @TransactionId
-                  AND [TableName] = 'SystemsUsers'
+                  AND [TableName] = 'Permissions'
                   AND [IsConfirmed] IS NULL
         CREATE UNIQUE INDEX [#tmpOperations] ON [#tmpOperations]([Id])
 
@@ -30262,7 +30218,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                             FROM (SELECT ''T'' AS [_]
                                         ,ROW_NUMBER() OVER (ORDER BY ' + @OrderBy + ') AS [Recno]
                               ,[T].[Id]
-                                    FROM [dbo].[SystemsUsers] [T]
+                                    FROM [dbo].[Permissions] [T]
                                         LEFT JOIN [#tmpOperations] [#] ON [T].[Id] = [#].[Id]
                                     WHERE [#].[Id] IS NULL' + @Where + '
                                   UNION ALL
@@ -30560,7 +30516,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                 IF @Where <> '' BEGIN
                     SET @sql = N'SELECT TOP 1 @r = [#].[Recno]
                                     FROM [#tmpTable] [#]
-                                        LEFT JOIN [dbo].[SystemsUsers] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
+                                        LEFT JOIN [dbo].[Permissions] [D] ON [D].[Id] = [#].[Id] AND [#].[_] = ''T''
                                         LEFT JOIN [#tmpOperations] [O] ON [O].[Id] = [#].[Id] AND [#].[_] = ''O''
                                     WHERE ' + @Where
                     EXEC sp_executesql @sql
@@ -30602,17 +30558,17 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''SystemUser'' AS [Kind]
+                        SELECT ''Prm'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
                               ,[T].[UserId]
                               ,[T].[Name]
                             FROM [#tmpTable] [#]
-                                INNER JOIN [dbo].[SystemsUsers] [T] ON [T].[Id] = [#].[Id]
+                                INNER JOIN [dbo].[Permissions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''SystemUser'' AS [Kind]
+                            SELECT ''Prm'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
@@ -30625,7 +30581,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'System' AS [Kind]
+        SELECT DISTINCT 'Sys' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -30637,7 +30593,7 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
-        SELECT DISTINCT 'User' AS [Kind]
+        SELECT DISTINCT 'Usr' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Password]
@@ -30656,8 +30612,8 @@ ALTER PROCEDURE [dbo].[SystemsUsersRead](@Login NVARCHAR(MAX)
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
-              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
+              ,ISNULL((SELECT [Sys].* FROM [#Systems] AS [Sys] FOR JSON PATH), '[]') AS [Sys]
+              ,ISNULL((SELECT [Usr].* FROM [#Users] AS [Usr] FOR JSON PATH), '[]') AS [Usr]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -30665,12 +30621,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConnectionValidate]
+Criar stored procedure [dbo].[ConValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConnectionValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConnectionValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ConValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[ConValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -30783,12 +30739,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConnectionPersist]
+Criar stored procedure [dbo].[ConPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConnectionPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConnectionPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ConPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ConPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -30835,7 +30791,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[ConValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -30883,7 +30839,7 @@ ALTER PROCEDURE [dbo].[ConnectionPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[ConValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -30910,12 +30866,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConnectionCreate]
+Criar stored procedure [dbo].[ConCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConnectionCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConnectionCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ConCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ConCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -30963,7 +30919,7 @@ ALTER PROCEDURE [dbo].[ConnectionCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ConValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -30994,12 +30950,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConnectionUpdate]
+Criar stored procedure [dbo].[ConUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConnectionUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConnectionUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ConUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ConUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -31047,7 +31003,7 @@ ALTER PROCEDURE [dbo].[ConnectionUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ConValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -31071,12 +31027,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConnectionDelete]
+Criar stored procedure [dbo].[ConDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConnectionDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConnectionDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ConDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ConDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConnectionDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ConDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -31124,7 +31080,7 @@ ALTER PROCEDURE [dbo].[ConnectionDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[ConnectionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ConValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -31684,7 +31640,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(256)) AS [ConnectionString]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Connection'' AS [Kind]
+                        SELECT ''Con'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Environment]
@@ -31693,7 +31649,7 @@ ALTER PROCEDURE [dbo].[ConnectionsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Connections] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Connection'' AS [Kind]
+                            SELECT ''Con'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Environment]
@@ -31717,12 +31673,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseValidate]
+Criar stored procedure [dbo].[DbValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[DbValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -31868,12 +31824,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabasePersist]
+Criar stored procedure [dbo].[DbPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabasePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabasePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -31920,7 +31876,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[DbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -31968,7 +31924,7 @@ ALTER PROCEDURE [dbo].[DatabasePersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[DbValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -31995,12 +31951,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseCreate]
+Criar stored procedure [dbo].[DbCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -32048,7 +32004,7 @@ ALTER PROCEDURE [dbo].[DatabaseCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -32094,12 +32050,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseUpdate]
+Criar stored procedure [dbo].[DbUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -32147,7 +32103,7 @@ ALTER PROCEDURE [dbo].[DatabaseUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -32181,12 +32137,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseDelete]
+Criar stored procedure [dbo].[DbDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -32234,7 +32190,7 @@ ALTER PROCEDURE [dbo].[DatabaseDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -32950,7 +32906,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bigint) AS [CurrentOperationId]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Database'' AS [Kind]
+                        SELECT ''Db'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[ConnectionId]
@@ -32964,7 +32920,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Databases] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Database'' AS [Kind]
+                            SELECT ''Db'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[ConnectionId]
@@ -32981,7 +32937,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Connection' AS [Kind]
+        SELECT DISTINCT 'Con' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
               ,[R].[ConnectionString]
@@ -33001,7 +32957,7 @@ ALTER PROCEDURE [dbo].[DatabasesRead](@Login NVARCHAR(MAX)
                       ,[IsLegacy]
                       ,[CurrentOperationId]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Connection].* FROM [#Connections] AS [Connection] FOR JSON PATH), '[]') AS [Connection]
+              ,ISNULL((SELECT [Con].* FROM [#Connections] AS [Con] FOR JSON PATH), '[]') AS [Con]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -33009,12 +32965,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemDatabaseValidate]
+Criar stored procedure [dbo].[SysDbValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemDatabaseValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysDbValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysDbValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDatabaseValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[SysDbValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -33138,12 +33094,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemDatabasePersist]
+Criar stored procedure [dbo].[SysDbPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemDatabasePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemDatabasePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysDbPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysDbPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysDbPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -33190,7 +33146,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[SysDbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -33238,7 +33194,7 @@ ALTER PROCEDURE [dbo].[SystemDatabasePersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[SysDbValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -33265,12 +33221,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemDatabaseCreate]
+Criar stored procedure [dbo].[SysDbCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemDatabaseCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysDbCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysDbCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDatabaseCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysDbCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -33318,7 +33274,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SysDbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -33352,12 +33308,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemDatabaseUpdate]
+Criar stored procedure [dbo].[SysDbUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemDatabaseUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysDbUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysDbUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDatabaseUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysDbUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -33405,7 +33361,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SysDbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -33431,12 +33387,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SystemDatabaseDelete]
+Criar stored procedure [dbo].[SysDbDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SystemDatabaseDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SystemDatabaseDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SysDbDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SysDbDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SystemDatabaseDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SysDbDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -33484,7 +33440,7 @@ ALTER PROCEDURE [dbo].[SystemDatabaseDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[SystemDatabaseValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SysDbValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -34192,7 +34148,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''SystemDatabase'' AS [Kind]
+                        SELECT ''SysDb'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
@@ -34202,7 +34158,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[SystemsDatabases] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''SystemDatabase'' AS [Kind]
+                            SELECT ''SysDb'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
@@ -34215,7 +34171,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'System' AS [Kind]
+        SELECT DISTINCT 'Sys' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -34227,7 +34183,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
-        SELECT DISTINCT 'Database' AS [Kind]
+        SELECT DISTINCT 'Db' AS [Kind]
               ,[R].[Id]
               ,[R].[ConnectionId]
               ,[R].[Name]
@@ -34241,7 +34197,7 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Databases] ON [#Databases]([Id])
-        SELECT DISTINCT 'Connection' AS [Kind]
+        SELECT DISTINCT 'Con' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
               ,[R].[ConnectionString]
@@ -34257,9 +34213,9 @@ ALTER PROCEDURE [dbo].[SystemsDatabasesRead](@Login NVARCHAR(MAX)
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
-              ,ISNULL((SELECT [Database].* FROM [#Databases] AS [Database] FOR JSON PATH), '[]') AS [Database]
-              ,ISNULL((SELECT [Connection].* FROM [#Connections] AS [Connection] FOR JSON PATH), '[]') AS [Connection]
+              ,ISNULL((SELECT [Sys].* FROM [#Systems] AS [Sys] FOR JSON PATH), '[]') AS [Sys]
+              ,ISNULL((SELECT [Db].* FROM [#Databases] AS [Db] FOR JSON PATH), '[]') AS [Db]
+              ,ISNULL((SELECT [Con].* FROM [#Connections] AS [Con] FOR JSON PATH), '[]') AS [Con]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -34267,12 +34223,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TableValidate]
+Criar stored procedure [dbo].[TblValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TableValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TableValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TblValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TblValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TableValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[TblValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -34409,12 +34365,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TablePersist]
+Criar stored procedure [dbo].[TblPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TablePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TablePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TblPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TblPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TblPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -34461,7 +34417,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[TblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -34509,7 +34465,7 @@ ALTER PROCEDURE [dbo].[TablePersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[TblValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -34536,12 +34492,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TableCreate]
+Criar stored procedure [dbo].[TblCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TableCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TableCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TblCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TblCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TblCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -34589,7 +34545,7 @@ ALTER PROCEDURE [dbo].[TableCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -34626,12 +34582,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TableUpdate]
+Criar stored procedure [dbo].[TblUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TableUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TableUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TblUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TblUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TableUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TblUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -34679,7 +34635,7 @@ ALTER PROCEDURE [dbo].[TableUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -34707,12 +34663,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TableDelete]
+Criar stored procedure [dbo].[TblDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TableDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TableDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TblDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TblDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TableDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TblDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -34760,7 +34716,7 @@ ALTER PROCEDURE [dbo].[TableDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[TableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[TblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -35339,7 +35295,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bigint) AS [CurrentId]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Table'' AS [Kind]
+                        SELECT ''Tbl'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
@@ -35350,7 +35306,7 @@ ALTER PROCEDURE [dbo].[TablesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Tables] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Table'' AS [Kind]
+                            SELECT ''Tbl'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
@@ -35379,12 +35335,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseTableValidate]
+Criar stored procedure [dbo].[DbTblValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseTableValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbTblValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbTblValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseTableValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[DbTblValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -35508,12 +35464,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseTablePersist]
+Criar stored procedure [dbo].[DbTblPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseTablePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseTablePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbTblPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbTblPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbTblPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -35560,7 +35516,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[DbTblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -35608,7 +35564,7 @@ ALTER PROCEDURE [dbo].[DatabaseTablePersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[DbTblValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -35635,12 +35591,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseTableCreate]
+Criar stored procedure [dbo].[DbTblCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseTableCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbTblCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbTblCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseTableCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbTblCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -35688,7 +35644,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DbTblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -35722,12 +35678,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseTableUpdate]
+Criar stored procedure [dbo].[DbTblUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseTableUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbTblUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbTblUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseTableUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbTblUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -35775,7 +35731,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DbTblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -35801,12 +35757,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[DatabaseTableDelete]
+Criar stored procedure [dbo].[DbTblDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[DatabaseTableDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[DatabaseTableDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[DbTblDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[DbTblDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[DatabaseTableDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[DbTblDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -35854,7 +35810,7 @@ ALTER PROCEDURE [dbo].[DatabaseTableDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[DatabaseTableValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[DbTblValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -36562,7 +36518,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(50)) AS [Name]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''DatabaseTable'' AS [Kind]
+                        SELECT ''DbTbl'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[DatabaseId]
@@ -36572,7 +36528,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[DatabasesTables] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''DatabaseTable'' AS [Kind]
+                            SELECT ''DbTbl'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[DatabaseId]
@@ -36585,7 +36541,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Database' AS [Kind]
+        SELECT DISTINCT 'Db' AS [Kind]
               ,[R].[Id]
               ,[R].[ConnectionId]
               ,[R].[Name]
@@ -36599,7 +36555,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Databases] [R] ON [R].[Id] = [T].[DatabaseId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Databases] ON [#Databases]([Id])
-        SELECT DISTINCT 'Connection' AS [Kind]
+        SELECT DISTINCT 'Con' AS [Kind]
               ,[R].[Id]
               ,[R].[Environment]
               ,[R].[ConnectionString]
@@ -36608,7 +36564,7 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Connections] [R] ON [R].[Id] = [T].[ConnectionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Connections] ON [#Connections]([Id])
-        SELECT DISTINCT 'Table' AS [Kind]
+        SELECT DISTINCT 'Tbl' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -36626,9 +36582,9 @@ ALTER PROCEDURE [dbo].[DatabasesTablesRead](@Login NVARCHAR(MAX)
                       ,[Name]
                       ,[Name] AS [ListItemValue]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Database].* FROM [#Databases] AS [Database] FOR JSON PATH), '[]') AS [Database]
-              ,ISNULL((SELECT [Connection].* FROM [#Connections] AS [Connection] FOR JSON PATH), '[]') AS [Connection]
-              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
+              ,ISNULL((SELECT [Db].* FROM [#Databases] AS [Db] FOR JSON PATH), '[]') AS [Db]
+              ,ISNULL((SELECT [Con].* FROM [#Connections] AS [Con] FOR JSON PATH), '[]') AS [Con]
+              ,ISNULL((SELECT [Tbl].* FROM [#Tables] AS [Tbl] FOR JSON PATH), '[]') AS [Tbl]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -36636,12 +36592,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ColumnValidate]
+Criar stored procedure [dbo].[ColValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ColumnValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ColumnValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[ColValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -36843,12 +36799,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ColumnPersist]
+Criar stored procedure [dbo].[ColPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ColumnPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ColumnPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ColPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -36895,7 +36851,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[ColValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -36943,7 +36899,7 @@ ALTER PROCEDURE [dbo].[ColumnPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[ColValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -36970,12 +36926,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ColumnCreate]
+Criar stored procedure [dbo].[ColCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ColumnCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ColumnCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ColCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -37023,7 +36979,7 @@ ALTER PROCEDURE [dbo].[ColumnCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ColValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -37111,12 +37067,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ColumnUpdate]
+Criar stored procedure [dbo].[ColUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ColumnUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ColumnUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ColUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -37164,7 +37120,7 @@ ALTER PROCEDURE [dbo].[ColumnUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ColValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -37226,12 +37182,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ColumnDelete]
+Criar stored procedure [dbo].[ColDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ColumnDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ColumnDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ColDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ColDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ColumnDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ColDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -37279,7 +37235,7 @@ ALTER PROCEDURE [dbo].[ColumnDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[ColumnValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ColValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -39307,7 +39263,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsVirtual]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Column'' AS [Kind]
+                        SELECT ''Col'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TableId]
@@ -39335,7 +39291,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Columns] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Column'' AS [Kind]
+                            SELECT ''Col'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TableId]
@@ -39366,7 +39322,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Table' AS [Kind]
+        SELECT DISTINCT 'Tbl' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -39377,7 +39333,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
-        SELECT DISTINCT 'Domain' AS [Kind]
+        SELECT DISTINCT 'Dmn' AS [Kind]
               ,[R].[Id]
               ,[R].[TypeId]
               ,[R].[MaskId]
@@ -39394,7 +39350,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Domains] ON [#Domains]([Id])
-        SELECT DISTINCT 'Type' AS [Kind]
+        SELECT DISTINCT 'Typ' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
               ,[R].[Name]
@@ -39415,7 +39371,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
-        SELECT DISTINCT 'Category' AS [Kind]
+        SELECT DISTINCT 'Cat' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -39432,7 +39388,7 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
-        SELECT DISTINCT 'Mask' AS [Kind]
+        SELECT DISTINCT 'Msk' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
@@ -39465,11 +39421,11 @@ ALTER PROCEDURE [dbo].[ColumnsRead](@Login NVARCHAR(MAX)
                       ,[IsInWords]
                       ,[IsVirtual]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
-              ,ISNULL((SELECT [Domain].* FROM [#Domains] AS [Domain] FOR JSON PATH), '[]') AS [Domain]
-              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
-              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
-              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
+              ,ISNULL((SELECT [Tbl].* FROM [#Tables] AS [Tbl] FOR JSON PATH), '[]') AS [Tbl]
+              ,ISNULL((SELECT [Dmn].* FROM [#Domains] AS [Dmn] FOR JSON PATH), '[]') AS [Dmn]
+              ,ISNULL((SELECT [Typ].* FROM [#Types] AS [Typ] FOR JSON PATH), '[]') AS [Typ]
+              ,ISNULL((SELECT [Cat].* FROM [#Categories] AS [Cat] FOR JSON PATH), '[]') AS [Cat]
+              ,ISNULL((SELECT [Msk].* FROM [#Masks] AS [Msk] FOR JSON PATH), '[]') AS [Msk]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -39477,12 +39433,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexValidate]
+Criar stored procedure [dbo].[IdxValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdxValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdxValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[IdxValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -39606,12 +39562,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexPersist]
+Criar stored procedure [dbo].[IdxPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdxPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdxPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdxPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -39658,7 +39614,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[IdxValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -39706,7 +39662,7 @@ ALTER PROCEDURE [dbo].[IndexPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[IdxValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -39733,12 +39689,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexCreate]
+Criar stored procedure [dbo].[IdxCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdxCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdxCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdxCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -39786,7 +39742,7 @@ ALTER PROCEDURE [dbo].[IndexCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IdxValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -39820,12 +39776,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexUpdate]
+Criar stored procedure [dbo].[IdxUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdxUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdxUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdxUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -39873,7 +39829,7 @@ ALTER PROCEDURE [dbo].[IndexUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IdxValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -39899,12 +39855,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexDelete]
+Criar stored procedure [dbo].[IdxDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdxDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdxDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdxDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -39952,7 +39908,7 @@ ALTER PROCEDURE [dbo].[IndexDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[IndexValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IdxValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -40660,7 +40616,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsUnique]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Index'' AS [Kind]
+                        SELECT ''Idx'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TableId]
@@ -40670,7 +40626,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Indexes] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Index'' AS [Kind]
+                            SELECT ''Idx'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TableId]
@@ -40683,7 +40639,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Table' AS [Kind]
+        SELECT DISTINCT 'Tbl' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -40701,7 +40657,7 @@ ALTER PROCEDURE [dbo].[IndexesRead](@Login NVARCHAR(MAX)
                       ,[Name] AS [ListItemValue]
                       ,[IsUnique]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
+              ,ISNULL((SELECT [Tbl].* FROM [#Tables] AS [Tbl] FOR JSON PATH), '[]') AS [Tbl]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -40709,12 +40665,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexkeyValidate]
+Criar stored procedure [dbo].[IdkValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexkeyValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexkeyValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdkValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdkValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeyValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[IdkValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -40845,12 +40801,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexkeyPersist]
+Criar stored procedure [dbo].[IdkPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexkeyPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexkeyPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdkPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdkPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdkPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -40897,7 +40853,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[IdkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -40945,7 +40901,7 @@ ALTER PROCEDURE [dbo].[IndexkeyPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[IdkValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -40972,12 +40928,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexkeyCreate]
+Criar stored procedure [dbo].[IdkCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexkeyCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexkeyCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdkCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdkCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeyCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdkCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -41025,7 +40981,7 @@ ALTER PROCEDURE [dbo].[IndexkeyCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IdkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -41062,12 +41018,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexkeyUpdate]
+Criar stored procedure [dbo].[IdkUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexkeyUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexkeyUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdkUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdkUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeyUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdkUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -41115,7 +41071,7 @@ ALTER PROCEDURE [dbo].[IndexkeyUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IdkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -41143,12 +41099,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[IndexkeyDelete]
+Criar stored procedure [dbo].[IdkDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[IndexkeyDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[IndexkeyDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[IdkDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[IdkDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[IndexkeyDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[IdkDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -41196,7 +41152,7 @@ ALTER PROCEDURE [dbo].[IndexkeyDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[IndexkeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[IdkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -41890,7 +41846,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsDescending]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Indexkey'' AS [Kind]
+                        SELECT ''Idk'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[IndexId]
@@ -41901,7 +41857,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Indexkeys] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Indexkey'' AS [Kind]
+                            SELECT ''Idk'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[IndexId]
@@ -41915,7 +41871,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Index' AS [Kind]
+        SELECT DISTINCT 'Idx' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
               ,[R].[Name]
@@ -41925,7 +41881,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Indexes] [R] ON [R].[Id] = [T].[IndexId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Indexes] ON [#Indexes]([Id])
-        SELECT DISTINCT 'Table' AS [Kind]
+        SELECT DISTINCT 'Tbl' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -41936,7 +41892,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
-        SELECT DISTINCT 'Column' AS [Kind]
+        SELECT DISTINCT 'Col' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
               ,[R].[Sequence]
@@ -41965,7 +41921,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Columns] ON [#Columns]([Id])
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
+            SELECT DISTINCT 'Tbl' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -41975,7 +41931,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                     INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
-        SELECT DISTINCT 'Domain' AS [Kind]
+        SELECT DISTINCT 'Dmn' AS [Kind]
               ,[R].[Id]
               ,[R].[TypeId]
               ,[R].[MaskId]
@@ -41992,7 +41948,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Domains] ON [#Domains]([Id])
-        SELECT DISTINCT 'Type' AS [Kind]
+        SELECT DISTINCT 'Typ' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
               ,[R].[Name]
@@ -42013,7 +41969,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
-        SELECT DISTINCT 'Category' AS [Kind]
+        SELECT DISTINCT 'Cat' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -42030,7 +41986,7 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
-        SELECT DISTINCT 'Mask' AS [Kind]
+        SELECT DISTINCT 'Msk' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
@@ -42046,13 +42002,13 @@ ALTER PROCEDURE [dbo].[IndexkeysRead](@Login NVARCHAR(MAX)
                       ,[ColumnId]
                       ,[IsDescending]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Index].* FROM [#Indexes] AS [Index] FOR JSON PATH), '[]') AS [Index]
-              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
-              ,ISNULL((SELECT [Column].* FROM [#Columns] AS [Column] FOR JSON PATH), '[]') AS [Column]
-              ,ISNULL((SELECT [Domain].* FROM [#Domains] AS [Domain] FOR JSON PATH), '[]') AS [Domain]
-              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
-              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
-              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
+              ,ISNULL((SELECT [Idx].* FROM [#Indexes] AS [Idx] FOR JSON PATH), '[]') AS [Idx]
+              ,ISNULL((SELECT [Tbl].* FROM [#Tables] AS [Tbl] FOR JSON PATH), '[]') AS [Tbl]
+              ,ISNULL((SELECT [Col].* FROM [#Columns] AS [Col] FOR JSON PATH), '[]') AS [Col]
+              ,ISNULL((SELECT [Dmn].* FROM [#Domains] AS [Dmn] FOR JSON PATH), '[]') AS [Dmn]
+              ,ISNULL((SELECT [Typ].* FROM [#Types] AS [Typ] FOR JSON PATH), '[]') AS [Typ]
+              ,ISNULL((SELECT [Cat].* FROM [#Categories] AS [Cat] FOR JSON PATH), '[]') AS [Cat]
+              ,ISNULL((SELECT [Msk].* FROM [#Masks] AS [Msk] FOR JSON PATH), '[]') AS [Msk]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -42060,12 +42016,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SessionValidate]
+Criar stored procedure [dbo].[SesValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SessionValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SessionValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SesValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SesValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[SesValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -42199,12 +42155,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SessionPersist]
+Criar stored procedure [dbo].[SesPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SessionPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SessionPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SesPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SesPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SesPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -42251,7 +42207,7 @@ ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[SesValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -42299,7 +42255,7 @@ ALTER PROCEDURE [dbo].[SessionPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[SesValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -42326,12 +42282,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SessionCreate]
+Criar stored procedure [dbo].[SesCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SessionCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SessionCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SesCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SesCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SesCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -42379,7 +42335,7 @@ ALTER PROCEDURE [dbo].[SessionCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SesValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -42419,12 +42375,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SessionUpdate]
+Criar stored procedure [dbo].[SesUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SessionUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SessionUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SesUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SesUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SesUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -42472,7 +42428,7 @@ ALTER PROCEDURE [dbo].[SessionUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SesValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -42502,12 +42458,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[SessionDelete]
+Criar stored procedure [dbo].[SesDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[SessionDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[SessionDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[SesDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[SesDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[SessionDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[SesDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -42555,7 +42511,7 @@ ALTER PROCEDURE [dbo].[SessionDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[SessionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[SesValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -43251,7 +43207,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsLogged]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Session'' AS [Kind]
+                        SELECT ''Ses'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SystemId]
@@ -43263,7 +43219,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Sessions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Session'' AS [Kind]
+                            SELECT ''Ses'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SystemId]
@@ -43278,7 +43234,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'System' AS [Kind]
+        SELECT DISTINCT 'Sys' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -43290,7 +43246,7 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
-        SELECT DISTINCT 'User' AS [Kind]
+        SELECT DISTINCT 'Usr' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Password]
@@ -43310,8 +43266,8 @@ ALTER PROCEDURE [dbo].[SessionsRead](@Login NVARCHAR(MAX)
                       ,[PublicKey]
                       ,[IsLogged]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
-              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
+              ,ISNULL((SELECT [Sys].* FROM [#Systems] AS [Sys] FOR JSON PATH), '[]') AS [Sys]
+              ,ISNULL((SELECT [Usr].* FROM [#Users] AS [Usr] FOR JSON PATH), '[]') AS [Usr]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -43319,12 +43275,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TransactionValidate]
+Criar stored procedure [dbo].[TrsValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TransactionValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TrsValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TrsValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TransactionValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[TrsValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -43441,12 +43397,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[TransactionPersist]
+Criar stored procedure [dbo].[TrsPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[TransactionPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[TransactionPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[TrsPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[TrsPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[TrsPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -43493,7 +43449,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[TransactionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[TrsValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -43541,7 +43497,7 @@ ALTER PROCEDURE [dbo].[TransactionPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[TransactionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[TrsValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -43850,7 +43806,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsConfirmed]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Transaction'' AS [Kind]
+                        SELECT ''Trs'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[SessionId]
@@ -43859,7 +43815,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Transactions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Transaction'' AS [Kind]
+                            SELECT ''Trs'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[SessionId]
@@ -43871,7 +43827,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Session' AS [Kind]
+        SELECT DISTINCT 'Ses' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
@@ -43883,7 +43839,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Sessions] ON [#Sessions]([Id])
-        SELECT DISTINCT 'System' AS [Kind]
+        SELECT DISTINCT 'Sys' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -43895,7 +43851,7 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
-        SELECT DISTINCT 'User' AS [Kind]
+        SELECT DISTINCT 'Usr' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Password]
@@ -43912,9 +43868,9 @@ ALTER PROCEDURE [dbo].[TransactionsRead](@Login NVARCHAR(MAX)
                       ,[SessionId]
                       ,[IsConfirmed]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Session].* FROM [#Sessions] AS [Session] FOR JSON PATH), '[]') AS [Session]
-              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
-              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
+              ,ISNULL((SELECT [Ses].* FROM [#Sessions] AS [Ses] FOR JSON PATH), '[]') AS [Ses]
+              ,ISNULL((SELECT [Sys].* FROM [#Systems] AS [Sys] FOR JSON PATH), '[]') AS [Sys]
+              ,ISNULL((SELECT [Usr].* FROM [#Users] AS [Usr] FOR JSON PATH), '[]') AS [Usr]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -43922,12 +43878,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[OperationValidate]
+Criar stored procedure [dbo].[OpeValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[OperationValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperationValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[OpeValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OpeValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[OpeValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -44058,12 +44014,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[OperationPersist]
+Criar stored procedure [dbo].[OpePersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[OperationPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperationPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[OpePersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OpePersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[OpePersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -44110,7 +44066,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[OpeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -44158,7 +44114,7 @@ ALTER PROCEDURE [dbo].[OperationPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[OpeValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -44185,12 +44141,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[OperationCreate]
+Criar stored procedure [dbo].[OpeCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[OperationCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperationCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[OpeCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OpeCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[OpeCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -44238,7 +44194,7 @@ ALTER PROCEDURE [dbo].[OperationCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[OpeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -44281,12 +44237,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[OperationUpdate]
+Criar stored procedure [dbo].[OpeUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[OperationUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperationUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[OpeUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OpeUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[OpeUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -44334,7 +44290,7 @@ ALTER PROCEDURE [dbo].[OperationUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[OpeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -44366,12 +44322,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[OperationDelete]
+Criar stored procedure [dbo].[OpeDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[OperationDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[OperationDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[OpeDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[OpeDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[OperationDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[OpeDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -44419,7 +44375,7 @@ ALTER PROCEDURE [dbo].[OperationDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[OperationValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[OpeValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -44727,7 +44683,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsConfirmed]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Operation'' AS [Kind]
+                        SELECT ''Ope'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TransactionId]
@@ -44740,7 +44696,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Operations] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Operation'' AS [Kind]
+                            SELECT ''Ope'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TransactionId]
@@ -44756,7 +44712,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Transaction' AS [Kind]
+        SELECT DISTINCT 'Trs' AS [Kind]
               ,[R].[Id]
               ,[R].[SessionId]
               ,[R].[IsConfirmed]
@@ -44765,7 +44721,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Transactions] [R] ON [R].[Id] = [T].[TransactionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Transactions] ON [#Transactions]([Id])
-        SELECT DISTINCT 'Session' AS [Kind]
+        SELECT DISTINCT 'Ses' AS [Kind]
               ,[R].[Id]
               ,[R].[SystemId]
               ,[R].[UserId]
@@ -44777,7 +44733,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Sessions] [R] ON [R].[Id] = [T].[SessionId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Sessions] ON [#Sessions]([Id])
-        SELECT DISTINCT 'System' AS [Kind]
+        SELECT DISTINCT 'Sys' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Description]
@@ -44789,7 +44745,7 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Systems] [R] ON [R].[Id] = [T].[SystemId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Systems] ON [#Systems]([Id])
-        SELECT DISTINCT 'User' AS [Kind]
+        SELECT DISTINCT 'Usr' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Password]
@@ -44810,10 +44766,10 @@ ALTER PROCEDURE [dbo].[OperationsRead](@Login NVARCHAR(MAX)
                       ,[ActualRecord]
                       ,[IsConfirmed]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Transaction].* FROM [#Transactions] AS [Transaction] FOR JSON PATH), '[]') AS [Transaction]
-              ,ISNULL((SELECT [Session].* FROM [#Sessions] AS [Session] FOR JSON PATH), '[]') AS [Session]
-              ,ISNULL((SELECT [System].* FROM [#Systems] AS [System] FOR JSON PATH), '[]') AS [System]
-              ,ISNULL((SELECT [User].* FROM [#Users] AS [User] FOR JSON PATH), '[]') AS [User]
+              ,ISNULL((SELECT [Trs].* FROM [#Transactions] AS [Trs] FOR JSON PATH), '[]') AS [Trs]
+              ,ISNULL((SELECT [Ses].* FROM [#Sessions] AS [Ses] FOR JSON PATH), '[]') AS [Ses]
+              ,ISNULL((SELECT [Sys].* FROM [#Systems] AS [Sys] FOR JSON PATH), '[]') AS [Sys]
+              ,ISNULL((SELECT [Usr].* FROM [#Users] AS [Usr] FOR JSON PATH), '[]') AS [Usr]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -44821,12 +44777,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UnicityValidate]
+Criar stored procedure [dbo].[UniValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UnicityValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UnicityValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UniValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicityValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[UniValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -44946,12 +44902,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UnicityPersist]
+Criar stored procedure [dbo].[UniPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UnicityPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UnicityPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UniPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UniPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -44998,7 +44954,7 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[UniValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -45046,7 +45002,7 @@ ALTER PROCEDURE [dbo].[UnicityPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[UniValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -45073,12 +45029,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UnicityCreate]
+Criar stored procedure [dbo].[UniCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UnicityCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UnicityCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UniCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicityCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UniCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -45126,7 +45082,7 @@ ALTER PROCEDURE [dbo].[UnicityCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UniValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -45160,12 +45116,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UnicityUpdate]
+Criar stored procedure [dbo].[UniUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UnicityUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UnicityUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UniUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicityUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UniUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -45213,7 +45169,7 @@ ALTER PROCEDURE [dbo].[UnicityUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UniValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -45239,12 +45195,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[UnicityDelete]
+Criar stored procedure [dbo].[UniDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[UnicityDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[UnicityDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[UniDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[UniDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[UnicityDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[UniDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -45292,7 +45248,7 @@ ALTER PROCEDURE [dbo].[UnicityDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[UnicityValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[UniValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -45984,7 +45940,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsBidirectional]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Unicity'' AS [Kind]
+                        SELECT ''Uni'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[ColumnId1]
@@ -45994,7 +45950,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Unicities] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Unicity'' AS [Kind]
+                            SELECT ''Uni'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[ColumnId1]
@@ -46007,7 +45963,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Column' AS [Kind]
+        SELECT DISTINCT 'Col' AS [Kind]
               ,[R].[Id]
               ,[R].[TableId]
               ,[R].[Sequence]
@@ -46035,7 +45991,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Columns] [R] ON [R].[Id] = [T].[ColumnId1]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Columns] ON [#Columns]([Id])
-        SELECT DISTINCT 'Table' AS [Kind]
+        SELECT DISTINCT 'Tbl' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -46046,7 +46002,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Tables] [R] ON [R].[Id] = [T].[TableId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Tables] ON [#Tables]([Id])
-        SELECT DISTINCT 'Domain' AS [Kind]
+        SELECT DISTINCT 'Dmn' AS [Kind]
               ,[R].[Id]
               ,[R].[TypeId]
               ,[R].[MaskId]
@@ -46063,7 +46019,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Domains] [R] ON [R].[Id] = [T].[DomainId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Domains] ON [#Domains]([Id])
-        SELECT DISTINCT 'Type' AS [Kind]
+        SELECT DISTINCT 'Typ' AS [Kind]
               ,[R].[Id]
               ,[R].[CategoryId]
               ,[R].[Name]
@@ -46084,7 +46040,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Types] [R] ON [R].[Id] = [T].[TypeId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Types] ON [#Types]([Id])
-        SELECT DISTINCT 'Category' AS [Kind]
+        SELECT DISTINCT 'Cat' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -46101,7 +46057,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
-        SELECT DISTINCT 'Mask' AS [Kind]
+        SELECT DISTINCT 'Msk' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Mask]
@@ -46111,7 +46067,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Masks] ON [#Masks]([Id])
         INSERT INTO [#Columns]
-            SELECT DISTINCT 'Column' AS [Kind]
+            SELECT DISTINCT 'Col' AS [Kind]
                   ,[R].[Id]
                   ,[R].[TableId]
                   ,[R].[Sequence]
@@ -46139,7 +46095,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 WHERE NOT EXISTS(SELECT 1 FROM [#Columns] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Tables]
-            SELECT DISTINCT 'Table' AS [Kind]
+            SELECT DISTINCT 'Tbl' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Alias]
@@ -46150,7 +46106,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 WHERE NOT EXISTS(SELECT 1 FROM [#Tables] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Domains]
-            SELECT DISTINCT 'Domain' AS [Kind]
+            SELECT DISTINCT 'Dmn' AS [Kind]
                   ,[R].[Id]
                   ,[R].[TypeId]
                   ,[R].[MaskId]
@@ -46167,7 +46123,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 WHERE NOT EXISTS(SELECT 1 FROM [#Domains] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Types]
-            SELECT DISTINCT 'Type' AS [Kind]
+            SELECT DISTINCT 'Typ' AS [Kind]
                   ,[R].[Id]
                   ,[R].[CategoryId]
                   ,[R].[Name]
@@ -46188,7 +46144,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 WHERE NOT EXISTS(SELECT 1 FROM [#Types] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Categories]
-            SELECT DISTINCT 'Category' AS [Kind]
+            SELECT DISTINCT 'Cat' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[HtmlInputType]
@@ -46205,7 +46161,7 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                 WHERE NOT EXISTS(SELECT 1 FROM [#Categories] WHERE [Id] = [R].[Id])
                 ORDER BY [R].[Id]
         INSERT INTO [#Masks]
-            SELECT DISTINCT 'Mask' AS [Kind]
+            SELECT DISTINCT 'Msk' AS [Kind]
                   ,[R].[Id]
                   ,[R].[Name]
                   ,[R].[Mask]
@@ -46219,12 +46175,12 @@ ALTER PROCEDURE [dbo].[UnicitiesRead](@Login NVARCHAR(MAX)
                       ,[ColumnId2]
                       ,[IsBidirectional]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Column].* FROM [#Columns] AS [Column] FOR JSON PATH), '[]') AS [Column]
-              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
-              ,ISNULL((SELECT [Domain].* FROM [#Domains] AS [Domain] FOR JSON PATH), '[]') AS [Domain]
-              ,ISNULL((SELECT [Type].* FROM [#Types] AS [Type] FOR JSON PATH), '[]') AS [Type]
-              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
-              ,ISNULL((SELECT [Mask].* FROM [#Masks] AS [Mask] FOR JSON PATH), '[]') AS [Mask]
+              ,ISNULL((SELECT [Col].* FROM [#Columns] AS [Col] FOR JSON PATH), '[]') AS [Col]
+              ,ISNULL((SELECT [Tbl].* FROM [#Tables] AS [Tbl] FOR JSON PATH), '[]') AS [Tbl]
+              ,ISNULL((SELECT [Dmn].* FROM [#Domains] AS [Dmn] FOR JSON PATH), '[]') AS [Dmn]
+              ,ISNULL((SELECT [Typ].* FROM [#Types] AS [Typ] FOR JSON PATH), '[]') AS [Typ]
+              ,ISNULL((SELECT [Cat].* FROM [#Categories] AS [Cat] FOR JSON PATH), '[]') AS [Cat]
+              ,ISNULL((SELECT [Msk].* FROM [#Masks] AS [Msk] FOR JSON PATH), '[]') AS [Msk]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -46232,12 +46188,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ComparatorValidate]
+Criar stored procedure [dbo].[CmpValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ComparatorValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ComparatorValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CmpValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CmpValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ComparatorValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[CmpValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -46355,12 +46311,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ComparatorPersist]
+Criar stored procedure [dbo].[CmpPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ComparatorPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ComparatorPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CmpPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CmpPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ComparatorPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CmpPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -46407,7 +46363,7 @@ ALTER PROCEDURE [dbo].[ComparatorPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[ComparatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[CmpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -46455,7 +46411,7 @@ ALTER PROCEDURE [dbo].[ComparatorPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ComparatorValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[CmpValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -46482,12 +46438,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ComparatorCreate]
+Criar stored procedure [dbo].[CmpCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ComparatorCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ComparatorCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CmpCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CmpCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ComparatorCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CmpCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -46535,7 +46491,7 @@ ALTER PROCEDURE [dbo].[ComparatorCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[ComparatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CmpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -46569,12 +46525,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ComparatorUpdate]
+Criar stored procedure [dbo].[CmpUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ComparatorUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ComparatorUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CmpUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CmpUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ComparatorUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CmpUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -46622,7 +46578,7 @@ ALTER PROCEDURE [dbo].[ComparatorUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[ComparatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CmpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -46648,12 +46604,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ComparatorDelete]
+Criar stored procedure [dbo].[CmpDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ComparatorDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ComparatorDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CmpDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CmpDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ComparatorDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CmpDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -46701,7 +46657,7 @@ ALTER PROCEDURE [dbo].[ComparatorDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[ComparatorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CmpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
@@ -47409,7 +47365,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS tinyint) AS [Arity]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Comparator'' AS [Kind]
+                        SELECT ''Cmp'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Symbol]
@@ -47419,7 +47375,7 @@ ALTER PROCEDURE [dbo].[ComparatorsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Comparators] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Comparator'' AS [Kind]
+                            SELECT ''Cmp'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Symbol]
@@ -47446,12 +47402,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[RuleValidate]
+Criar stored procedure [dbo].[RulValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[RuleValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[RuleValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RulValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RulValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[RuleValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[RulValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -47566,12 +47522,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[RulePersist]
+Criar stored procedure [dbo].[RulPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[RulePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[RulePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RulPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RulPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[RulePersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RulPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -47618,7 +47574,7 @@ ALTER PROCEDURE [dbo].[RulePersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[RuleValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[RulValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -47666,7 +47622,7 @@ ALTER PROCEDURE [dbo].[RulePersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[RuleValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[RulValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -47693,12 +47649,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[RuleCreate]
+Criar stored procedure [dbo].[RulCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[RuleCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[RuleCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RulCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RulCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[RuleCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RulCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -47746,7 +47702,7 @@ ALTER PROCEDURE [dbo].[RuleCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[RuleValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RulValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -47777,12 +47733,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[RuleUpdate]
+Criar stored procedure [dbo].[RulUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[RuleUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[RuleUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RulUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RulUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[RuleUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RulUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -47830,7 +47786,7 @@ ALTER PROCEDURE [dbo].[RuleUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[RuleValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RulValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS tinyint)
@@ -47854,12 +47810,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[RuleDelete]
+Criar stored procedure [dbo].[RulDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[RuleDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[RuleDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RulDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RulDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[RuleDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RulDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -47907,7 +47863,7 @@ ALTER PROCEDURE [dbo].[RuleDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[RuleValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RulValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id tinyint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS tinyint)
@@ -48467,7 +48423,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS tinyint) AS [ComparatorId]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Rule'' AS [Kind]
+                        SELECT ''Rul'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[CategoryId]
@@ -48476,7 +48432,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Rules] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Rule'' AS [Kind]
+                            SELECT ''Rul'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[CategoryId]
@@ -48488,7 +48444,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Category' AS [Kind]
+        SELECT DISTINCT 'Cat' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[HtmlInputType]
@@ -48505,7 +48461,7 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                 INNER JOIN [dbo].[Categories] [R] ON [R].[Id] = [T].[CategoryId]
             ORDER BY [R].[Id]
         CREATE UNIQUE INDEX [#Categories] ON [#Categories]([Id])
-        SELECT DISTINCT 'Comparator' AS [Kind]
+        SELECT DISTINCT 'Cmp' AS [Kind]
               ,[R].[Id]
               ,[R].[Symbol]
               ,[R].[Description]
@@ -48520,8 +48476,8 @@ ALTER PROCEDURE [dbo].[RulesRead](@Login NVARCHAR(MAX)
                       ,[CategoryId]
                       ,[ComparatorId]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Category].* FROM [#Categories] AS [Category] FOR JSON PATH), '[]') AS [Category]
-              ,ISNULL((SELECT [Comparator].* FROM [#Comparators] AS [Comparator] FOR JSON PATH), '[]') AS [Comparator]
+              ,ISNULL((SELECT [Cat].* FROM [#Categories] AS [Cat] FOR JSON PATH), '[]') AS [Cat]
+              ,ISNULL((SELECT [Cmp].* FROM [#Comparators] AS [Cmp] FOR JSON PATH), '[]') AS [Cmp]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -48529,12 +48485,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ExpressionValidate]
+Criar stored procedure [dbo].[ExpValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ExpressionValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ExpressionValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ExpValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ExpressionValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[ExpValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -48645,12 +48601,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ExpressionPersist]
+Criar stored procedure [dbo].[ExpPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ExpressionPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ExpressionPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ExpPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ExpressionPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ExpPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -48697,7 +48653,7 @@ ALTER PROCEDURE [dbo].[ExpressionPersist](@Login NVARCHAR(MAX)
         SET @ActualRecord = JSON_MODIFY(@ActualRecord, '$.Id', @W_Id)
     END
 
-    EXEC @TransactionId = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[ExpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -48745,7 +48701,7 @@ ALTER PROCEDURE [dbo].[ExpressionPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[ExpValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -48772,12 +48728,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ExpressionCreate]
+Criar stored procedure [dbo].[ExpCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ExpressionCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ExpressionCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ExpCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ExpressionCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ExpCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -48825,7 +48781,7 @@ ALTER PROCEDURE [dbo].[ExpressionCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ExpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -48856,12 +48812,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ExpressionUpdate]
+Criar stored procedure [dbo].[ExpUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ExpressionUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ExpressionUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ExpUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ExpressionUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ExpUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -48909,7 +48865,7 @@ ALTER PROCEDURE [dbo].[ExpressionUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ExpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -48933,12 +48889,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ExpressionDelete]
+Criar stored procedure [dbo].[ExpDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ExpressionDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ExpressionDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[ExpDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[ExpDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ExpressionDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[ExpDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -48986,7 +48942,7 @@ ALTER PROCEDURE [dbo].[ExpressionDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[ExpressionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[ExpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -49546,7 +49502,7 @@ ALTER PROCEDURE [dbo].[ExpressionsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(25)) AS [Name]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Expression'' AS [Kind]
+                        SELECT ''Exp'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[TableId]
@@ -49555,7 +49511,7 @@ ALTER PROCEDURE [dbo].[ExpressionsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Expressions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Expression'' AS [Kind]
+                            SELECT ''Exp'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[TableId]
@@ -49579,12 +49535,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConditionValidate]
+Criar stored procedure [dbo].[CndValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConditionValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConditionValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CndValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CndValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConditionValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[CndValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -49718,12 +49674,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConditionPersist]
+Criar stored procedure [dbo].[CndPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConditionPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConditionPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CndPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CndPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConditionPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CndPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -49755,7 +49711,7 @@ ALTER PROCEDURE [dbo].[ConditionPersist](@Login NVARCHAR(MAX)
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
     END
-    EXEC @TransactionId = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[CndValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -49803,7 +49759,7 @@ ALTER PROCEDURE [dbo].[ConditionPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[CndValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -49830,12 +49786,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConditionCreate]
+Criar stored procedure [dbo].[CndCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConditionCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConditionCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CndCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CndCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConditionCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CndCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -49883,7 +49839,7 @@ ALTER PROCEDURE [dbo].[ConditionCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CndValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -49933,12 +49889,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConditionUpdate]
+Criar stored procedure [dbo].[CndUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConditionUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConditionUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CndUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CndUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConditionUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CndUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -49986,7 +49942,7 @@ ALTER PROCEDURE [dbo].[ConditionUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CndValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -50025,12 +49981,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ConditionDelete]
+Criar stored procedure [dbo].[CndDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ConditionDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ConditionDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[CndDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[CndDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ConditionDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[CndDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -50078,7 +50034,7 @@ ALTER PROCEDURE [dbo].[ConditionDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[ConditionValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[CndValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -51546,7 +51502,7 @@ ALTER PROCEDURE [dbo].[ConditionsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(20)) AS [RightParenthesis]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Condition'' AS [Kind]
+                        SELECT ''Cnd'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[ExpressionId]
@@ -51562,7 +51518,7 @@ ALTER PROCEDURE [dbo].[ConditionsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Conditions] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Condition'' AS [Kind]
+                            SELECT ''Cnd'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[ExpressionId]
@@ -51581,7 +51537,7 @@ ALTER PROCEDURE [dbo].[ConditionsRead](@Login NVARCHAR(MAX)
                         OFFSET ' + CAST(@OffSet AS NVARCHAR(20)) + ' ROWS
                         FETCH NEXT ' + CAST(@LimitRows AS NVARCHAR(20)) + ' ROWS ONLY'
         EXEC sp_executesql @sql
-        SELECT DISTINCT 'Table' AS [Kind]
+        SELECT DISTINCT 'Tbl' AS [Kind]
               ,[R].[Id]
               ,[R].[Name]
               ,[R].[Alias]
@@ -51604,7 +51560,7 @@ ALTER PROCEDURE [dbo].[ConditionsRead](@Login NVARCHAR(MAX)
                       ,[RightValues]
                       ,[RightParenthesis]
                     FROM [#result] FOR JSON PATH) AS [result]
-              ,ISNULL((SELECT [Table].* FROM [#Tables] AS [Table] FOR JSON PATH), '[]') AS [Table]
+              ,ISNULL((SELECT [Tbl].* FROM [#Tables] AS [Tbl] FOR JSON PATH), '[]') AS [Tbl]
         SET @ReturnValue = @RowCount
 
     RETURN 0
@@ -51612,12 +51568,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[PropertyValidate]
+Criar stored procedure [dbo].[PrpValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[PropertyValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[PropertyValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrpValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrpValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[PropertyValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[PrpValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -51732,12 +51688,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[PropertyPersist]
+Criar stored procedure [dbo].[PrpPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[PropertyPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[PropertyPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrpPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrpPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[PropertyPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrpPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -51769,7 +51725,7 @@ ALTER PROCEDURE [dbo].[PropertyPersist](@Login NVARCHAR(MAX)
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
     END
-    EXEC @TransactionId = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[PrpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -51817,7 +51773,7 @@ ALTER PROCEDURE [dbo].[PropertyPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[PrpValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -51844,12 +51800,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[PropertyCreate]
+Criar stored procedure [dbo].[PrpCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[PropertyCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[PropertyCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrpCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrpCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[PropertyCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrpCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -51897,7 +51853,7 @@ ALTER PROCEDURE [dbo].[PropertyCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[PrpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -51932,12 +51888,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[PropertyUpdate]
+Criar stored procedure [dbo].[PrpUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[PropertyUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[PropertyUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrpUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrpUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[PropertyUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrpUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -51985,7 +51941,7 @@ ALTER PROCEDURE [dbo].[PropertyUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[PrpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -52014,12 +51970,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[PropertyDelete]
+Criar stored procedure [dbo].[PrpDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[PropertyDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[PropertyDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[PrpDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[PrpDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[PropertyDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[PrpDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -52067,7 +52023,7 @@ ALTER PROCEDURE [dbo].[PropertyDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[PropertyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[PrpValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -52891,7 +52847,7 @@ ALTER PROCEDURE [dbo].[PropertiesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsActive]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Property'' AS [Kind]
+                        SELECT ''Prp'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[Name]
@@ -52902,7 +52858,7 @@ ALTER PROCEDURE [dbo].[PropertiesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Properties] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Property'' AS [Kind]
+                            SELECT ''Prp'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[Name]
@@ -52930,12 +52886,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[BehaviorValidate]
+Criar stored procedure [dbo].[BhvValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[BehaviorValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[BehaviorValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[BhvValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BhvValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[BehaviorValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[BhvValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -53055,12 +53011,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[BehaviorPersist]
+Criar stored procedure [dbo].[BhvPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[BehaviorPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[BehaviorPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[BhvPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BhvPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[BehaviorPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[BhvPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -53092,7 +53048,7 @@ ALTER PROCEDURE [dbo].[BehaviorPersist](@Login NVARCHAR(MAX)
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
     END
-    EXEC @TransactionId = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[BhvValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -53140,7 +53096,7 @@ ALTER PROCEDURE [dbo].[BehaviorPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[BhvValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -53167,12 +53123,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[BehaviorCreate]
+Criar stored procedure [dbo].[BhvCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[BehaviorCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[BehaviorCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[BhvCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BhvCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[BehaviorCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[BhvCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -53220,7 +53176,7 @@ ALTER PROCEDURE [dbo].[BehaviorCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[BhvValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -53258,12 +53214,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[BehaviorUpdate]
+Criar stored procedure [dbo].[BhvUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[BehaviorUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[BehaviorUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[BhvUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BhvUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[BehaviorUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[BhvUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -53311,7 +53267,7 @@ ALTER PROCEDURE [dbo].[BehaviorUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[BhvValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -53342,12 +53298,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[BehaviorDelete]
+Criar stored procedure [dbo].[BhvDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[BehaviorDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[BehaviorDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[BhvDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[BhvDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[BehaviorDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[BhvDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -53395,7 +53351,7 @@ ALTER PROCEDURE [dbo].[BehaviorDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[BehaviorValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[BhvValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -54319,7 +54275,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS nvarchar(max)) AS [ElseValue]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Behavior'' AS [Kind]
+                        SELECT ''Bhv'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[ColumnId]
@@ -54331,7 +54287,7 @@ ALTER PROCEDURE [dbo].[BehaviorsRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Behaviors] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Behavior'' AS [Kind]
+                            SELECT ''Bhv'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[ColumnId]
@@ -54361,12 +54317,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferenceValidate]
+Criar stored procedure [dbo].[RefValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferenceValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferenceValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RefValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RefValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferenceValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[RefValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -54481,12 +54437,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferencePersist]
+Criar stored procedure [dbo].[RefPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferencePersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferencePersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RefPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RefPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferencePersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RefPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -54518,7 +54474,7 @@ ALTER PROCEDURE [dbo].[ReferencePersist](@Login NVARCHAR(MAX)
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
     END
-    EXEC @TransactionId = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[RefValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -54566,7 +54522,7 @@ ALTER PROCEDURE [dbo].[ReferencePersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[RefValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -54593,12 +54549,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferenceCreate]
+Criar stored procedure [dbo].[RefCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferenceCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferenceCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RefCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RefCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferenceCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RefCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -54646,7 +54602,7 @@ ALTER PROCEDURE [dbo].[ReferenceCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RefValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -54681,12 +54637,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferenceUpdate]
+Criar stored procedure [dbo].[RefUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferenceUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferenceUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RefUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RefUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferenceUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RefUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -54734,7 +54690,7 @@ ALTER PROCEDURE [dbo].[ReferenceUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RefValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -54763,12 +54719,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferenceDelete]
+Criar stored procedure [dbo].[RefDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferenceDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferenceDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RefDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RefDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferenceDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RefDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -54816,7 +54772,7 @@ ALTER PROCEDURE [dbo].[ReferenceDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[ReferenceValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RefValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -55640,7 +55596,7 @@ ALTER PROCEDURE [dbo].[ReferencesRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS bit) AS [IsParentChildren]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Reference'' AS [Kind]
+                        SELECT ''Ref'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[FkTableId]
@@ -55651,7 +55607,7 @@ ALTER PROCEDURE [dbo].[ReferencesRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[References] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Reference'' AS [Kind]
+                            SELECT ''Ref'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[FkTableId]
@@ -55679,12 +55635,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferencekeyValidate]
+Criar stored procedure [dbo].[RfkValidate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferencekeyValidate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyValidate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RfkValidate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RfkValidate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferencekeyValidate](@SessionId BIGINT
+ALTER PROCEDURE [dbo].[RfkValidate](@SessionId BIGINT
                                                ,@TransactionId BIGINT
                                                ,@UserName NVARCHAR(25)
                                                ,@Action NVARCHAR(15)
@@ -55800,12 +55756,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferencekeyPersist]
+Criar stored procedure [dbo].[RfkPersist]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferencekeyPersist]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyPersist] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RfkPersist]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RfkPersist] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferencekeyPersist](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RfkPersist](@Login NVARCHAR(MAX)
                                               ,@TransactionId BIGINT
                                               ,@Action NVARCHAR(15)
                                               ,@LastRecord NVARCHAR(max)
@@ -55837,7 +55793,7 @@ ALTER PROCEDURE [dbo].[ReferencekeyPersist](@Login NVARCHAR(MAX)
         SET @W_Id = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
 
     END
-    EXEC @TransactionId = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+    EXEC @TransactionId = [dbo].[RfkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         SELECT @OperationId = [Id]
               ,@CreatedBy = [CreatedBy]
               ,@ActionAux = [Action]
@@ -55885,7 +55841,7 @@ ALTER PROCEDURE [dbo].[ReferencekeyPersist](@Login NVARCHAR(MAX)
                 WHERE [Id] = @OperationId
         ELSE IF @Action = 'update' BEGIN
             IF @ActionAux = 'create'
-                EXEC [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
+                EXEC [dbo].[RfkValidate] @SessionId, @TransactionId, @UserName, 'create', NULL, @ActualRecord
             UPDATE [dbo].[Operations]
                 SET [ActualRecord] = @ActualRecord
                    ,[UpdatedAt] = GETDATE()
@@ -55912,12 +55868,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferencekeyCreate]
+Criar stored procedure [dbo].[RfkCreate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferencekeyCreate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyCreate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RfkCreate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RfkCreate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferencekeyCreate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RfkCreate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -55965,7 +55921,7 @@ ALTER PROCEDURE [dbo].[ReferencekeyCreate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'create'
             THROW 51000, 'Ação da operação é inválida para Create', 1
-        EXEC @TransactionIdAux = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RfkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -55997,12 +55953,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferencekeyUpdate]
+Criar stored procedure [dbo].[RfkUpdate]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferencekeyUpdate]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyUpdate] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RfkUpdate]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RfkUpdate] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferencekeyUpdate](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RfkUpdate](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -56050,7 +56006,7 @@ ALTER PROCEDURE [dbo].[ReferencekeyUpdate](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'update'
             THROW 51000, 'Ação da operação é inválida para Update', 1
-        EXEC @TransactionIdAux = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RfkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@ActualRecord, '$.Id') AS bigint)
@@ -56077,12 +56033,12 @@ END
 GO
 
 /**********************************************************************************
-Criar stored procedure [dbo].[ReferencekeyDelete]
+Criar stored procedure [dbo].[RfkDelete]
 **********************************************************************************/
-IF(SELECT object_id('[dbo].[ReferencekeyDelete]', 'P')) IS NULL
-    EXEC('CREATE PROCEDURE [dbo].[ReferencekeyDelete] AS PRINT 1')
+IF(SELECT object_id('[dbo].[RfkDelete]', 'P')) IS NULL
+    EXEC('CREATE PROCEDURE [dbo].[RfkDelete] AS PRINT 1')
 GO
-ALTER PROCEDURE [dbo].[ReferencekeyDelete](@Login NVARCHAR(MAX)
+ALTER PROCEDURE [dbo].[RfkDelete](@Login NVARCHAR(MAX)
                                              ,@OperationId BIGINT) AS BEGIN
     DECLARE @ErrorMessage NVARCHAR(MAX)
 
@@ -56130,7 +56086,7 @@ ALTER PROCEDURE [dbo].[ReferencekeyDelete](@Login NVARCHAR(MAX)
             THROW 51000, 'Erro grave de segurança', 1
         IF @Action <> 'delete'
             THROW 51000, 'Ação da operação é inválida para Delete', 1
-        EXEC @TransactionIdAux = [dbo].[ReferencekeyValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
+        EXEC @TransactionIdAux = [dbo].[RfkValidate] @SessionId, @TransactionId, @UserName, @Action, @LastRecord, @ActualRecord
         IF @TransactionId <> @TransactionIdAux
             THROW 51000, 'Transação da operação é inválida', 1
         DECLARE @W_Id bigint = CAST(JSON_VALUE(@LastRecord, '$.Id') AS bigint)
@@ -56692,7 +56648,7 @@ ALTER PROCEDURE [dbo].[ReferencekeysRead](@Login NVARCHAR(MAX)
                     ,CAST(NULL AS smallint) AS [Sequence]
             INTO [#result]
         SET @sql = 'INSERT [#result]
-                        SELECT ''Referencekey'' AS [Kind]
+                        SELECT ''Rfk'' AS [Kind]
                               ,[#].[Recno]
                               ,[T].[Id]
                               ,[T].[ReferenceId]
@@ -56702,7 +56658,7 @@ ALTER PROCEDURE [dbo].[ReferencekeysRead](@Login NVARCHAR(MAX)
                                 INNER JOIN [dbo].[Referencekeys] [T] ON [T].[Id] = [#].[Id]
                             WHERE [#].[_] = ''T''
                         UNION ALL
-                            SELECT ''Referencekey'' AS [Kind]
+                            SELECT ''Rfk'' AS [Kind]
                                   ,[#].[Recno]
                                   ,[O].[Id]
                                   ,[O].[ReferenceId]

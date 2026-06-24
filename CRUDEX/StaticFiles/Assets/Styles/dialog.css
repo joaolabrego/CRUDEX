@@ -1,4 +1,4 @@
-﻿.dialog {
+.dialog {
     text-align: center;
     margin: auto;
     padding: 1dvmin;
@@ -32,6 +32,7 @@
     margin-right: 2dvmin;
 }
 
-.dialog button:hover {
-    background: var(--grid-hover-row-color);
+.dialog button:hover,
+.dialog button:focus-visible {
+    background: var(--grid-current-row-color);
 }

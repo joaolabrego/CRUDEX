@@ -218,22 +218,26 @@
     width: 20dvmin;
     height: 3.5dvmin;
     font-size: var(--font-size-grid);
-    background: var(--background-color-control);
-    background-position: left;
+    text-align: center;
+    background-color: var(--background-color-control);
+    background-position: var(--button-icon-inset) center;
     background-repeat: no-repeat;
-    background-size: 15%;
+    background-size: var(--button-icon-size) auto;
 }
 
-.buttonsBar .button:hover {
-    background: var(--background-color-focus);
+.buttonsBar .button:hover,
+.buttonsBar .button:focus-visible {
+    background-color: var(--grid-current-row-color);
     background-repeat: no-repeat;
-    background-size: 15%;
+    background-position: var(--button-icon-inset) center;
+    background-size: var(--button-icon-size) auto;
 }
 
 .buttonsBar .button:active {
-    background: var(--background-color-active);
+    background-color: var(--background-color-active);
     background-repeat: no-repeat;
-    background-size: 15%;
+    background-position: var(--button-icon-inset) center;
+    background-size: var(--button-icon-size) auto;
 }
 
 .master-detail-workspace {

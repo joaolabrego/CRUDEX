@@ -14,6 +14,7 @@ export default class TScrollBar {
     #orientation = TScrollBar.Orientations.VERTICAL;
     #onChange = null;
     #value = 1;
+    #baseTitle = "";
 
     static Initialize(styles) {
         if (styles.ClassName !== "Styles")
@@ -52,7 +53,7 @@ export default class TScrollBar {
         this.#value = Number(this.#input.value);
 
         if (options.title)
-            this.#input.title = options.title;
+            this.setTitle(options.title);
 
         this.#input.oninput = () => {
             const value = Math.trunc(Number(this.#input.value));
@@ -62,6 +63,9 @@ export default class TScrollBar {
             if (this.#onChange)
                 this.#onChange(value);
         };
+
+        this.#input.addEventListener("mousemove", (event) => this.#showPageAtPointer(event));
+        this.#input.addEventListener("mouseleave", () => this.#restoreTitle());
 
         this.#root.appendChild(this.#input);
 
@@ -81,8 +85,38 @@ export default class TScrollBar {
     }
 
     setTitle(title) {
-        this.#input.title = title ?? "";
-        this.#root.title = title ?? "";
+        this.#baseTitle = title ?? "";
+        this.#restoreTitle();
+    }
+
+    #restoreTitle() {
+        this.#input.title = this.#baseTitle;
+        this.#root.title = this.#baseTitle;
+    }
+
+    #showPageAtPointer(event) {
+        const page = this.#pageFromPointer(event);
+        const title = `Página: ${page}`;
+        this.#input.title = title;
+        this.#root.title = title;
+    }
+
+    #pageFromPointer(event) {
+        const min = Number(this.#input.min);
+        const max = Number(this.#input.max);
+        if (max <= min)
+            return min;
+
+        const rect = this.#input.getBoundingClientRect();
+        const size = this.#orientation === TScrollBar.Orientations.HORIZONTAL
+            ? rect.width || 1
+            : rect.height || 1;
+        let ratio = this.#orientation === TScrollBar.Orientations.HORIZONTAL
+            ? (event.clientX - rect.left) / size
+            : (event.clientY - rect.top) / size;
+
+        ratio = Math.max(0, Math.min(1, ratio));
+        return Math.min(max, Math.max(min, Math.round(min + ratio * (max - min))));
     }
 
     get value() {

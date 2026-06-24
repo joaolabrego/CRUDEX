@@ -102,7 +102,7 @@
 }
 
 .grid tbody tr:nth-of-type(n):hover {
-    background-color: var(--grid-hover-row-color);
+    background-color: var(--background-color-focus);
 }
 
 .grid input[type=number]::-webkit-inner-spin-button,
@@ -114,6 +114,9 @@
     text-transform: uppercase;
     outline: 0;
     background-color: var(--background-color-focus);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
     width: var(--control-height);
     height: calc(0.5 * var(--control-height));
     border: 0;
@@ -122,20 +125,20 @@
     font-weight: inherit;
     cursor: pointer;
     border-radius: var(--border-radius);
-    background-size: 100% 100%;
     margin: 0.5dvmin 1.5dvmin;
 }
 
 .grid thead th:hover {
-    background: var(--grid-hover-row-color);
+    background: var(--background-color-focus);
 }
 
 .grid thead th:active {
     background: var(--background-color-active);
 }
 
-.grid th button:hover {
-    background: var(--grid-hover-row-color);
+.grid th button:hover,
+.grid th button:focus-visible {
+    background-color: var(--grid-current-row-color);
     background-size: 100% 100%;
 }
 

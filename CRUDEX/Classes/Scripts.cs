@@ -1,4 +1,4 @@
-﻿using CRUDEX.Classes;
+using CRUDEX.Classes;
 using ExcelDataReader;
 using System.Data;
 using System.Linq;
@@ -173,10 +173,47 @@ namespace crudex.Classes
                     }
                 });
             });
+            RenameExcelSheetsByTableAlias(dataset);
             ApplyPrimaryKeysFromExcelHeaders(dataset);
             StripPrimaryKeyMarkersFromExcelDataSet(dataset);
             return dataset;
         }
+
+        /// <summary>
+        /// Abas por Alias (2.0): renomeia Cat→Categories, Tbl→Tables, etc., conforme Tbl.Alias/Name.
+        /// Se não houver aba Tbl, assume planilha legada com nomes SQL nas abas.
+        /// </summary>
+        static void RenameExcelSheetsByTableAlias(DataSet dataset)
+        {
+            if (!dataset.Tables.Contains("Tbl"))
+                return;
+
+            var aliasToSql = BuildAliasMapFromTbl(dataset);
+            foreach (DataTable table in dataset.Tables.Cast<DataTable>().ToList())
+            {
+                if (aliasToSql.TryGetValue(table.TableName, out var sqlName))
+                    table.TableName = sqlName;
+            }
+        }
+
+        static Dictionary<string, string> BuildAliasMapFromTbl(DataSet dataset)
+        {
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (DataRow row in dataset.Tables["Tbl"]!.Rows)
+            {
+                var alias = Settings.ToString(row["Alias"]);
+                var name = Settings.ToString(row["Name"]);
+                if (string.IsNullOrWhiteSpace(alias) || string.IsNullOrWhiteSpace(name))
+                    continue;
+                map[alias] = name;
+            }
+
+            if (map.Count == 0)
+                throw new Exception("Tbl não possui pares Alias/Name.");
+
+            return map;
+        }
+
         private static async Task<DataSet> GetDataSet()
         {
             var dataset = (await Procedure.Execute(Settings.ConnectionString(),
