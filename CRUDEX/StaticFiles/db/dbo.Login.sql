@@ -59,7 +59,7 @@ ALTER PROCEDURE [dbo].[Login](@Parameters VARCHAR(MAX)
 		IF @RetryLogins >= @MaxRetryLogins
 			THROW 51000, 'Usuário está bloqueado', 1
 		IF NOT EXISTS(SELECT TOP 1 1
-						FROM [dbo].[SystemsUsers]
+						FROM [dbo].[Permissions]
 						WHERE [SystemId] = @SystemId
 							  AND [UserId] =  @UserId)
 			THROW 51000, 'Usuário não autorizado', 1
