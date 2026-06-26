@@ -1,7 +1,6 @@
 using CRUDEX.Classes;
 using ExcelDataReader;
 using System.Data;
-using System.Linq;
 using System.Text;
 using TDictionary = System.Collections.Generic.Dictionary<string, dynamic?>;
 using TDataRows = System.Collections.Generic.List<System.Data.DataRow>;
@@ -23,30 +22,6 @@ namespace crudex.Classes
             "UniqueIdentifier",
             "PkSequence",
             ], StringComparer.OrdinalIgnoreCase);
-
-        private static void AppendSqlIf(StringBuilder result, string indent, string keyword, string condition, string statement)
-        {
-            result.Append($"{indent}{keyword} {condition}\r\n");
-            result.Append($"{indent}    {statement}\r\n");
-        }
-
-        private static void AppendSqlIf(StringBuilder result, string indent, string condition, string statement)
-            => AppendSqlIf(result, indent, "IF", condition, statement);
-
-        private static void AppendSqlElseIf(StringBuilder result, string indent, string condition, string statement)
-            => AppendSqlIf(result, indent, "ELSE IF", condition, statement);
-
-        private static void AppendSqlIfBlock(StringBuilder result, string indent, string keyword, string condition)
-            => result.Append($"{indent}{keyword} {condition} BEGIN\r\n");
-
-        private static void AppendSqlIfBlock(StringBuilder result, string indent, string condition)
-            => AppendSqlIfBlock(result, indent, "IF", condition);
-
-        private static void AppendSqlElseIfBlock(StringBuilder result, string indent, string condition)
-            => AppendSqlIfBlock(result, indent, "ELSE IF", condition);
-
-        private static void AppendSqlEnd(StringBuilder result, string indent)
-            => result.Append($"{indent}END\r\n");
 
         private static string SqlCoalesce(string indent, IEnumerable<string> expressions)
         {
@@ -408,12 +383,6 @@ namespace crudex.Classes
         {
             if (items.Count == 0)
                 throw new Exception(message);
-        }
-
-        private static void RequireComparatorIds(string listIds, string comparatorType)
-        {
-            if (listIds == string.Empty)
-                throw new Exception($"Comparators: nenhum comparador do tipo '{comparatorType}' encontrado no metadado.");
         }
 
         private static string TableName(DataRow table) => Settings.ToString(table["Name"]);
@@ -2575,23 +2544,11 @@ namespace crudex.Classes
             throw new Exception($"Comparador padrão {preferredId} não permitido para coluna '{columnName}' (categoria {categoryId}). Permitidos: {string.Join(", ", allowed)}.");
         }
 
-        static string FormatComparatorIds(TDictionary[] comparators, params Func<TDictionary, bool>[] filters) =>
-            string.Join(", ", comparators.Where(item => filters.Any(filter => filter(item))).Select(item => Settings.ToLong(item["Id"])));
-
         static bool IsNullArity(object? arity) =>
             Settings.IsNull(arity) || string.IsNullOrWhiteSpace(Settings.ToString(arity));
 
-        static bool IsListComparator(TDictionary comparator) =>
-            IsNullArity(comparator["Arity"]);
-
         static bool IsBetweenComparator(TDictionary comparator) =>
             !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) > 2;
-
-        static bool IsBinaryComparator(TDictionary comparator) =>
-            !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) == 2;
-
-        static bool IsUnaryComparator(TDictionary comparator) =>
-            !IsNullArity(comparator["Arity"]) && Settings.ToLong(comparator["Arity"]) == 1;
 
         static void AppendComparatorPredicateFromMetadata(StringBuilder result, string indent, string opVariable, string columnRef, string dataType, string parameterName, bool isSearch, bool needsBetweenSlots, TDictionary[] comparators)
         {
