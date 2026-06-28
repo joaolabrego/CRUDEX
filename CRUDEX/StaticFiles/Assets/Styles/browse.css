@@ -1,0 +1,179 @@
+.Browse {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: center;
+    font-size: var(--font-size-Browse);
+    color: black;
+    border: solid 0.1dvmin black;
+    font-weight: normal;
+    white-space: nowrap;
+    max-width: 100%;
+    border-radius: var(--border-radius);
+}
+
+.Browse .Browse-bool {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-size: calc(var(--font-size-Browse) * 0.75);
+    font-weight: bold;
+    line-height: 1;
+}
+
+.Browse .Browse-bool-true {
+    color: green;
+}
+
+.Browse .Browse-bool-false {
+    color: red;
+}
+
+.Browse tbody td {
+    vertical-align: middle;
+}
+
+.Browse tbody tr {
+    height: calc((100% - var(--Browse-thead-height) - var(--Browse-tfoot-height)) / var(--rows-per-page));
+}
+
+.Browse tbody tr:nth-of-type(odd) {
+    background-color: var(--background-color-active);
+}
+
+.Browse tbody tr.currentRow,
+.Browse tbody tr.currentRow:hover {
+    background-color: var(--Browse-current-row-color);
+}
+
+.Browse td,
+.Browse th {
+    padding: 0.25dvmin;
+    border-right: solid 0.1dvmin black;
+}
+
+.Browse th {
+    border-top: solid 1px black;
+    text-align: center;
+}
+
+.Browse td.real {
+    text-align: right;
+}
+
+.Browse td.real::before {
+    content: 'R$ ';
+}
+
+.Browse thead tr:first-child th:first-child {
+    border-top-left-radius: var(--border-radius);
+}
+
+.Browse thead tr:first-child th:last-child {
+    border-top-right-radius: var(--border-radius);
+}
+
+.Browse tfoot tr:last-child th:first-child,
+.Browse tfoot tr:last-child td:first-child {
+    border-bottom-left-radius: var(--border-radius);
+}
+
+.Browse tfoot tr:last-child th:last-child,
+.Browse tfoot tr:last-child td:last-child {
+    border-bottom-right-radius: var(--border-radius);
+}
+
+.Browse thead tr,
+.Browse tfoot tr {
+    background-color: var(--background-color-focus);
+    position: sticky;
+}
+
+.Browse thead tr {
+    top: 0;
+    height: var(--Browse-thead-height);
+}
+
+.Browse tfoot tr {
+    bottom: 0;
+    height: var(--Browse-tfoot-height);
+}
+
+.Browse tbody tr:nth-of-type(n):hover {
+    background-color: var(--background-color-focus);
+}
+
+.Browse input[type=number]::-webkit-inner-spin-button,
+.Browse input[type=number]::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
+.Browse th button {
+    text-transform: uppercase;
+    outline: 0;
+    background-color: var(--background-color-focus);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    width: var(--control-height);
+    height: calc(0.5 * var(--control-height));
+    border: 0;
+    font-size: inherit;
+    color: inherit;
+    font-weight: inherit;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    margin: 0.5dvmin 1.5dvmin;
+}
+
+.Browse thead th:hover {
+    background: var(--background-color-focus);
+}
+
+.Browse thead th:active {
+    background: var(--background-color-active);
+}
+
+.Browse th button:hover,
+.Browse th button:focus-visible {
+    background-color: var(--Browse-current-row-color);
+    background-size: 100% 100%;
+}
+
+.Browse th button:active {
+    background-color: var(--background-color-active);
+    background-size: 100% 100%;
+}
+
+.numberInput {
+    text-align: right;
+    width: 10dvmin;
+    height: 3dvmin;
+    font-size: inherit;
+    float: left;
+}
+
+.container {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
+.Browse-viewport {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: var(--border-radius);
+}
+
+.Browse-disabled {
+    opacity: 0.6;
+}
