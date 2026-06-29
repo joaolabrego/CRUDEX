@@ -86,6 +86,33 @@ export default class TForm {
         const record = {};
         for (const column of this.#Grid.Table.Columns)
             record[column.Name] = null;
+        return this.#applyColumnDefaults(record);
+    }
+    #columnDefaultValue(column) {
+        const raw = column.Default ?? column.Domain?.Default;
+        if (TConfig.IsEmpty(raw))
+            return null;
+        const category = column.Domain?.Type?.Category?.Name;
+        if (category === "number")
+            return Number(raw);
+        if (category === "boolean")
+            return raw === true || raw === 1 || raw === "1" || String(raw).toLowerCase() === "true";
+        if (category === "string" || category === "text")
+            return String(raw);
+        try {
+            return TConfig.Evaluate(String(raw));
+        } catch {
+            return raw;
+        }
+    }
+    #applyColumnDefaults(record) {
+        for (const column of this.#Grid.Table.Columns) {
+            if (record[column.Name] != null)
+                continue;
+            const defaultValue = this.#columnDefaultValue(column);
+            if (defaultValue != null)
+                record[column.Name] = defaultValue;
+        }
         return record;
     }
     #copyRecord(source) {
@@ -127,6 +154,8 @@ export default class TForm {
     #updateConfirmButton() {
         if (this.#Action === TSystem.Actions.QUERY)
             return;
+        if (this.#isMasterDetail && !this.#masterForm && this.#isPersistAction())
+            this.#collectRecordValues();
         if (this.#masterForm && this.#isPersistAction()) {
             this.#HTML.ConfirmButton.innerText = "Confirmar";
             this.#HTML.ConfirmButton.style.backgroundImage = TForm.#Images.Confirm;
@@ -204,6 +233,7 @@ export default class TForm {
                 continue;
             this.#actualRecord[edit.column.Name] = value;
         }
+        this.#applyColumnDefaults(this.#actualRecord);
     }
 
     #editConfigureOptions() {
@@ -360,7 +390,7 @@ export default class TForm {
         return this.#Action !== TSystem.Actions.FILTER
             && this.#Action !== TSystem.Actions.SEARCH;
     }
-    #ensureLayout() {
+    async #ensureLayout() {
         if (this.#masterForm) {
             if (!this.#HTML.Form) {
                 this.#BuildForm(this.#HTML.Container);
@@ -408,9 +438,9 @@ export default class TForm {
             this.#HTML.Container.appendChild(workspace);
         }
 
-        this.#rebuildChildGrids(childTables);
+        await this.#rebuildChildGrids(childTables);
     }
-    #rebuildChildGrids(childTables) {
+    async #rebuildChildGrids(childTables) {
         this.#childGrids = [];
         this.#HTML.DetailTabs.replaceChildren();
         this.#HTML.DetailGridPanel.replaceChildren();
@@ -448,7 +478,24 @@ export default class TForm {
             this.#childGrids.push({ table: childTable, grid: childGrid, parentReference, section, tab });
         });
 
+        await Promise.all(this.#childGrids.map(({ grid }) => grid.Renderize(1, { emptyShell: true })));
         this.#selectChildTab(0, false);
+    }
+    #mergeStagedActualRecord(stageResult) {
+        const stagedJson = stageResult?.Parameters?.StagedActualRecord;
+        if (!stagedJson)
+            return;
+        let staged;
+        try {
+            staged = typeof stagedJson === "string" ? JSON.parse(stagedJson) : stagedJson;
+        } catch {
+            return;
+        }
+        for (const column of this.#Grid.Table.Columns) {
+            if (Object.hasOwn(staged, column.Name))
+                this.#actualRecord[column.Name] = staged[column.Name];
+        }
+        this.#lastRecord = this.#copyRecord(this.#actualRecord);
     }
     async #returnToCaller(gridPageNumber = null) {
         if (this.#masterForm)
@@ -597,12 +644,13 @@ export default class TForm {
                 return;
             }
             if (this.#showsPersist()) {
-                await TTransaction.stage(
+                const stageResult = await TTransaction.stage(
                     this.#Grid.Table,
                     this.#Action,
                     this.#actualRecord,
                     this.#persistLastRecord(),
                 );
+                this.#mergeStagedActualRecord(stageResult);
                 this.#lastRecord = this.#copyRecord(this.#actualRecord);
                 this.#isStaged = true;
                 this.#updateConfirmButton();
@@ -721,7 +769,7 @@ export default class TForm {
             default:
                 await this.#LoadRecord(columns);
         }
-        this.#ensureLayout();
+        await this.#ensureLayout();
         this.#clearFormFields();
         const baseOptions = this.#editConfigureOptions();
         for (const column of columns) {

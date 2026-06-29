@@ -144,8 +144,54 @@ namespace CRUDEX.Classes
 
             if (action == Actions.READ && !string.IsNullOrWhiteSpace(tableName))
                 await RecordCrypto.DecryptReadResultAsync(result.DataSet, tableName);
+            else if (action == Actions.PERSIST
+                && !string.IsNullOrWhiteSpace(tableName)
+                && procedureParameters is TDictionary stagedPersistParameters)
+                await AttachStagedActualRecordAsync(result, connectionString, stagedPersistParameters, tableName);
 
             return result;
+        }
+
+        static async Task AttachStagedActualRecordAsync(
+            TResult result,
+            string connectionString,
+            TDictionary persistParameters,
+            string tableName)
+        {
+            if (!persistParameters.TryGetValue("InParams", out dynamic? inParamsValue) || inParamsValue is not TDictionary inParams)
+                return;
+            if (!inParams.TryGetValue("Action", out dynamic? formActionValue)
+                || !string.Equals(Convert.ToString(formActionValue), Actions.CREATE, StringComparison.OrdinalIgnoreCase))
+                return;
+            if (!inParams.TryGetValue("TransactionId", out dynamic? transactionIdValue) || transactionIdValue == null)
+                return;
+
+            var stagedJson = await LoadStagedActualRecordAsync(
+                connectionString,
+                transactionIdValue,
+                tableName);
+            if (string.IsNullOrWhiteSpace(stagedJson))
+                return;
+
+            stagedJson = await RecordCrypto.DecryptRecordJsonAsync(stagedJson, tableName) ?? stagedJson;
+            result.Parameters["StagedActualRecord"] = stagedJson;
+        }
+
+        static async Task<string?> LoadStagedActualRecordAsync(string connectionString, dynamic transactionId, string tableName)
+        {
+            using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            using var command = new SqlCommand(@"
+                SELECT TOP 1 [ActualRecord]
+                FROM [dbo].[Operations]
+                WHERE [TransactionId] = @TransactionId
+                      AND [TableName] = @TableName
+                      AND [IsConfirmed] IS NULL
+                ORDER BY [Id] DESC", connection);
+            command.Parameters.Add(new SqlParameter("@TransactionId", transactionId ?? DBNull.Value));
+            command.Parameters.Add(new SqlParameter("@TableName", tableName));
+            var value = await command.ExecuteScalarAsync();
+            return value == null || value == DBNull.Value ? null : Convert.ToString(value);
         }
     }
 }

@@ -116,6 +116,14 @@ namespace CRUDEX.Classes
             procedureParameters["InParams"] = inParams;
         }
 
+        public static async Task<string?> DecryptRecordJsonAsync(string? json, string tableName)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return json;
+            var encryptedColumns = await GetEncryptedColumnsAsync(tableName);
+            return TransformRecordJson(json, encryptedColumns, encrypt: false);
+        }
+
         public static async Task DecryptReadResultAsync(DataSet dataSet, string mainTableName)
         {
             if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)

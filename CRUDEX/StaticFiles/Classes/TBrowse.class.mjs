@@ -327,10 +327,22 @@ export default class TBrowse {
 
         return this.#RecordSet.records;
     }
-    async Renderize(pageNumber = this.#PageNumber) {
+    async Renderize(pageNumber = this.#PageNumber, options = {}) {
         if (this.#IsRendering) return;
         this.#IsRendering = true;
         try {
+            if (options.emptyShell) {
+                this.#Data = [];
+                this.#RowCount = 0;
+                this.#PageNumber = 1;
+                this.#PageCount = 1;
+                this.#RowNumber = 0;
+                this.#BuildHtmlHead();
+                this.#BuildHtmlBody();
+                this.#BuildHtmlFoot();
+                this.#ScrollBar.setVisible(false);
+                return;
+            }
             this.#Data = await this.#ReadDataPage(pageNumber);
             this.#selectSearchedRow();
             if (this.#RowCount > 1)

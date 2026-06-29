@@ -64,7 +64,7 @@ export default class TTransaction {
     static async #persist(table, formAction, actualRecord, lastRecord = null) {
         if (!this.#transactionId)
             throw new Error("TransactionId é requerido.");
-        await this.#callExecute(this.#executeParameters(table, TSystem.Actions.PERSIST, {
+        return await this.#callExecute(this.#executeParameters(table, TSystem.Actions.PERSIST, {
             TransactionId: this.#transactionId,
             Action: formAction,
             LastRecord: lastRecord ? JSON.stringify(lastRecord) : null,
@@ -102,7 +102,7 @@ export default class TTransaction {
     static async stage(table, formAction, actualRecord, lastRecord = null) {
         this.#assertTable(table);
         await this.open(table);
-        await this.#persist(table, formAction, actualRecord, lastRecord);
+        return await this.#persist(table, formAction, actualRecord, lastRecord);
     }
 
     static async commit(table) {
