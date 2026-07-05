@@ -26,7 +26,7 @@ export default class TForm {
         IsFilterable: { source: "type", flag: "AskFilterable" },
         IsGridable: { source: "type", flag: "AskGridable" },
     };
-    static #FORM_GRID_COLUMNS = 5;
+    static #FORM_BROWSE_COLUMNS = 5;
 
     #Action = "";
     #ReturnAction = "";
@@ -377,11 +377,11 @@ export default class TForm {
         for (const el of cells)
             el.style.gridColumn = "";
 
-        const remainder = cells.length % TForm.#FORM_GRID_COLUMNS;
+        const remainder = cells.length % TForm.#FORM_BROWSE_COLUMNS;
         if (remainder === 0)
             return;
 
-        const startCol = Math.floor((TForm.#FORM_GRID_COLUMNS - remainder) / 2) + 1;
+        const startCol = Math.floor((TForm.#FORM_BROWSE_COLUMNS - remainder) / 2) + 1;
         cells.slice(-remainder).forEach((el, index) => {
             el.style.gridColumn = String(startCol + index);
         });

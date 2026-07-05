@@ -15,7 +15,7 @@ namespace CRUDEX.Classes
         public readonly int RowsPerChildPage = Convert.ToInt32(Settings.Get("ROWS_PER_CHILD_PAGE"));
         public readonly int RowsPerDropdownPage = Convert.ToInt32(Settings.Get("ROWS_PER_DROPDOWN_PAGE"));
         public readonly int IdleTimeInMinutesLimit = Convert.ToInt32(Settings.Get("IDLE_TIME_IN_MINUTES_LIMIT"));
-        public readonly bool PaddingGridLastPage = Convert.ToBoolean(Settings.Get("PADDING_GRID_LAST_PAGE"));
+        public readonly bool PaddingGridLastPage = Convert.ToBoolean(Settings.Get("PADDING_BROWSE_LAST_PAGE"));
         public readonly bool ReverseItemsWhenOpenUp = Convert.ToBoolean(Settings.Get("REVERSE_ITEMS_WHEN_OPEN_UP"));
         public string RsaPublicKey { get; private set; } = string.Empty;
         public dynamic? Data;

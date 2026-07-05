@@ -5,7 +5,7 @@
         public const string CONFIG = "config";
         public const string SCREEN = "screen";
         public const string MENU = "menu";
-        public const string GRID = "browse";
+        public const string BROWSE = "browse";
         public const string LOGIN = "login";
         public const string LOGOUT = "logout";
         public const string AUTHENTICATE = "authenticate";

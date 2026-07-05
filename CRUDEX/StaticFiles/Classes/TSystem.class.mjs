@@ -383,7 +383,7 @@ export default class TSystem {
                 TConfig.SetIdleTime();
                 TMenu.Renderize();
                 break;
-            case this.#Actions.GRID:
+            case this.#Actions.BROWSE:
                 new TBrowse(newValue[1], newValue[2]).Renderize();
                 break;
             case TSystem.Actions.RELOAD:
