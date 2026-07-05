@@ -24,7 +24,7 @@ namespace CRUDEX.Classes
             Dialog = File.ReadAllText(Path.Combine(directory, Settings.Get("DIALOG_STYLE")));
             Login = File.ReadAllText(Path.Combine(directory, Settings.Get("LOGIN_STYLE")));
             Menu = File.ReadAllText(Path.Combine(directory, Settings.Get("MENU_STYLE")));
-            Grid = File.ReadAllText(Path.Combine(directory, Settings.Get("GRID_STYLE")));
+            Grid = File.ReadAllText(Path.Combine(directory, Settings.Get("BROWSE_STYLE")));
             Form = File.ReadAllText(Path.Combine(directory, Settings.Get("FORM_STYLE")));
             Spinner = File.ReadAllText(Path.Combine(directory, Settings.Get("SPINNER_STYLE")));
             DropDown = File.ReadAllText(Path.Combine(directory, Settings.Get("DROPDOWN_STYLE")));

@@ -1,11 +1,11 @@
-.Browse {
+.grid {
     width: 100%;
     height: 100%;
     box-sizing: border-box;
     border-collapse: separate;
     border-spacing: 0;
     text-align: center;
-    font-size: var(--font-size-Browse);
+    font-size: var(--font-size-grid);
     color: black;
     border: solid 0.1dvmin black;
     font-weight: normal;
@@ -14,103 +14,103 @@
     border-radius: var(--border-radius);
 }
 
-.Browse .Browse-bool {
+.grid .grid-bool {
     display: block;
     width: 100%;
     text-align: center;
-    font-size: calc(var(--font-size-Browse) * 0.75);
+    font-size: calc(var(--font-size-grid) * 0.75);
     font-weight: bold;
     line-height: 1;
 }
 
-.Browse .Browse-bool-true {
+.grid .grid-bool-true {
     color: green;
 }
 
-.Browse .Browse-bool-false {
+.grid .grid-bool-false {
     color: red;
 }
 
-.Browse tbody td {
+.grid tbody td {
     vertical-align: middle;
 }
 
-.Browse tbody tr {
-    height: calc((100% - var(--Browse-thead-height) - var(--Browse-tfoot-height)) / var(--rows-per-page));
+.grid tbody tr {
+    height: calc((100% - var(--grid-thead-height) - var(--grid-tfoot-height)) / var(--rows-per-page));
 }
 
-.Browse tbody tr:nth-of-type(odd) {
+.grid tbody tr:nth-of-type(odd) {
     background-color: var(--background-color-active);
 }
 
-.Browse tbody tr.currentRow,
-.Browse tbody tr.currentRow:hover {
-    background-color: var(--Browse-current-row-color);
+.grid tbody tr.currentRow,
+.grid tbody tr.currentRow:hover {
+    background-color: var(--grid-current-row-color);
 }
 
-.Browse td,
-.Browse th {
+.grid td,
+.grid th {
     padding: 0.25dvmin;
     border-right: solid 0.1dvmin black;
 }
 
-.Browse th {
+.grid th {
     border-top: solid 1px black;
     text-align: center;
 }
 
-.Browse td.real {
+.grid td.real {
     text-align: right;
 }
 
-.Browse td.real::before {
+.grid td.real::before {
     content: 'R$ ';
 }
 
-.Browse thead tr:first-child th:first-child {
+.grid thead tr:first-child th:first-child {
     border-top-left-radius: var(--border-radius);
 }
 
-.Browse thead tr:first-child th:last-child {
+.grid thead tr:first-child th:last-child {
     border-top-right-radius: var(--border-radius);
 }
 
-.Browse tfoot tr:last-child th:first-child,
-.Browse tfoot tr:last-child td:first-child {
+.grid tfoot tr:last-child th:first-child,
+.grid tfoot tr:last-child td:first-child {
     border-bottom-left-radius: var(--border-radius);
 }
 
-.Browse tfoot tr:last-child th:last-child,
-.Browse tfoot tr:last-child td:last-child {
+.grid tfoot tr:last-child th:last-child,
+.grid tfoot tr:last-child td:last-child {
     border-bottom-right-radius: var(--border-radius);
 }
 
-.Browse thead tr,
-.Browse tfoot tr {
+.grid thead tr,
+.grid tfoot tr {
     background-color: var(--background-color-focus);
     position: sticky;
 }
 
-.Browse thead tr {
+.grid thead tr {
     top: 0;
-    height: var(--Browse-thead-height);
+    height: var(--grid-thead-height);
 }
 
-.Browse tfoot tr {
+.grid tfoot tr {
     bottom: 0;
-    height: var(--Browse-tfoot-height);
+    height: var(--grid-tfoot-height);
 }
 
-.Browse tbody tr:nth-of-type(n):hover {
+.grid tbody tr:nth-of-type(n):hover {
     background-color: var(--background-color-focus);
 }
 
-.Browse input[type=number]::-webkit-inner-spin-button,
-.Browse input[type=number]::-webkit-outer-spin-button {
+.grid input[type=number]::-webkit-inner-spin-button,
+.grid input[type=number]::-webkit-outer-spin-button {
     opacity: 1;
 }
 
-.Browse th button {
+.grid th button {
     text-transform: uppercase;
     outline: 0;
     background-color: var(--background-color-focus);
@@ -128,21 +128,21 @@
     margin: 0.5dvmin 1.5dvmin;
 }
 
-.Browse thead th:hover {
+.grid thead th:hover {
     background: var(--background-color-focus);
 }
 
-.Browse thead th:active {
+.grid thead th:active {
     background: var(--background-color-active);
 }
 
-.Browse th button:hover,
-.Browse th button:focus-visible {
-    background-color: var(--Browse-current-row-color);
+.grid th button:hover,
+.grid th button:focus-visible {
+    background-color: var(--grid-current-row-color);
     background-size: 100% 100%;
 }
 
-.Browse th button:active {
+.grid th button:active {
     background-color: var(--background-color-active);
     background-size: 100% 100%;
 }
@@ -165,7 +165,7 @@
     overflow: hidden;
 }
 
-.Browse-viewport {
+.grid-viewport {
     flex: 1;
     min-height: 0;
     min-width: 0;
@@ -174,6 +174,6 @@
     border-radius: var(--border-radius);
 }
 
-.Browse-disabled {
+.grid-disabled {
     opacity: 0.6;
 }
