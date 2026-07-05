@@ -5445,7 +5445,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('10' AS smallint)
                                 ,CAST(N'Usuários' AS nvarchar(20))
                                 ,CAST(N'Cadastro de Usuários' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Users' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Users' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5468,7 +5468,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('15' AS smallint)
                                 ,CAST(N'Tabelas' AS nvarchar(20))
                                 ,CAST(N'Cadastro de tabelas' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Tables' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Tables' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5491,7 +5491,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('20' AS smallint)
                                 ,CAST(N'Menus' AS nvarchar(20))
                                 ,CAST(N'Cadastro de menus' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Menus' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Menus' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5514,7 +5514,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('25' AS smallint)
                                 ,CAST(N'Sistemas' AS nvarchar(20))
                                 ,CAST(N'Cadastro de sistemas' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Systems' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Systems' AS nvarchar(50))
                                 ,CAST('3' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5537,7 +5537,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('30' AS smallint)
                                 ,CAST(N'Banco de Dados' AS nvarchar(20))
                                 ,CAST(N'Cadastro de bancos de dados' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Databases' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Databases' AS nvarchar(50))
                                 ,CAST('3' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5560,7 +5560,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('35' AS smallint)
                                 ,CAST(N'Colunas' AS nvarchar(20))
                                 ,CAST(N'Cadastro de colunas de tabelas' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Columns' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Columns' AS nvarchar(50))
                                 ,CAST('6' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5583,7 +5583,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('40' AS smallint)
                                 ,CAST(N'Tipos' AS nvarchar(20))
                                 ,CAST(N'Cadastro de tipos' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Types' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Types' AS nvarchar(50))
                                 ,CAST('6' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5629,7 +5629,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('50' AS smallint)
                                 ,CAST(N'Sistemas x BD' AS nvarchar(20))
                                 ,CAST(N'Associação entre sistemas e bancos de dados' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/SystemsDatabases' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/SystemsDatabases' AS nvarchar(50))
                                 ,CAST('9' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5652,7 +5652,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('55' AS smallint)
                                 ,CAST(N'Usuários x Sistemas' AS nvarchar(20))
                                 ,CAST(N'Associação entre usuários e sistemas' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/SystemsUsers' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/SystemsUsers' AS nvarchar(50))
                                 ,CAST('9' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5698,7 +5698,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('65' AS smallint)
                                 ,CAST(N'Tables' AS nvarchar(20))
                                 ,CAST(N'Cadastro de tabelas' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Tables' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Tables' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
@@ -5721,7 +5721,7 @@ INSERT INTO [dbo].[Menus] ([Id]
                                 ,CAST('70' AS smallint)
                                 ,CAST(N'Categorias' AS nvarchar(20))
                                 ,CAST(N'Cadastro de categorias' AS nvarchar(50))
-                                ,CAST(N'grid/crudex/Categories' AS nvarchar(50))
+                                ,CAST(N'browse/crudex/Categories' AS nvarchar(50))
                                 ,CAST('1' AS bigint)
                                 ,GETDATE()
                                 ,'crudex'
