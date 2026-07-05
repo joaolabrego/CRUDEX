@@ -28,9 +28,9 @@
 
 .tcheckbox-button {
 
-    width: var(--font-size-grid, 2dvmin);
+    width: var(--font-size-browse, 2dvmin);
 
-    height: var(--font-size-grid, 2dvmin);
+    height: var(--font-size-browse, 2dvmin);
 
     border: 0.2dvmin solid #666;
 
@@ -42,7 +42,7 @@
 
     justify-content: center;
 
-    font-size: calc(var(--font-size-grid, 2dvmin) * 0.75);
+    font-size: calc(var(--font-size-browse, 2dvmin) * 0.75);
 
     font-weight: bold;
 
@@ -170,9 +170,9 @@
 
     top: 0;
 
-    width: var(--font-size-grid, 2dvmin);
+    width: var(--font-size-browse, 2dvmin);
 
-    height: var(--font-size-grid, 2dvmin);
+    height: var(--font-size-browse, 2dvmin);
 
     min-width: 0;
 

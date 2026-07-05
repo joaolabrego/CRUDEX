@@ -1,11 +1,11 @@
-.grid {
+.browse {
     width: 100%;
     height: 100%;
     box-sizing: border-box;
     border-collapse: separate;
     border-spacing: 0;
     text-align: center;
-    font-size: var(--font-size-grid);
+    font-size: var(--font-size-browse);
     color: black;
     border: solid 0.1dvmin black;
     font-weight: normal;
@@ -14,103 +14,103 @@
     border-radius: var(--border-radius);
 }
 
-.grid .grid-bool {
+.browse .browse-bool {
     display: block;
     width: 100%;
     text-align: center;
-    font-size: calc(var(--font-size-grid) * 0.75);
+    font-size: calc(var(--font-size-browse) * 0.75);
     font-weight: bold;
     line-height: 1;
 }
 
-.grid .grid-bool-true {
+.browse .browse-bool-true {
     color: green;
 }
 
-.grid .grid-bool-false {
+.browse .browse-bool-false {
     color: red;
 }
 
-.grid tbody td {
+.browse tbody td {
     vertical-align: middle;
 }
 
-.grid tbody tr {
-    height: calc((100% - var(--grid-thead-height) - var(--grid-tfoot-height)) / var(--rows-per-page));
+.browse tbody tr {
+    height: calc((100% - var(--browse-thead-height) - var(--browse-tfoot-height)) / var(--rows-per-page));
 }
 
-.grid tbody tr:nth-of-type(odd) {
+.browse tbody tr:nth-of-type(odd) {
     background-color: var(--background-color-active);
 }
 
-.grid tbody tr.currentRow,
-.grid tbody tr.currentRow:hover {
-    background-color: var(--grid-current-row-color);
+.browse tbody tr.currentRow,
+.browse tbody tr.currentRow:hover {
+    background-color: var(--browse-current-row-color);
 }
 
-.grid td,
-.grid th {
+.browse td,
+.browse th {
     padding: 0.25dvmin;
     border-right: solid 0.1dvmin black;
 }
 
-.grid th {
+.browse th {
     border-top: solid 1px black;
     text-align: center;
 }
 
-.grid td.real {
+.browse td.real {
     text-align: right;
 }
 
-.grid td.real::before {
+.browse td.real::before {
     content: 'R$ ';
 }
 
-.grid thead tr:first-child th:first-child {
+.browse thead tr:first-child th:first-child {
     border-top-left-radius: var(--border-radius);
 }
 
-.grid thead tr:first-child th:last-child {
+.browse thead tr:first-child th:last-child {
     border-top-right-radius: var(--border-radius);
 }
 
-.grid tfoot tr:last-child th:first-child,
-.grid tfoot tr:last-child td:first-child {
+.browse tfoot tr:last-child th:first-child,
+.browse tfoot tr:last-child td:first-child {
     border-bottom-left-radius: var(--border-radius);
 }
 
-.grid tfoot tr:last-child th:last-child,
-.grid tfoot tr:last-child td:last-child {
+.browse tfoot tr:last-child th:last-child,
+.browse tfoot tr:last-child td:last-child {
     border-bottom-right-radius: var(--border-radius);
 }
 
-.grid thead tr,
-.grid tfoot tr {
+.browse thead tr,
+.browse tfoot tr {
     background-color: var(--background-color-focus);
     position: sticky;
 }
 
-.grid thead tr {
+.browse thead tr {
     top: 0;
-    height: var(--grid-thead-height);
+    height: var(--browse-thead-height);
 }
 
-.grid tfoot tr {
+.browse tfoot tr {
     bottom: 0;
-    height: var(--grid-tfoot-height);
+    height: var(--browse-tfoot-height);
 }
 
-.grid tbody tr:nth-of-type(n):hover {
+.browse tbody tr:nth-of-type(n):hover {
     background-color: var(--background-color-focus);
 }
 
-.grid input[type=number]::-webkit-inner-spin-button,
-.grid input[type=number]::-webkit-outer-spin-button {
+.browse input[type=number]::-webkit-inner-spin-button,
+.browse input[type=number]::-webkit-outer-spin-button {
     opacity: 1;
 }
 
-.grid th button {
+.browse th button {
     text-transform: uppercase;
     outline: 0;
     background-color: var(--background-color-focus);
@@ -128,21 +128,21 @@
     margin: 0.5dvmin 1.5dvmin;
 }
 
-.grid thead th:hover {
+.browse thead th:hover {
     background: var(--background-color-focus);
 }
 
-.grid thead th:active {
+.browse thead th:active {
     background: var(--background-color-active);
 }
 
-.grid th button:hover,
-.grid th button:focus-visible {
-    background-color: var(--grid-current-row-color);
+.browse th button:hover,
+.browse th button:focus-visible {
+    background-color: var(--browse-current-row-color);
     background-size: 100% 100%;
 }
 
-.grid th button:active {
+.browse th button:active {
     background-color: var(--background-color-active);
     background-size: 100% 100%;
 }
@@ -165,7 +165,7 @@
     overflow: hidden;
 }
 
-.grid-viewport {
+.browse-viewport {
     flex: 1;
     min-height: 0;
     min-width: 0;
@@ -174,6 +174,6 @@
     border-radius: var(--border-radius);
 }
 
-.grid-disabled {
+.browse-disabled {
     opacity: 0.6;
 }

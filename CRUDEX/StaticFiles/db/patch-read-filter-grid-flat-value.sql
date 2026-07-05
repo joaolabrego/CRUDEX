@@ -1,4 +1,4 @@
--- Correção do filtro com comparador no grid
+-- Correção do filtro com comparador no browse
 --
 -- Problema: o frontend envia {"DomainId":{"op":3,"value":1}}
 -- O SQL lia $.DomainId.op mas NÃO lia $.DomainId.value (só $.DomainId escalar).

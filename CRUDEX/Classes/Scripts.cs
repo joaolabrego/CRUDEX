@@ -1235,7 +1235,7 @@ namespace crudex.Classes
                 $"[{parentAlias}].[{key.PkColumn["Name"]}] = [{childAlias}].[{key.FkColumn["Name"]}]"));
 
         /// <summary>
-        /// Delete no catálogo Tables/Columns: integridade via References/Referencekeys (sem ParentTableId/ReferenceTableId).
+        /// Delete no catálogo Tables/Columns: intebrowseade via References/Referencekeys (sem ParentTableId/ReferenceTableId).
         /// </summary>
         static void AppendCatalogTableDeleteChecks(StringBuilder result, DataRow table)
         {

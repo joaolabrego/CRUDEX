@@ -9,7 +9,7 @@
         --background-color-focus: #dcdcdc;
         --background-color-active: #e0e0e0;
         --background-color-control: #ccc;
-        --font-size-grid: 1.8dvmin;
+        --font-size-browse: 1.8dvmin;
       }
 
       html,
@@ -40,29 +40,29 @@
         flex-direction: column;
       }
 
-      .grid-wrapper {
+      .browse-wrapper {
         flex: 1;
         overflow-y: auto;
       }
 
-      table.grid {
+      table.browse {
         width: 100%;
         border-collapse: collapse;
-        font-size: var(--font-size-grid);
+        font-size: var(--font-size-browse);
       }
 
-      .grid th,
-      .grid td {
+      .browse th,
+      .browse td {
         border: 1px solid #999;
         padding: 0.5dvmin;
         text-align: left;
       }
 
-      .grid tbody tr:nth-child(odd) {
+      .browse tbody tr:nth-child(odd) {
         background-color: var(--background-color-active);
       }
 
-      .grid thead {
+      .browse thead {
         background-color: var(--background-color-focus);
         position: sticky;
         top: 0;
@@ -82,8 +82,8 @@
       </div>
 
       <div class="content">
-        <div class="grid-wrapper">
-          <table class="grid">
+        <div class="browse-wrapper">
+          <table class="browse">
             <thead>
               <tr>
                 <th>ID</th>

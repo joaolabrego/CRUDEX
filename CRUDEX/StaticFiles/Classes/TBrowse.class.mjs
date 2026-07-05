@@ -92,9 +92,9 @@ export default class TBrowse {
     }
     setEnabled(enabled) {
         this.#enabled = enabled;
-        this.#HTML.Container?.classList.toggle("grid-disabled", !enabled);
+        this.#HTML.Container?.classList.toggle("browse-disabled", !enabled);
     }
-    #gridColumns() {
+    #browseColumns() {
         let columns = this.#Table.Columns.filter(column => column.IsGridable);
         if (!this.#masterForm)
             return columns;
@@ -162,7 +162,7 @@ export default class TBrowse {
 
         this.#HTML.Table = document.createElement("table");
         this.#HTML.Table.setAttribute("tabindex", "0");
-        this.#HTML.Table.className = "grid box";
+        this.#HTML.Table.className = "browse box";
         this.#HTML.Table.onkeydown = (event) => {
             if (event.altKey) {
                 switch (event.key) {
@@ -261,7 +261,7 @@ export default class TBrowse {
         this.#HTML.Table.appendChild(this.#HTML.Foot);
 
         this.#HTML.GridViewport = document.createElement("div");
-        this.#HTML.GridViewport.className = "grid-viewport";
+        this.#HTML.GridViewport.className = "browse-viewport";
         this.#HTML.GridViewport.appendChild(this.#HTML.Table);
         this.#HTML.Container.appendChild(this.#HTML.GridViewport);
     };
@@ -366,7 +366,7 @@ export default class TBrowse {
         } catch (error) {
             TScreen.ShowError(
                 error.message || error.Message,
-                `grid/${this.#Table.Database.Name}/${this.#Table.Name}`
+                `browse/${this.#Table.Database.Name}/${this.#Table.Name}`
             );
         } finally {
             this.#IsRendering = false;
@@ -399,12 +399,12 @@ export default class TBrowse {
 
         if (TCategoryHtml.isCheckbox(column.Domain.Type.Category)) {
             control = document.createElement("span");
-            control.className = "grid-bool";
+            control.className = "browse-bool";
             if (value === true) {
-                control.classList.add("grid-bool-true");
+                control.classList.add("browse-bool-true");
                 control.textContent = "\u2713";
             } else if (value === false) {
-                control.classList.add("grid-bool-false");
+                control.classList.add("browse-bool-false");
                 control.textContent = "\u2717";
             }
         } else {
@@ -416,7 +416,7 @@ export default class TBrowse {
     #BuildHtmlHead() {
         let tr = document.createElement("tr");
 
-        this.#gridColumns().forEach(
+        this.#browseColumns().forEach(
             (column) => {
                 let th = document.createElement("th");
 
@@ -490,7 +490,7 @@ export default class TBrowse {
                 else
                     this.#HTML.UpdateButton.click();
             };
-            this.#gridColumns().forEach(
+            this.#browseColumns().forEach(
                 (column) => {
                     const td = document.createElement("td");
 
@@ -510,7 +510,7 @@ export default class TBrowse {
             filtered = this.#RecordSet.isFiltered(),
             label;
 
-        th.colSpan = this.#gridColumns().length.toString();
+        th.colSpan = this.#browseColumns().length.toString();
         label = document.createElement("label");
         label.style.float = "left";
         label.innerHTML = "Página:&nbsp;&nbsp;";

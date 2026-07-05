@@ -11,7 +11,7 @@
 .form fieldset {
     border: none;
     color: black;
-    font-size: var(--font-size-grid);
+    font-size: var(--font-size-browse);
     font-weight: normal;
     text-align: left;
     width: 100%;
@@ -28,7 +28,7 @@
 
 .form .tedit-field {
     color: black;
-    font-size: var(--font-size-grid);
+    font-size: var(--font-size-browse);
     font-weight: normal;
     text-align: left;
     width: 100%;
@@ -175,8 +175,8 @@
 }
 
 .form input[type="checkbox"] {
-    width: var(--font-size-grid);
-    height: var(--font-size-grid);
+    width: var(--font-size-browse);
+    height: var(--font-size-browse);
 }
 
 .form input:not([type="checkbox"]):not(.tcheckbox-validity):not(.tdropdown-input) {
@@ -217,7 +217,7 @@
     margin-right: 5dvmin;
     width: 20dvmin;
     height: 3.5dvmin;
-    font-size: var(--font-size-grid);
+    font-size: var(--font-size-browse);
     text-align: center;
     background-color: var(--background-color-control);
     background-position: var(--button-icon-inset) center;
@@ -227,7 +227,7 @@
 
 .buttonsBar .button:hover,
 .buttonsBar .button:focus-visible {
-    background-color: var(--grid-current-row-color);
+    background-color: var(--browse-current-row-color);
     background-repeat: no-repeat;
     background-position: var(--button-icon-inset) center;
     background-size: var(--button-icon-size) auto;
@@ -306,11 +306,11 @@
     font-weight: bold;
 }
 
-.detail-grid-section .container {
+.detail-browse-section .container {
     --rows-per-page: var(--rows-per-child-page);
 }
 
-.detail-grid-panel {
+.detail-browse-panel {
     flex: 1;
     min-height: 0;
     display: flex;
@@ -323,7 +323,7 @@
     pointer-events: none;
 }
 
-.detail-grid-section {
+.detail-browse-section {
     display: none;
     flex: 1;
     min-height: 0;
@@ -331,7 +331,7 @@
     overflow: hidden;
 }
 
-.detail-grid-section.active {
+.detail-browse-section.active {
     display: flex;
 }
 

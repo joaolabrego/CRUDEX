@@ -1,5 +1,5 @@
 ﻿label {
-    font-size: calc(var(--font-size-grid) + 0.5dvmin);
+    font-size: calc(var(--font-size-browse) + 0.5dvmin);
 }
 .login {
     max-width: 30dvmin;

@@ -34,5 +34,5 @@
 
 .dialog button:hover,
 .dialog button:focus-visible {
-    background: var(--grid-current-row-color);
+    background: var(--browse-current-row-color);
 }

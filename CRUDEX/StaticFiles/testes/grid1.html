@@ -9,7 +9,7 @@
         --background-color-focus: #dcdcdc;
         --background-color-active: #e0e0e0;
         --background-color-control: #ccc;
-        --font-size-grid: 1.8dvmin;
+        --font-size-browse: 1.8dvmin;
       }
 
       html,
@@ -40,42 +40,42 @@
         flex-direction: column;
       }
 
-      .grid-wrapper {
+      .browse-wrapper {
         flex: 1;
         overflow-y: auto;
       }
 
-      .grid {
+      .browse {
         display: table;
         width: 100%;
-        font-size: var(--font-size-grid);
+        font-size: var(--font-size-browse);
         border-collapse: collapse;
       }
 
-      .grid-header,
-      .grid-row {
+      .browse-header,
+      .browse-row {
         display: table-row;
       }
 
-      .grid-cell {
+      .browse-cell {
         display: table-cell;
         border: 1px solid #999;
         padding: 0.5dvmin;
         text-align: left;
       }
 
-      .grid-header {
+      .browse-header {
         background-color: var(--background-color-focus);
         position: sticky;
         top: 0;
         z-index: 2;
       }
 
-      .grid-row:nth-child(odd) {
+      .browse-row:nth-child(odd) {
         background-color: var(--background-color-active);
       }
 
-      .grid-row.highlight {
+      .browse-row.highlight {
         background-color: var(--background-color-control) !important;
       }
 
@@ -92,21 +92,21 @@
       </div>
 
       <div class="content">
-        <div class="grid-wrapper" id="gridWrapper">
-          <div class="grid" id="grid">
-            <div class="grid-header">
-              <div class="grid-cell">ID</div>
-              <div class="grid-cell">Nome</div>
-              <div class="grid-cell">Descrição</div>
+        <div class="browse-wrapper" id="browseWrapper">
+          <div class="browse" id="browse">
+            <div class="browse-header">
+              <div class="browse-cell">ID</div>
+              <div class="browse-cell">Nome</div>
+              <div class="browse-cell">Descrição</div>
             </div>
 
             <script>
               for (let i = 1; i <= 20; i++) {
                 document.write(`
-                <div class="grid-row">
-                  <div class="grid-cell">${i}</div>
-                  <div class="grid-cell">Item ${i}</div>
-                  <div class="grid-cell">Descrição do item ${i}</div>
+                <div class="browse-row">
+                  <div class="browse-cell">${i}</div>
+                  <div class="browse-cell">Item ${i}</div>
+                  <div class="browse-cell">Descrição do item ${i}</div>
                 </div>`);
               }
             </script>
@@ -118,7 +118,7 @@
     </div>
 
     <script>
-      const rows = Array.from(document.querySelectorAll(".grid-row"));
+      const rows = Array.from(document.querySelectorAll(".browse-row"));
       let current = 0;
 
       const highlightRow = (index) => {

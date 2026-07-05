@@ -59,13 +59,13 @@ export default class TForm {
     #isStaged = false;
     #editBoxes = [];
 
-    constructor(grid, action, options = {}) {
-        if (!(grid instanceof TBrowse))
-            throw new Error("Argumento grid não é do tipo TBrowse.");
-        this.#Grid = grid;
+    constructor(browse, action, options = {}) {
+        if (!(browse instanceof TBrowse))
+            throw new Error("Argumento browse não é do tipo TBrowse.");
+        this.#Grid = browse;
         this.#masterForm = options.masterForm ?? null;
         this.#Action = action;
-        this.#ReturnAction = `grid/${this.#Grid.Table.Database.Name}/${this.#Grid.Table.Name}`;
+        this.#ReturnAction = `browse/${this.#Grid.Table.Database.Name}/${this.#Grid.Table.Name}`;
         this.#HTML.Container = document.createElement("div");
         this.#HTML.Container.className = "form-screen";
     }
@@ -375,7 +375,7 @@ export default class TForm {
             && el.style.display !== "none");
 
         for (const el of cells)
-            el.style.gridColumn = "";
+            el.style.browseColumn = "";
 
         const remainder = cells.length % TForm.#FORM_BROWSE_COLUMNS;
         if (remainder === 0)
@@ -383,7 +383,7 @@ export default class TForm {
 
         const startCol = Math.floor((TForm.#FORM_BROWSE_COLUMNS - remainder) / 2) + 1;
         cells.slice(-remainder).forEach((el, index) => {
-            el.style.gridColumn = String(startCol + index);
+            el.style.browseColumn = String(startCol + index);
         });
     }
     #showsChildDetail() {
@@ -428,10 +428,10 @@ export default class TForm {
             this.#HTML.DetailTabs = tabsBar;
             detailPane.appendChild(tabsBar);
 
-            const gridPanel = document.createElement("div");
-            gridPanel.className = "detail-grid-panel";
-            this.#HTML.DetailGridPanel = gridPanel;
-            detailPane.appendChild(gridPanel);
+            const browsePanel = document.createElement("div");
+            browsePanel.className = "detail-browse-panel";
+            this.#HTML.DetailGridPanel = browsePanel;
+            detailPane.appendChild(browsePanel);
 
             workspace.appendChild(detailPane);
             this.#BuildButtonsBar(workspace);
@@ -460,7 +460,7 @@ export default class TForm {
             this.#HTML.DetailTabs.appendChild(tab);
 
             const section = document.createElement("section");
-            section.className = "detail-grid-section";
+            section.className = "detail-browse-section";
 
             const parentReference = TSystem.GetReferenceBetween(
                 childTable,
@@ -475,10 +475,10 @@ export default class TForm {
             childGrid.setEnabled(false);
             section.appendChild(childGrid.HostElement);
             this.#HTML.DetailGridPanel.appendChild(section);
-            this.#childGrids.push({ table: childTable, grid: childGrid, parentReference, section, tab });
+            this.#childGrids.push({ table: childTable, browse: childGrid, parentReference, section, tab });
         });
 
-        await Promise.all(this.#childGrids.map(({ grid }) => grid.Renderize(1, { emptyShell: true })));
+        await Promise.all(this.#childGrids.map(({ browse }) => browse.Renderize(1, { emptyShell: true })));
         this.#selectChildTab(0, false);
     }
     #mergeStagedActualRecord(stageResult) {
@@ -497,11 +497,11 @@ export default class TForm {
         }
         this.#lastRecord = this.#copyRecord(this.#actualRecord);
     }
-    async #returnToCaller(gridPageNumber = null) {
+    async #returnToCaller(browsePageNumber = null) {
         if (this.#masterForm)
             await this.#masterForm.Renderize();
-        else if (gridPageNumber != null)
-            await this.#Grid.Renderize(gridPageNumber);
+        else if (browsePageNumber != null)
+            await this.#Grid.Renderize(browsePageNumber);
         else
             await this.#Grid.Renderize();
     }
@@ -548,17 +548,17 @@ export default class TForm {
         const filter = this.#buildParentChildTableFilter(entry.table, entry.parentReference);
         if (!filter)
             return;
-        const { grid } = entry;
-        grid.RecordSet.setTableFilter(filter);
-        await grid.Renderize(1);
+        const { browse } = entry;
+        browse.RecordSet.setTableFilter(filter);
+        await browse.Renderize(1);
     }
     #updateDetailAccess() {
         if (!this.#isMasterDetail)
             return;
         const enabled = this.canAccessChildren;
         this.#HTML.DetailPane?.classList.toggle("detail-pane-disabled", !enabled);
-        for (const { grid } of this.#childGrids)
-            grid.setEnabled(enabled);
+        for (const { browse } of this.#childGrids)
+            browse.setEnabled(enabled);
     }
     async #refreshChildGrids() {
         if (!this.#isMasterDetail || !this.canAccessChildren)
